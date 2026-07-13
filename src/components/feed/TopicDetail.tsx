@@ -9,7 +9,7 @@ import { GlassCard } from "@/components/ui/GlassCard";
 import { timeAgo } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { CommentSection } from "./CommentSection";
-import type { TopicWithAuthor } from "@/lib/types";
+import type { TopicWithAuthor, TopicMedia } from "@/lib/types";
 import type { CommentWithAuthor } from "@/lib/data/comments";
 
 export function TopicDetail({
@@ -66,6 +66,30 @@ export function TopicDetail({
           {topic.body && (
             <div className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-slate-300">
               {topic.body}
+            </div>
+          )}
+
+          {topic.media && topic.media.length > 0 && (
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              {topic.media.map((m, i) => (
+                <div key={i} className="overflow-hidden rounded-lg border border-white/[0.06]">
+                  {m.type === "video" ? (
+                    <video
+                      src={m.url}
+                      controls
+                      className="max-h-96 w-full object-contain"
+                    />
+                  ) : (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={m.url}
+                      alt=""
+                      className="max-h-96 w-full cursor-pointer object-contain transition-opacity hover:opacity-90"
+                      onClick={() => window.open(m.url, "_blank")}
+                    />
+                  )}
+                </div>
+              ))}
             </div>
           )}
 

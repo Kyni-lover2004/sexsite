@@ -8,6 +8,7 @@ import {
   Calendar,
   Filter,
   MessageCircle,
+  CheckCircle2,
 } from "lucide-react";
 import Link from "next/link";
 import { Avatar } from "@/components/ui/Avatar";
@@ -21,7 +22,7 @@ import type { Profile } from "@/lib/types";
 export function PeopleGrid({ currentUserId }: { currentUserId: string | null }) {
   const supabase = createClient();
   const supa = supabase as any;
-  const [users, setUsers] = useState<Profile[]>([]);
+  const [users, setUsers] = useState<(Profile & { available_for_chat: boolean })[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [showFilters, setShowFilters] = useState(false);
@@ -31,6 +32,7 @@ export function PeopleGrid({ currentUserId }: { currentUserId: string | null }) 
     minAge: "",
     maxAge: "",
     onlineOnly: false,
+    availableOnly: false,
   });
 
   useEffect(() => {
@@ -64,6 +66,7 @@ export function PeopleGrid({ currentUserId }: { currentUserId: string | null }) 
     if (filters.city && !u.city?.toLowerCase().includes(filters.city.toLowerCase()))
       return false;
     if (filters.onlineOnly && !isOnline(u.last_seen)) return false;
+    if (filters.availableOnly && !u.available_for_chat) return false;
 
     const age = ageFromBirthDate(u.birth_date);
     if (filters.minAge && age !== null && age < Number(filters.minAge)) return false;
@@ -160,17 +163,30 @@ export function PeopleGrid({ currentUserId }: { currentUserId: string | null }) 
                 min={0}
               />
             </div>
-            <label className="flex items-center gap-2 text-sm text-slate-300">
-              <input
-                type="checkbox"
-                checked={filters.onlineOnly}
-                onChange={(e) =>
-                  setFilters({ ...filters, onlineOnly: e.target.checked })
-                }
-                className="rounded border-white/20 bg-base-800 accent-accent"
-              />
-              Только онлайн
-            </label>
+            <div className="flex flex-col gap-2">
+              <label className="flex items-center gap-2 text-sm text-slate-300">
+                <input
+                  type="checkbox"
+                  checked={filters.onlineOnly}
+                  onChange={(e) =>
+                    setFilters({ ...filters, onlineOnly: e.target.checked })
+                  }
+                  className="rounded border-white/20 bg-base-800 accent-accent"
+                />
+                Только онлайн
+              </label>
+              <label className="flex items-center gap-2 text-sm text-emerald-400">
+                <input
+                  type="checkbox"
+                  checked={filters.availableOnly}
+                  onChange={(e) =>
+                    setFilters({ ...filters, availableOnly: e.target.checked })
+                  }
+                  className="rounded border-white/20 bg-base-800 accent-emerald-500"
+                />
+                Готовы пообщаться
+              </label>
+            </div>
           </GlassCard>
         </motion.div>
       )}
@@ -199,7 +215,6 @@ export function PeopleGrid({ currentUserId }: { currentUserId: string | null }) 
               }}
             >
               <GlassCard interactive className="group relative overflow-hidden p-4">
-                {/* Hover glow overlay */}
                 <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-accent/[0.03] to-gold/[0.02] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
 
                 <div className="relative flex items-start gap-3">
@@ -233,6 +248,12 @@ export function PeopleGrid({ currentUserId }: { currentUserId: string | null }) 
                         <span className="flex items-center gap-1">
                           <Calendar size={12} />
                           {ageFromBirthDate(user.birth_date)} лет
+                        </span>
+                      )}
+                      {user.available_for_chat && (
+                        <span className="inline-flex items-center gap-1 text-emerald-400">
+                          <CheckCircle2 size={12} />
+                          Готов(а) общаться
                         </span>
                       )}
                     </div>

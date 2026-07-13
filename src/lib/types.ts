@@ -17,8 +17,9 @@ export interface Profile {
   bio: string | null;
   interests: string[];
   city: string | null;
-  birth_date: string | null; // ISO date
+  birth_date: string | null;
   gender: Gender;
+  available_for_chat: boolean;
   last_seen: string;
   created_at: string;
   updated_at: string;
@@ -38,12 +39,18 @@ export interface Topic {
   title: string;
   body: string;
   tags: string[];
+  media: TopicMedia[];
   status: TopicStatus;
   view_count: number;
   like_count: number;
   comment_count: number;
   created_at: string;
   updated_at: string;
+}
+
+export interface TopicMedia {
+  type: "image" | "video";
+  url: string;
 }
 
 // Topic joined with its author profile (used in the feed)

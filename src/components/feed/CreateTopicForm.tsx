@@ -1,23 +1,41 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { ArrowLeft, Send, AlertCircle, Sparkles } from "lucide-react";
+import { ArrowLeft, Send, AlertCircle, Sparkles, Image, X, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Input, Textarea } from "@/components/ui/Input";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { createClient } from "@/lib/supabase/client";
+import type { TopicMedia } from "@/lib/types";
 
 export function CreateTopicForm() {
   const router = useRouter();
   const supabase = createClient();
+  const fileRef = useRef<HTMLInputElement>(null);
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [tags, setTags] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [media, setMedia] = useState<{ file: File; preview: string; uploading: boolean }[]>([]);
+
+  async function handleMediaSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
+    for (const file of files) {
+      const preview = URL.createObjectURL(file);
+      setMedia((prev) => [...prev, { file, preview, uploading: false }]);
+    }
+    if (fileRef.current) fileRef.current.value = "";
+  }
+
+  function removeMedia(i: number) {
+    const item = media[i];
+    URL.revokeObjectURL(item.preview);
+    setMedia((prev) => prev.filter((_, idx) => idx !== i));
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -34,6 +52,36 @@ export function CreateTopicForm() {
     }
 
     const supa = supabase as any;
+
+    // Upload media
+    const uploadedMedia: TopicMedia[] = [];
+    for (const item of media) {
+      try {
+        const ext = item.file.name.split(".").pop() ?? "jpg";
+        const isVideo = item.file.type.startsWith("video/");
+        const path = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+
+        const { error: uploadError } = await (supabase as any).storage
+          .from("topic-media")
+          .upload(path, item.file, { contentType: item.file.type });
+
+        if (uploadError) throw uploadError;
+
+        const { data: urlData } = await (supabase as any).storage
+          .from("topic-media")
+          .getPublicUrl(path);
+
+        uploadedMedia.push({
+          type: isVideo ? "video" : "image",
+          url: urlData.publicUrl,
+        });
+      } catch (err) {
+        console.error("Media upload error:", err);
+        setError("Ошибка загрузки медиа");
+        setSaving(false);
+        return;
+      }
+    }
 
     // Archive any existing active topic
     await supa
@@ -55,6 +103,7 @@ export function CreateTopicForm() {
         title: title.trim(),
         body: body.trim(),
         tags: tagsList,
+        media: uploadedMedia.length > 0 ? uploadedMedia : [],
       })
       .select("id")
       .single();
@@ -65,6 +114,9 @@ export function CreateTopicForm() {
       setError(insertError.message);
       return;
     }
+
+    // Cleanup previews
+    media.forEach((m) => URL.revokeObjectURL(m.preview));
 
     if (data) {
       router.push(`/topic/${data.id}`);
@@ -129,6 +181,46 @@ export function CreateTopicForm() {
                 placeholder="Раскройте тему…"
                 rows={5}
               />
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-slate-400">
+                Фото / Видео
+              </label>
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/*,video/*"
+                multiple
+                className="hidden"
+                onChange={handleMediaSelect}
+              />
+              <div className="flex flex-wrap gap-2">
+                {media.map((item, i) => (
+                  <div key={i} className="relative h-20 w-20 overflow-hidden rounded-lg border border-white/[0.08]">
+                    {item.file.type.startsWith("video/") ? (
+                      <video src={item.preview} className="h-full w-full object-cover" />
+                    ) : (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={item.preview} alt="" className="h-full w-full object-cover" />
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => removeMedia(i)}
+                      className="absolute right-0.5 top-0.5 grid h-5 w-5 place-items-center rounded-full bg-black/60 text-white"
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => fileRef.current?.click()}
+                  className="flex h-20 w-20 items-center justify-center rounded-lg border border-dashed border-white/[0.12] text-slate-500 transition-colors hover:border-accent/50 hover:text-accent-soft"
+                >
+                  <Image size={20} />
+                </button>
+              </div>
             </div>
 
             <div>

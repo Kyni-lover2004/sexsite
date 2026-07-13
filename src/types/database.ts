@@ -31,6 +31,7 @@ export interface Database {
           city: string | null;
           birth_date: string | null;
           gender: Gender;
+          available_for_chat: boolean;
           last_seen: string;
           created_at: string;
           updated_at: string;
@@ -46,6 +47,7 @@ export interface Database {
           city?: string | null;
           birth_date?: string | null;
           gender?: Gender;
+          available_for_chat?: boolean;
           last_seen?: string;
           created_at?: string;
           updated_at?: string;
@@ -80,6 +82,7 @@ export interface Database {
           title: string;
           body: string;
           tags: string[];
+          media: Json;
           status: TopicStatus;
           view_count: number;
           like_count: number;
@@ -93,6 +96,7 @@ export interface Database {
           title: string;
           body?: string;
           tags?: string[];
+          media?: Json;
           status?: TopicStatus;
           view_count?: number;
           like_count?: number;

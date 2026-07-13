@@ -12,6 +12,8 @@ import {
   MessageCircle,
   Camera,
   Loader2,
+  MessageSquare,
+  CheckCircle2,
 } from "lucide-react";
 import Link from "next/link";
 import { Avatar } from "@/components/ui/Avatar";
@@ -35,7 +37,10 @@ export function ProfileView({ profile, isOwn }: ProfileViewProps) {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [usernameError, setUsernameError] = useState("");
+  const [available, setAvailable] = useState(profile.available_for_chat);
   const [form, setForm] = useState({
+    username: profile.username,
     display_name: profile.display_name ?? "",
     bio: profile.bio ?? "",
     city: profile.city ?? "",
@@ -78,9 +83,47 @@ export function ProfileView({ profile, isOwn }: ProfileViewProps) {
     setUploadingAvatar(false);
   }
 
+  async function toggleAvailable() {
+    const next = !available;
+    setAvailable(next);
+    await (supabase as any)
+      .from("profiles")
+      .update({ available_for_chat: next })
+      .eq("id", profile.id);
+  }
+
   async function handleSave() {
     const supa = supabase as any;
     setSaving(true);
+    setUsernameError("");
+
+    const newUsername = form.username.trim().toLowerCase();
+    if (newUsername !== profile.username) {
+      const { data: existing } = await supa
+        .from("profiles")
+        .select("id")
+        .eq("username", newUsername)
+        .maybeSingle();
+
+      if (existing) {
+        setUsernameError("Этот username уже занят");
+        setSaving(false);
+        return;
+      }
+
+      if (newUsername.length < 3) {
+        setUsernameError("Минимум 3 символа");
+        setSaving(false);
+        return;
+      }
+
+      if (!/^[a-z0-9_]+$/.test(newUsername)) {
+        setUsernameError("Только латиница, цифры и _");
+        setSaving(false);
+        return;
+      }
+    }
+
     const interests = form.interests
       .split(",")
       .map((s) => s.trim())
@@ -89,6 +132,7 @@ export function ProfileView({ profile, isOwn }: ProfileViewProps) {
     await supa
       .from("profiles")
       .update({
+        username: newUsername,
         display_name: form.display_name || null,
         bio: form.bio || null,
         city: form.city || null,
@@ -107,7 +151,6 @@ export function ProfileView({ profile, isOwn }: ProfileViewProps) {
     <div>
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
         <GlassCard premium className="relative overflow-hidden p-6">
-          {/* Gradient banner behind avatar */}
           <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-br from-accent/20 via-accent-deep/10 to-gold/10" />
           <div className="absolute inset-x-0 top-24 h-px bg-gradient-to-r from-transparent via-accent/30 to-transparent" />
 
@@ -120,10 +163,8 @@ export function ProfileView({ profile, isOwn }: ProfileViewProps) {
                 lastSeen={profile.last_seen}
                 showPresence
               />
-              {/* Glow behind avatar */}
               <div className="pointer-events-none absolute inset-0 -z-10 rounded-full bg-accent/20 blur-xl" />
 
-              {/* Avatar upload overlay (only when own profile) */}
               {isOwn && (
                 <>
                   <input
@@ -152,6 +193,21 @@ export function ProfileView({ profile, isOwn }: ProfileViewProps) {
             <div className="min-w-0 flex-1">
               {editing ? (
                 <div className="space-y-3">
+                  <div>
+                    <label className="mb-1.5 block text-xs font-medium text-slate-400">
+                      Username
+                    </label>
+                    <Input
+                      value={form.username}
+                      onChange={(e) =>
+                        setForm({ ...form, username: e.target.value })
+                      }
+                      placeholder="username"
+                    />
+                    {usernameError && (
+                      <p className="mt-1 text-xs text-red-400">{usernameError}</p>
+                    )}
+                  </div>
                   <Input
                     value={form.display_name}
                     onChange={(e) =>
@@ -250,6 +306,38 @@ export function ProfileView({ profile, isOwn }: ProfileViewProps) {
                       {online ? "В сети" : `Был(а) ${timeAgo(profile.last_seen)}`}
                     </span>
                   </div>
+
+                  {(available || isOwn) && (
+                    <div className="mt-3">
+                      {isOwn ? (
+                        <button
+                          onClick={toggleAvailable}
+                          className={`flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium transition-all ${
+                            available
+                              ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+                              : "bg-slate-800/50 text-slate-500 border border-slate-700/50 hover:text-slate-300"
+                          }`}
+                        >
+                          {available ? (
+                            <>
+                              <CheckCircle2 size={14} />
+                              Готов(а) пообщаться сейчас
+                            </>
+                          ) : (
+                            <>
+                              <MessageSquare size={14} />
+                              Включить «готов(а) пообщаться»
+                            </>
+                          )}
+                        </button>
+                      ) : available ? (
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-medium text-emerald-400 border border-emerald-500/30">
+                          <CheckCircle2 size={14} />
+                          Готов(а) пообщаться
+                        </span>
+                      ) : null}
+                    </div>
+                  )}
 
                   {profile.interests.length > 0 && (
                     <div className="mt-3 flex flex-wrap gap-1.5">

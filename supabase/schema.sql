@@ -37,6 +37,7 @@ create table if not exists public.profiles (
   birth_date   date,                        -- age is derived, never stored raw
   gender       gender default 'prefer_not_to_say',
   last_seen    timestamptz default now(),   -- powers "online" indicator
+  available_for_chat boolean default false  -- "готов(а) пообщаться сейчас"
   created_at   timestamptz default now(),
   updated_at   timestamptz default now()
 );
@@ -77,6 +78,7 @@ create table if not exists public.topics (
   title          text not null check (char_length(title) between 3 and 160),
   body           text not null default '',
   tags           text[] default '{}',
+  media          jsonb default '[]'::jsonb,  -- [{type:"image"|"video",url:"..."}]
   status         topic_status not null default 'active',
   view_count     bigint not null default 0,
   like_count     integer not null default 0,   -- denormalised (kept via triggers)
@@ -356,6 +358,10 @@ insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_typ
 values ('chat-images', 'chat-images', true, 10485760, array['image/png', 'image/jpeg', 'image/webp', 'image/gif'])
 on conflict (id) do nothing;
 
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('topic-media', 'topic-media', true, 20971520, array['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'video/mp4', 'video/webm', 'video/quicktime'])
+on conflict (id) do nothing;
+
 -- Storage RLS: avatars — authenticated users can read/upload
 drop policy if exists "Avatar read" on storage.objects;
 create policy "Avatar read" on storage.objects
@@ -381,6 +387,15 @@ create policy "Chat image read" on storage.objects
 drop policy if exists "Chat image write" on storage.objects;
 create policy "Chat image write" on storage.objects
   for insert with check (bucket_id = 'chat-images' and auth.role() = 'authenticated');
+
+-- Storage RLS: topic-media — authenticated can upload, all authenticated can read
+drop policy if exists "Topic media read" on storage.objects;
+create policy "Topic media read" on storage.objects
+  for select using (bucket_id = 'topic-media' and auth.role() = 'authenticated');
+
+drop policy if exists "Topic media write" on storage.objects;
+create policy "Topic media write" on storage.objects
+  for insert with check (bucket_id = 'topic-media' and auth.role() = 'authenticated');
 
 -- =============================================================
 --  REALTIME — broadcast message + typing changes
