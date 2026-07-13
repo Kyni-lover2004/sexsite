@@ -1,0 +1,262 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-display: "Space Grotesk", system-ui, sans-serif;
+}
+
+* {
+  border-color: theme("colors.base.700");
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-base-950 text-slate-100 antialiased;
+  background-image:
+    radial-gradient(ellipse at 15% -5%, rgba(225, 29, 120, 0.12), transparent 50%),
+    radial-gradient(ellipse at 85% 0%, rgba(245, 158, 11, 0.07), transparent 45%),
+    radial-gradient(ellipse at 50% 60%, rgba(225, 29, 120, 0.04), transparent 50%);
+  background-attachment: fixed;
+  min-height: 100vh;
+  position: relative;
+}
+
+/* Animated floating orbs behind content */
+body::before,
+body::after {
+  content: "";
+  position: fixed;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+  filter: blur(80px);
+  animation: orb-float 16s ease-in-out infinite;
+}
+
+body::before {
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(225, 29, 120, 0.08), transparent 70%);
+  top: -10%;
+  left: -5%;
+}
+
+body::after {
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, rgba(245, 158, 11, 0.06), transparent 70%);
+  bottom: -10%;
+  right: -5%;
+  animation-delay: -8s;
+}
+
+@keyframes orb-float {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  25% { transform: translate(30px, -20px) scale(1.05); }
+  50% { transform: translate(-20px, 15px) scale(0.95); }
+  75% { transform: translate(15px, 25px) scale(1.02); }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Reusable component classes for the design system                   */
+/* ------------------------------------------------------------------ */
+@layer components {
+  /* Glassmorphism surface */
+  .glass {
+    @apply bg-base-800/50 backdrop-blur-xl border border-white/[0.06] shadow-glass;
+  }
+
+  .glass-strong {
+    @apply bg-base-800/70 backdrop-blur-2xl border border-white/[0.08] shadow-glass;
+  }
+
+  /* Premium glassmorphism with gradient border */
+  .glass-premium {
+    position: relative;
+    @apply bg-base-800/60 backdrop-blur-2xl shadow-glass;
+    border: 1px solid transparent;
+    background-clip: padding-box;
+  }
+  .glass-premium::before {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(
+      135deg,
+      rgba(225, 29, 120, 0.3),
+      rgba(245, 158, 11, 0.15),
+      transparent 60%
+    );
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  /* Neon border with animated sweep */
+  .neon-border {
+    position: relative;
+  }
+  .neon-border::before {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    padding: 1px;
+    background: conic-gradient(
+      from var(--border-angle, 0deg),
+      transparent 40%,
+      rgba(225, 29, 120, 0.6) 50%,
+      rgba(245, 158, 11, 0.4) 55%,
+      transparent 60%
+    );
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    animation: neon-spin 4s linear infinite;
+  }
+
+  @keyframes neon-spin {
+    to { --border-angle: 360deg; }
+  }
+  @property --border-angle {
+    syntax: "<angle>";
+    initial-value: 0deg;
+    inherits: false;
+  }
+
+  /* Gradient text accent */
+  .text-gradient {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, #f472b6, #e11d78, #f59e0b);
+  }
+
+  .text-gradient-gold {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, #fbbf24, #f59e0b, #d97706);
+  }
+
+  /* Glow text */
+  .glow-text {
+    text-shadow: 0 0 12px rgba(225, 29, 120, 0.4), 0 0 30px rgba(225, 29, 120, 0.15);
+  }
+
+  /* Focus ring used across inputs / buttons */
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70 focus-visible:ring-offset-2 focus-visible:ring-offset-base-950;
+  }
+
+  /* Shimmer button overlay */
+  .btn-shimmer {
+    position: relative;
+    overflow: hidden;
+  }
+  .btn-shimmer::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      105deg,
+      transparent 40%,
+      rgba(255, 255, 255, 0.15) 45%,
+      rgba(255, 255, 255, 0.25) 50%,
+      rgba(255, 255, 255, 0.15) 55%,
+      transparent 60%
+    );
+    transform: translateX(-100%) skewX(-15deg);
+    transition: none;
+  }
+  .btn-shimmer:hover::after {
+    animation: shimmer-sweep 0.6s ease-out;
+  }
+
+  @keyframes shimmer-sweep {
+    0% { transform: translateX(-100%) skewX(-15deg); }
+    100% { transform: translateX(200%) skewX(-15deg); }
+  }
+
+  /* Particle field background */
+  .particle-field {
+    position: relative;
+    overflow: hidden;
+  }
+  .particle-field::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+      radial-gradient(1px 1px at 10% 20%, rgba(244, 114, 182, 0.4), transparent),
+      radial-gradient(1px 1px at 30% 70%, rgba(245, 158, 11, 0.3), transparent),
+      radial-gradient(1px 1px at 55% 15%, rgba(244, 114, 182, 0.3), transparent),
+      radial-gradient(1px 1px at 70% 55%, rgba(245, 158, 11, 0.25), transparent),
+      radial-gradient(1px 1px at 85% 35%, rgba(244, 114, 182, 0.35), transparent),
+      radial-gradient(1px 1px at 20% 85%, rgba(245, 158, 11, 0.2), transparent),
+      radial-gradient(1.5px 1.5px at 45% 45%, rgba(244, 114, 182, 0.3), transparent),
+      radial-gradient(1px 1px at 90% 80%, rgba(244, 114, 182, 0.25), transparent);
+    pointer-events: none;
+    animation: particle-twinkle 4s ease-in-out infinite alternate;
+    z-index: 0;
+  }
+
+  @keyframes particle-twinkle {
+    0% { opacity: 0.4; }
+    100% { opacity: 1; }
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: theme("colors.base.950");
+}
+::-webkit-scrollbar-thumb {
+  background: theme("colors.base.600");
+  border-radius: 9999px;
+  border: 2px solid theme("colors.base.950");
+}
+::-webkit-scrollbar-thumb:hover {
+  background: theme("colors.accent.deep");
+}
+
+/* Skeleton shimmer — enhanced with gradient */
+.skeleton {
+  @apply relative overflow-hidden bg-base-700/40 rounded-lg;
+}
+.skeleton::after {
+  @apply absolute inset-0 -translate-x-full animate-shimmer;
+  content: "";
+  background-image: linear-gradient(
+    90deg,
+    transparent,
+    rgba(225, 29, 120, 0.04),
+    rgba(245, 158, 11, 0.04),
+    transparent
+  );
+}
+
+/* Reduced motion respect */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
