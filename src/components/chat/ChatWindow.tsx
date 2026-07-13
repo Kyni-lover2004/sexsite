@@ -323,7 +323,7 @@ export function ChatWindow({
   }, [currentUserId, supabase]);
 
   return (
-    <div className="flex h-[calc(100dvh-12rem)] flex-col">
+    <div className="flex h-[calc(100svh-12rem)] flex-col">
       {/* Header */}
       <div className="mb-3 flex items-center gap-3">
         <Link

@@ -31,7 +31,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     href === "/" ? pathname === "/" : pathname.startsWith(href);
 
   return (
-    <div className="relative min-h-dvh">
+    <div className="relative min-h-svh">
       {/* Desktop sidebar */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-white/[0.04] bg-base-900/70 px-4 py-6 backdrop-blur-2xl md:flex">
         {/* Logo */}

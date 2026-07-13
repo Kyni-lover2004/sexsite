@@ -13,10 +13,14 @@
 
 html {
   scroll-behavior: smooth;
+  /* Prevent mobile browser from resizing on keyboard open */
+  height: -webkit-fill-available;
 }
 
 body {
   @apply bg-base-950 text-slate-100 antialiased;
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
   background-image:
     radial-gradient(ellipse at 15% -5%, rgba(225, 29, 120, 0.12), transparent 50%),
     radial-gradient(ellipse at 85% 0%, rgba(245, 158, 11, 0.07), transparent 45%),
