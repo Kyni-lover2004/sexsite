@@ -59,6 +59,7 @@ export function ChatWindow({
   const [sending, setSending] = useState(false);
   const [peerKey, setPeerKey] = useState<JsonWebKey | null>(null);
   const [decryptError, setDecryptError] = useState(false);
+  const [sendError, setSendError] = useState("");
 
   // Initialize keys and fetch messages
   useEffect(() => {
@@ -235,9 +236,13 @@ export function ChatWindow({
           { ...data, plaintext: text.trim() },
         ]);
         setText("");
+        setSendError("");
+      } else if (error) {
+        setSendError("Не удалось отправить сообщение");
       }
     } catch (err) {
       console.error("Send error:", err);
+      setSendError("Ошибка отправки");
     }
 
     setSending(false);
@@ -286,9 +291,13 @@ export function ChatWindow({
           ...prev,
           { ...data, plaintext: metaPayload },
         ]);
+        setSendError("");
+      } else if (error) {
+        setSendError("Не удалось отправить фото");
       }
     } catch (err) {
       console.error("Image send error:", err);
+      setSendError("Ошибка отправки фото. Проверьте, создан ли бакет chat-images в Supabase.");
     }
 
     setSending(false);
@@ -442,6 +451,13 @@ export function ChatWindow({
           })
         )}
       </div>
+
+      {/* Error */}
+      {sendError && (
+        <p className="mt-2 rounded-lg bg-red-500/10 border border-red-500/20 px-3 py-2 text-xs text-red-400">
+          {sendError}
+        </p>
+      )}
 
       {/* Input */}
       {peerKey && (
