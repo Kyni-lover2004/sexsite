@@ -48,6 +48,7 @@ export function Tag({
   const Comp = onClick ? "button" : "span";
   return (
     <Comp
+      type={onClick ? "button" : undefined}
       onClick={onClick}
       className={cn(
         "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium transition-all duration-200",

@@ -50,6 +50,7 @@ export function ProfileView({ profile, photos, isOwn }: ProfileViewProps) {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [usernameError, setUsernameError] = useState("");
+  const [saveError, setSaveError] = useState("");
   const [available, setAvailable] = useState(profile.available_for_chat);
   const [form, setForm] = useState({
     username: profile.username,
@@ -182,6 +183,7 @@ export function ProfileView({ profile, photos, isOwn }: ProfileViewProps) {
     const supa = supabase as any;
     setSaving(true);
     setUsernameError("");
+    setSaveError("");
 
     const newUsername = form.username.trim().toLowerCase();
     if (newUsername !== profile.username) {
@@ -215,20 +217,50 @@ export function ProfileView({ profile, photos, isOwn }: ProfileViewProps) {
       .map((s) => s.trim())
       .filter(Boolean);
 
-    await supa
+    const profileUpdate = {
+      username: newUsername,
+      display_name: form.display_name || null,
+      status: form.status || null,
+      bio: form.bio || null,
+      city: form.city || null,
+      birth_date: form.birth_date || null,
+      gender: form.gender,
+      dating_goal: form.dating_goal || null,
+      interests,
+    };
+
+    const { error: updateError } = await supa
       .from("profiles")
-      .update({
-        username: newUsername,
-        display_name: form.display_name || null,
-        status: form.status || null,
-        bio: form.bio || null,
-        city: form.city || null,
-        birth_date: form.birth_date || null,
-        gender: form.gender,
-        dating_goal: form.dating_goal || null,
-        interests,
-      })
+      .update(profileUpdate)
       .eq("id", profile.id);
+
+    if (updateError) {
+      console.error("Profile save error:", updateError);
+      if (updateError.message?.includes("dating_goal")) {
+        const { dating_goal: _datingGoal, ...fallbackUpdate } = profileUpdate;
+        const { error: fallbackError } = await supa
+          .from("profiles")
+          .update(fallbackUpdate)
+          .eq("id", profile.id);
+
+        if (!fallbackError) {
+          setSaveError(
+            "Основные поля и интересы сохранены. Поле цели знакомства появится после применения обновленного supabase/schema.sql."
+          );
+          setSaving(false);
+          router.refresh();
+          return;
+        }
+      }
+
+      setSaveError(
+        updateError.message?.includes("dating_goal")
+          ? "В Supabase еще не применена новая схема профиля. Примените supabase/schema.sql и сохраните профиль снова."
+          : `Не удалось сохранить профиль: ${updateError.message}`
+      );
+      setSaving(false);
+      return;
+    }
 
     setSaving(false);
     setEditing(false);
@@ -448,6 +480,11 @@ export function ProfileView({ profile, photos, isOwn }: ProfileViewProps) {
                       Отмена
                     </Button>
                   </div>
+                  {saveError && (
+                    <p className="rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+                      {saveError}
+                    </p>
+                  )}
                 </div>
               ) : (
                 <>
