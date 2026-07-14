@@ -82,7 +82,7 @@ export default async function ConversationPage({ params }: Props) {
   }
 
   return (
-    <AppShell>
+    <AppShell noPadding>
       <ChatWindow
         conversationId={conversation.id}
         currentUserId={userId}

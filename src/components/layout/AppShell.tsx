@@ -24,7 +24,13 @@ const NAV: NavItem[] = [
 /**
  * Responsive app shell for the premium black-gold interface.
  */
-export function AppShell({ children }: { children: React.ReactNode }) {
+export function AppShell({
+  children,
+  noPadding = false,
+}: {
+  children: React.ReactNode;
+  noPadding?: boolean;
+}) {
   const pathname = usePathname();
 
   const isActive = (href: string) =>
@@ -102,10 +108,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Main content */}
-      <main className="relative z-10 pb-24 md:pl-64 md:pb-0">
-        <div className="mx-auto w-full max-w-4xl px-4 py-6 md:px-8 md:py-10">
-          {children}
-        </div>
+      <main className={cn(
+        "relative z-10 flex flex-col md:pl-64 min-w-0",
+        noPadding ? "h-svh pb-16 md:pb-0" : "pb-24 md:pb-0"
+      )}>
+        {noPadding ? (
+          <div className="w-full flex-1 flex flex-col min-h-0">
+            {children}
+          </div>
+        ) : (
+          <div className="mx-auto w-full max-w-4xl px-4 py-6 md:px-8 md:py-10">
+            {children}
+          </div>
+        )}
       </main>
 
       {/* Mobile bottom nav */}
