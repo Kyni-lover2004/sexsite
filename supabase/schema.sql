@@ -47,7 +47,8 @@ create table if not exists public.profiles (
 );
 
 alter table public.profiles
-  add column if not exists dating_goal text;
+  add column if not exists dating_goal text,
+  add column if not exists banned_until timestamptz;
 
 -- Derived age helper (kept out of the table to avoid stale data)
 create or replace function public.profile_age(bd date)
@@ -397,10 +398,24 @@ $$;
 -- =============================================================
 --  ADMIN RLS POLICIES — admins can modify / delete anything
 -- =============================================================
--- Admin can update any profile (e.g. ban)
+-- Admin can update/delete any profile
 drop policy if exists profiles_admin_update on public.profiles;
 create policy profiles_admin_update on public.profiles
   for update using (public.is_admin());
+
+drop policy if exists profiles_admin_delete on public.profiles;
+create policy profiles_admin_delete on public.profiles
+  for delete using (public.is_admin());
+
+-- Admin can delete any profile photos
+drop policy if exists profile_photos_admin_delete on public.profile_photos;
+create policy profile_photos_admin_delete on public.profile_photos
+  for delete using (public.is_admin());
+
+-- Admin can delete encryption keys
+drop policy if exists keys_admin_delete on public.encryption_keys;
+create policy keys_admin_delete on public.encryption_keys
+  for delete using (public.is_admin());
 
 -- Admin can delete any topic
 drop policy if exists topics_admin_delete on public.topics;
@@ -415,6 +430,21 @@ create policy topics_admin_update on public.topics
 -- Admin can delete any comment
 drop policy if exists comments_admin_delete on public.comments;
 create policy comments_admin_delete on public.comments
+  for delete using (public.is_admin());
+
+-- Admin can delete any reaction
+drop policy if exists reactions_admin_delete on public.reactions;
+create policy reactions_admin_delete on public.reactions
+  for delete using (public.is_admin());
+
+-- Admin can delete any conversation
+drop policy if exists conversations_admin_delete on public.conversations;
+create policy conversations_admin_delete on public.conversations
+  for delete using (public.is_admin());
+
+-- Admin can delete any message
+drop policy if exists messages_admin_delete on public.messages;
+create policy messages_admin_delete on public.messages
   for delete using (public.is_admin());
 
 -- =============================================================

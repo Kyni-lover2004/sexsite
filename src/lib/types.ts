@@ -25,6 +25,7 @@ export interface Profile {
   last_seen: string;
   role: UserRole;
   is_banned: boolean;
+  banned_until: string | null;
   premium_until: string | null;
   created_at: string;
   updated_at: string;

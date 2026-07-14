@@ -39,15 +39,64 @@ export function AdminPanel({ currentUserId, users, topics }: AdminPanelProps) {
   const [query, setQuery] = useState("");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [banOptionsUserId, setBanOptionsUserId] = useState<string | null>(null);
 
   /* ───── User actions ───── */
 
-  async function toggleBan(userId: string, currentlyBanned: boolean) {
+  async function banUser(userId: string, duration: "30m" | "1d" | "3d" | "permanent") {
     setActionLoading(userId);
-    await supa
+    let banned_until: string | null = null;
+    const now = new Date();
+    
+    if (duration === "30m") {
+      banned_until = new Date(now.getTime() + 30 * 60 * 1000).toISOString();
+    } else if (duration === "1d") {
+      banned_until = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString();
+    } else if (duration === "3d") {
+      banned_until = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000).toISOString();
+    }
+
+    const { error } = await supa
       .from("profiles")
-      .update({ is_banned: !currentlyBanned })
+      .update({ is_banned: true, banned_until })
       .eq("id", userId);
+
+    if (error) {
+      alert(`Ошибка при бане: ${error.message}`);
+    }
+
+    setActionLoading(null);
+    setBanOptionsUserId(null);
+    router.refresh();
+  }
+
+  async function unbanUser(userId: string) {
+    setActionLoading(userId);
+    const { error } = await supa
+      .from("profiles")
+      .update({ is_banned: false, banned_until: null })
+      .eq("id", userId);
+
+    if (error) {
+      alert(`Ошибка при разбане: ${error.message}`);
+    }
+
+    setActionLoading(null);
+    router.refresh();
+  }
+
+  async function deleteUser(userId: string) {
+    if (!window.confirm("Вы уверены, что хотите НАВСЕГДА удалить этот профиль? Все топики, сообщения, комментарии, фото и ключи шифрования пользователя будут безвозвратно удалены из базы данных.")) {
+      return;
+    }
+    setActionLoading(userId);
+    const { error } = await supa
+      .from("profiles")
+      .delete()
+      .eq("id", userId);
+    if (error) {
+      alert(`Ошибка при удалении профиля: ${error.message}`);
+    }
     setActionLoading(null);
     router.refresh();
   }
@@ -226,7 +275,7 @@ export function AdminPanel({ currentUserId, users, topics }: AdminPanelProps) {
                         {user.is_banned && (
                           <span className="inline-flex items-center gap-1 rounded-full bg-red-500/15 px-2 py-0.5 text-[10px] font-semibold text-red-400">
                             <Ban size={10} />
-                            ЗАБАНЕН
+                            ЗАБАНЕН {user.banned_until ? `до ${new Date(user.banned_until).toLocaleString("ru-RU", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}` : "навсегда"}
                           </span>
                         )}
                         {user.premium_until &&
@@ -246,25 +295,90 @@ export function AdminPanel({ currentUserId, users, topics }: AdminPanelProps) {
 
                     {/* Actions */}
                     {user.id !== currentUserId && (
-                      <div className="flex flex-shrink-0 gap-2">
-                        <Button
-                          variant={user.is_banned ? "primary" : "danger"}
-                          size="sm"
-                          onClick={() => toggleBan(user.id, user.is_banned)}
-                          disabled={actionLoading === user.id}
-                        >
-                          {user.is_banned ? (
-                            <>
-                              <CheckCircle2 size={14} />
-                              Разбан
-                            </>
-                          ) : (
-                            <>
-                              <Ban size={14} />
-                              Бан
-                            </>
-                          )}
-                        </Button>
+                      <div className="flex flex-shrink-0 items-center gap-2">
+                        {banOptionsUserId === user.id ? (
+                          <div className="flex flex-wrap items-center gap-1">
+                            <span className="text-[11px] text-slate-400 mr-1">Срок:</span>
+                            <Button
+                              variant="danger"
+                              size="sm"
+                              className="h-7 px-2 text-xs"
+                              onClick={() => banUser(user.id, "30m")}
+                              disabled={actionLoading === user.id}
+                            >
+                              30м
+                            </Button>
+                            <Button
+                              variant="danger"
+                              size="sm"
+                              className="h-7 px-2 text-xs"
+                              onClick={() => banUser(user.id, "1d")}
+                              disabled={actionLoading === user.id}
+                            >
+                              1д
+                            </Button>
+                            <Button
+                              variant="danger"
+                              size="sm"
+                              className="h-7 px-2 text-xs"
+                              onClick={() => banUser(user.id, "3d")}
+                              disabled={actionLoading === user.id}
+                            >
+                              3д
+                            </Button>
+                            <Button
+                              variant="danger"
+                              size="sm"
+                              className="h-7 px-2 text-xs"
+                              onClick={() => banUser(user.id, "permanent")}
+                              disabled={actionLoading === user.id}
+                            >
+                              Навсегда
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 px-2 text-xs"
+                              onClick={() => setBanOptionsUserId(null)}
+                            >
+                              Отмена
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5">
+                            {user.is_banned ? (
+                              <Button
+                                variant="primary"
+                                size="sm"
+                                onClick={() => unbanUser(user.id)}
+                                disabled={actionLoading === user.id}
+                              >
+                                <CheckCircle2 size={14} />
+                                Разбан
+                              </Button>
+                            ) : (
+                              <Button
+                                variant="danger"
+                                size="sm"
+                                onClick={() => setBanOptionsUserId(user.id)}
+                                disabled={actionLoading === user.id}
+                              >
+                                <Ban size={14} />
+                                Бан
+                              </Button>
+                            )}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="border-red-500/20 text-red-400 hover:bg-red-500/10"
+                              onClick={() => deleteUser(user.id)}
+                              disabled={actionLoading === user.id}
+                            >
+                              <Trash2 size={14} />
+                              Удалить
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
