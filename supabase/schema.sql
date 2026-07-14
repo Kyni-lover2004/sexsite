@@ -208,7 +208,7 @@ create trigger trg_topics_updated before update on public.topics
 
 -- comment_count maintenance
 create or replace function public.sync_comment_count()
-returns trigger language plpgsql as $$
+returns trigger language plpgsql security definer as $$
 begin
   if (tg_op = 'INSERT') then
     update public.topics set comment_count = comment_count + 1 where id = new.topic_id;
@@ -224,7 +224,7 @@ create trigger trg_comment_count after insert or delete on public.comments
 
 -- like_count maintenance (topic reactions only)
 create or replace function public.sync_like_count()
-returns trigger language plpgsql as $$
+returns trigger language plpgsql security definer as $$
 begin
   if (tg_op = 'INSERT') and new.topic_id is not null then
     update public.topics set like_count = like_count + 1 where id = new.topic_id;
@@ -240,7 +240,7 @@ create trigger trg_like_count after insert or delete on public.reactions
 
 -- keep conversation.updated_at fresh on new messages (for sorting inbox)
 create or replace function public.bump_conversation()
-returns trigger language plpgsql as $$
+returns trigger language plpgsql security definer as $$
 begin
   update public.conversations set updated_at = now() where id = new.conversation_id;
   return null;
