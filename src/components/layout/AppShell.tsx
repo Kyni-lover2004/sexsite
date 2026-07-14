@@ -41,7 +41,7 @@ export function AppShell({
       <div className="pointer-events-none fixed inset-x-0 top-0 z-0 h-40 border-b border-gold/10 bg-[linear-gradient(180deg,rgb(var(--gold-glow)/0.12),transparent)]" />
 
       {/* Desktop sidebar */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-gold/10 bg-base-950/82 px-4 py-6 shadow-[18px_0_60px_rgba(0,0,0,0.34)] backdrop-blur-2xl md:flex">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-gold/10 bg-base-950/98 px-4 py-6 shadow-[18px_0_60px_rgba(0,0,0,0.34)] md:flex">
         {/* Logo */}
         <Link href="/" className="group mb-9 flex items-center gap-3 px-2">
           <motion.span
@@ -128,7 +128,7 @@ export function AppShell({
         <ThemeToggle />
       </div>
 
-      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-gold/10 bg-base-950/90 shadow-[0_-18px_45px_rgba(0,0,0,0.42)] backdrop-blur-2xl md:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-gold/10 bg-base-950/98 shadow-[0_-18px_45px_rgba(0,0,0,0.42)] md:hidden">
         <div className="mx-auto flex max-w-md items-stretch justify-around">
           {NAV.map((item) => {
             const active = isActive(item.href);
