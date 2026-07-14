@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
@@ -64,6 +64,10 @@ export function ProfileView({ profile, photos, isOwn }: ProfileViewProps) {
   });
 
   const online = isOnline(profile.last_seen);
+
+  useEffect(() => {
+    setAvailable(profile.available_for_chat);
+  }, [profile.available_for_chat]);
 
   async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -163,11 +167,15 @@ export function ProfileView({ profile, photos, isOwn }: ProfileViewProps) {
   async function toggleAvailable() {
     const next = !available;
     setAvailable(next);
-    await (supabase as any)
+    const { error } = await (supabase as any)
       .from("profiles")
       .update({ available_for_chat: next })
       .eq("id", profile.id);
-    router.refresh();
+
+    if (error) {
+      setAvailable(!next);
+      console.error("Available status update error:", error);
+    }
   }
 
   async function handleSave() {
@@ -513,10 +521,10 @@ export function ProfileView({ profile, photos, isOwn }: ProfileViewProps) {
                       {isOwn ? (
                         <button
                           onClick={toggleAvailable}
-                          className={`flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium transition-all ${
+                          className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium shadow-inner-glow transition-all ${
                             available
-                              ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
-                              : "bg-slate-800/50 text-slate-500 border border-slate-700/50 hover:text-slate-300"
+                              ? "border border-emerald-500/25 bg-emerald-500/10 text-emerald-600 hover:border-emerald-500/40 dark:text-emerald-400"
+                              : "border border-gold/25 bg-base-900/65 text-warm-200 hover:border-gold/45 hover:bg-gold/10 hover:text-warm-100"
                           }`}
                         >
                           {available ? (
