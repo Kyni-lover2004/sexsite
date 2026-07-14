@@ -14,13 +14,18 @@ interface NavItem {
 }
 
 const NAV: NavItem[] = [
-  { href: "/", label: "Обсуждения", icon: MessageSquare },
-  { href: "/people", label: "Поиск", icon: Users },
-  { href: "/chat", label: "Чаты", icon: MessagesSquare },
-  { href: "/support", label: "Поддержка", icon: Headphones },
   { href: "/profile", label: "Профиль", icon: User },
+  { href: "/chat", label: "Чаты", icon: MessagesSquare },
+  { href: "/people", label: "Поиск", icon: Users },
+  { href: "/", label: "Обсуждения", icon: MessageSquare },
   { href: "/premium", label: "Премиум", icon: Crown },
 ];
+
+const SUPPORT: NavItem = {
+  href: "/support",
+  label: "Поддержка",
+  icon: Headphones,
+};
 
 export function AppShell({
   children,
@@ -36,8 +41,6 @@ export function AppShell({
 
   return (
     <div className="relative min-h-svh overflow-hidden">
-      <div className="pointer-events-none fixed inset-x-0 top-0 z-0 h-40 border-b border-gold/10 bg-[linear-gradient(180deg,rgb(var(--gold-glow)/0.12),transparent)]" />
-
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-gold/10 bg-base-950/98 px-4 py-6 shadow-[18px_0_60px_rgba(0,0,0,0.34)] md:flex">
         <Link href="/" className="group mb-9 flex items-center gap-3 px-2">
           <motion.span
@@ -59,43 +62,59 @@ export function AppShell({
 
         <div className="mx-3 mb-4 h-px bg-gradient-to-r from-transparent via-gold/35 to-transparent" />
 
-        <nav className="flex flex-1 flex-col gap-1">
-          {NAV.map((item) => {
+        <nav className="flex flex-1 flex-col">
+          {NAV.map((item, index) => {
             const active = isActive(item.href);
             return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
-                  active
-                    ? "text-warm-100"
-                    : "text-slate-500 hover:bg-gold/[0.05] hover:text-warm-100"
-                )}
-              >
-                {active && (
-                  <motion.span
-                    layoutId="nav-active"
-                    className="absolute inset-0 -z-10 rounded-xl border border-gold/20 bg-accent-gradient-subtle shadow-[0_0_24px_rgb(var(--gold-glow)/0.08)]"
-                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                  />
-                )}
-                <item.icon
+              <div key={item.href}>
+                <Link
+                  href={item.href}
                   className={cn(
-                    "h-5 w-5 transition-colors",
-                    active && "text-gold-soft drop-shadow-[0_0_8px_rgb(var(--gold-glow)/0.42)]"
+                    "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
+                    active
+                      ? "text-warm-100"
+                      : "text-slate-500 hover:bg-gold/[0.05] hover:text-warm-100"
                   )}
-                />
-                {item.label}
-                {active && (
-                  <span className="ml-auto h-1.5 w-1.5 rounded-full bg-gold-soft shadow-neon-gold" />
+                >
+                  {active && (
+                    <motion.span
+                      layoutId="nav-active"
+                      className="absolute inset-0 -z-10 rounded-xl border border-gold/20 bg-accent-gradient-subtle shadow-[0_0_24px_rgb(var(--gold-glow)/0.08)]"
+                      transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                    />
+                  )}
+                  <item.icon
+                    className={cn(
+                      "h-5 w-5 transition-colors",
+                      active && "text-gold-soft drop-shadow-[0_0_8px_rgb(var(--gold-glow)/0.42)]"
+                    )}
+                  />
+                  {item.label}
+                  {active && (
+                    <span className="ml-auto h-1.5 w-1.5 rounded-full bg-gold-soft shadow-neon-gold" />
+                  )}
+                </Link>
+                {index < NAV.length - 1 && (
+                  <div className="mx-2 h-px bg-gradient-to-r from-transparent via-black/70 to-transparent dark:via-black" />
                 )}
-              </Link>
+              </div>
             );
           })}
         </nav>
 
-        <div className="mx-3 mt-4 mb-3 h-px bg-gradient-to-r from-transparent via-gold/10 to-transparent" />
+        <Link
+          href={SUPPORT.href}
+          className={cn(
+            "mb-3 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
+            isActive(SUPPORT.href)
+              ? "bg-gold/10 text-warm-100"
+              : "text-slate-500 hover:bg-gold/[0.05] hover:text-warm-100"
+          )}
+        >
+          <SUPPORT.icon className="h-5 w-5" />
+          {SUPPORT.label}
+        </Link>
+        <div className="mx-3 mb-3 h-px bg-gradient-to-r from-transparent via-black/70 to-transparent dark:via-black" />
         <div className="flex items-center justify-between px-3">
           <p className="text-[10px] uppercase tracking-[0.18em] text-gold-soft/35">v0.1 · E2EE ready</p>
           <ThemeToggle />
@@ -123,7 +142,7 @@ export function AppShell({
 
       <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-gold/15 bg-base-950/98 px-1 pb-[calc(0.35rem+env(safe-area-inset-bottom))] shadow-[0_-10px_30px_rgba(0,0,0,0.32)] md:hidden">
         <div className="mx-auto grid max-w-lg grid-cols-6 items-stretch">
-          {NAV.map((item) => {
+          {[...NAV, SUPPORT].map((item) => {
             const active = isActive(item.href);
             return (
               <Link
