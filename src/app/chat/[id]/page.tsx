@@ -29,9 +29,15 @@ export default async function ConversationPage({ params }: Props) {
 
   // If not found, treat params.id as the other user's ID
   if (!conversation) {
-    const convId = await getOrCreateConversation(userId, params.id);
-    if (convId) {
-      redirect(`/chat/${convId}`);
+    try {
+      const convId = await getOrCreateConversation(userId, params.id);
+      if (convId) {
+        redirect(`/chat/${convId}`);
+      }
+    } catch (err: any) {
+      if (err.message === "LIMIT_REACHED") {
+        redirect("/premium?reason=limit");
+      }
     }
     notFound();
   }

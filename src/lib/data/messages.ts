@@ -75,6 +75,7 @@ export async function getOrCreateConversation(
   const supa = createClient() as any;
   const [a, b] = userA < userB ? [userA, userB] : [userB, userA];
 
+  // 1. Check if conversation already exists
   const { data: existing } = await supa
     .from("conversations")
     .select("id")
@@ -84,9 +85,40 @@ export async function getOrCreateConversation(
 
   if (existing) return existing.id;
 
+  // 2. Since it's a NEW conversation, check if initiator (userA) has premium
+  const { data: profile } = await supa
+    .from("profiles")
+    .select("premium_until")
+    .eq("id", userA)
+    .single();
+
+  const isPremium =
+    profile?.premium_until &&
+    new Date(profile.premium_until) > new Date();
+
+  if (!isPremium) {
+    // Count conversations initiated by userA today (UTC)
+    const startOfToday = new Date();
+    startOfToday.setUTCHours(0, 0, 0, 0);
+    const isoStart = startOfToday.toISOString();
+
+    const { count, error: countError } = await supa
+      .from("conversations")
+      .select("id", { count: "exact", head: true })
+      .eq("initiator_id", userA)
+      .gte("created_at", isoStart);
+
+    if (countError) {
+      console.error("Error counting daily chats:", countError);
+    } else if (count !== null && count >= 2) {
+      throw new Error("LIMIT_REACHED");
+    }
+  }
+
+  // 3. Create the new conversation with initiator_id
   const { data } = await supa
     .from("conversations")
-    .insert({ user_a: a, user_b: b })
+    .insert({ user_a: a, user_b: b, initiator_id: userA })
     .select("id")
     .single();
 

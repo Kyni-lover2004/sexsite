@@ -73,9 +73,40 @@ const FEATURES = [
   },
 ];
 
+import { useSearchParams } from "next/navigation";
+import { AlertTriangle } from "lucide-react";
+
 export function PremiumView({ isPremium }: PremiumViewProps) {
+  const searchParams = useSearchParams();
+  const showLimitWarning = searchParams.get("reason") === "limit";
+
   return (
     <div>
+      {/* Limit Warning */}
+      {showLimitWarning && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-6"
+        >
+          <GlassCard className="border-amber-500/30 bg-amber-950/10 p-4 shadow-[0_0_24px_rgba(245,158,11,0.08)]">
+            <div className="flex gap-3">
+              <div className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-xl bg-amber-500/10 text-amber-400">
+                <AlertTriangle size={20} />
+              </div>
+              <div>
+                <p className="font-semibold text-amber-400 text-sm">
+                  Достигнут лимит контактов
+                </p>
+                <p className="mt-0.5 text-xs text-slate-400 leading-relaxed">
+                  Без Premium подписки вы можете начинать диалог только с 2 новыми пользователями в день.
+                  Приобретите подписку, чтобы общаться без ограничений!
+                </p>
+              </div>
+            </div>
+          </GlassCard>
+        </motion.div>
+      )}
       {/* Hero */}
       <motion.div
         initial={{ opacity: 0, y: -16 }}

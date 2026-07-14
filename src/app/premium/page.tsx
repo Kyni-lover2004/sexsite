@@ -1,7 +1,10 @@
+import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
 import { PremiumView } from "@/components/premium/PremiumView";
+
+export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "Nebula Premium",
@@ -24,7 +27,9 @@ export default async function PremiumPage() {
 
   return (
     <AppShell>
-      <PremiumView isPremium={!!isPremium} />
+      <Suspense fallback={<div className="text-slate-500">Загрузка...</div>}>
+        <PremiumView isPremium={!!isPremium} />
+      </Suspense>
     </AppShell>
   );
 }
