@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { MessageCircle, Heart, Send } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
@@ -20,6 +21,7 @@ export function CommentSection({
   initialComments: CommentWithAuthor[];
   currentUserId: string | null;
 }) {
+  const router = useRouter();
   const supabase = createClient();
   const supa = supabase as any;
   const [comments, setComments] = useState(initialComments);
@@ -44,12 +46,16 @@ export function CommentSection({
       .single();
 
     setSending(false);
-    if (error || !data) return;
+    if (error || !data) {
+      console.error("Comment submit error:", error);
+      return;
+    }
 
     const author = Array.isArray(data.author) ? data.author[0] ?? null : data.author;
     setComments((prev) => [...prev, { ...data, author } as CommentWithAuthor]);
     setText("");
     setReplyTo(null);
+    router.refresh();
   }
 
   // Group comments: top-level vs replies
