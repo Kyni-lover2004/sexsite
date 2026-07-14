@@ -14,10 +14,21 @@ export default async function MyProfilePage() {
     .eq("id", auth.user.id)
     .single();
 
+  const { data: photos } = await (supabase as any)
+    .from("profile_photos")
+    .select("*")
+    .eq("user_id", auth.user.id)
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: false });
+
   return (
     <AppShell>
       {profile ? (
-        <ProfileView profile={profile as any} isOwn />
+        <ProfileView
+          profile={profile as any}
+          photos={(photos ?? []) as any}
+          isOwn
+        />
       ) : (
         <p className="text-slate-400">Профиль не найден</p>
       )}

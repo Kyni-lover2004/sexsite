@@ -14,6 +14,9 @@ import {
   Loader2,
   MessageSquare,
   CheckCircle2,
+  Trash2,
+  ImagePlus,
+  HeartHandshake,
 } from "lucide-react";
 import Link from "next/link";
 import { Avatar } from "@/components/ui/Avatar";
@@ -23,28 +26,40 @@ import { Input, Textarea } from "@/components/ui/Input";
 import { Tag } from "@/components/ui/Badge";
 import { ageFromBirthDate, isOnline, timeAgo } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
-import type { Profile } from "@/lib/types";
+import { RUSSIAN_CITIES } from "@/lib/data/russianCities";
+import {
+  DATING_GOALS,
+  INTEREST_SECTIONS,
+  getDatingGoalLabel,
+} from "@/lib/data/profileOptions";
+import type { Profile, ProfilePhoto } from "@/lib/types";
 
 interface ProfileViewProps {
   profile: Profile;
+  photos: ProfilePhoto[];
   isOwn: boolean;
 }
 
-export function ProfileView({ profile, isOwn }: ProfileViewProps) {
+export function ProfileView({ profile, photos, isOwn }: ProfileViewProps) {
   const supabase = createClient();
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
+  const photoRef = useRef<HTMLInputElement>(null);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [usernameError, setUsernameError] = useState("");
   const [available, setAvailable] = useState(profile.available_for_chat);
   const [form, setForm] = useState({
     username: profile.username,
     display_name: profile.display_name ?? "",
+    status: profile.status ?? "",
     bio: profile.bio ?? "",
     city: profile.city ?? "",
+    birth_date: profile.birth_date ?? "",
     gender: profile.gender ?? "prefer_not_to_say",
+    dating_goal: profile.dating_goal ?? "",
     interests: profile.interests.join(", "),
   });
 
@@ -82,6 +97,67 @@ export function ProfileView({ profile, isOwn }: ProfileViewProps) {
     }
 
     setUploadingAvatar(false);
+  }
+
+  async function handleProfilePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
+    if (files.length === 0) return;
+    setUploadingPhoto(true);
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user || user.id !== profile.id) {
+      setUploadingPhoto(false);
+      return;
+    }
+
+    for (const file of files) {
+      try {
+        const ext = file.name.split(".").pop() ?? "jpg";
+        const path = `${profile.id}/${Date.now()}-${Math.random()
+          .toString(36)
+          .slice(2)}.${ext}`;
+
+        const { error: uploadError } = await (supabase as any).storage
+          .from("profile-photos")
+          .upload(path, file, { contentType: file.type });
+
+        if (uploadError) throw uploadError;
+
+        const { data: urlData } = await (supabase as any).storage
+          .from("profile-photos")
+          .getPublicUrl(path);
+
+        await (supabase as any).from("profile_photos").insert({
+          user_id: profile.id,
+          url: urlData.publicUrl,
+          storage_path: path,
+          sort_order: photos.length,
+        });
+      } catch (err) {
+        console.error("Profile photo upload error:", err);
+      }
+    }
+
+    if (photoRef.current) photoRef.current.value = "";
+    setUploadingPhoto(false);
+    router.refresh();
+  }
+
+  async function deleteProfilePhoto(photo: ProfilePhoto) {
+    await (supabase as any)
+      .from("profile_photos")
+      .delete()
+      .eq("id", photo.id)
+      .eq("user_id", profile.id);
+
+    await (supabase as any).storage
+      .from("profile-photos")
+      .remove([photo.storage_path]);
+
+    router.refresh();
   }
 
   async function toggleAvailable() {
@@ -136,9 +212,12 @@ export function ProfileView({ profile, isOwn }: ProfileViewProps) {
       .update({
         username: newUsername,
         display_name: form.display_name || null,
+        status: form.status || null,
         bio: form.bio || null,
         city: form.city || null,
+        birth_date: form.birth_date || null,
         gender: form.gender,
+        dating_goal: form.dating_goal || null,
         interests,
       })
       .eq("id", profile.id);
@@ -149,13 +228,26 @@ export function ProfileView({ profile, isOwn }: ProfileViewProps) {
   }
 
   const age = ageFromBirthDate(profile.birth_date);
+  const datingGoalLabel = getDatingGoalLabel(profile.dating_goal);
+  const selectedInterests = form.interests
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  function toggleInterest(interest: string) {
+    const exists = selectedInterests.includes(interest);
+    const next = exists
+      ? selectedInterests.filter((item) => item !== interest)
+      : [...selectedInterests, interest];
+    setForm({ ...form, interests: next.join(", ") });
+  }
 
   return (
-    <div>
+    <div className="space-y-5">
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
         <GlassCard premium className="relative overflow-hidden p-6">
-          <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-br from-accent/20 via-accent-deep/10 to-gold/10" />
-          <div className="absolute inset-x-0 top-24 h-px bg-gradient-to-r from-transparent via-accent/30 to-transparent" />
+          <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-br from-gold/20 via-accent-deep/10 to-gold/10" />
+          <div className="absolute inset-x-0 top-24 h-px bg-gradient-to-r from-transparent via-gold/30 to-transparent" />
 
           <div className="relative flex items-start gap-4 pt-6">
             <div className="relative group">
@@ -166,7 +258,7 @@ export function ProfileView({ profile, isOwn }: ProfileViewProps) {
                 lastSeen={profile.last_seen}
                 showPresence
               />
-              <div className="pointer-events-none absolute inset-0 -z-10 rounded-full bg-accent/20 blur-xl" />
+              <div className="pointer-events-none absolute inset-0 -z-10 rounded-full bg-gold/20 blur-xl" />
 
               {isOwn && (
                 <>
@@ -218,17 +310,51 @@ export function ProfileView({ profile, isOwn }: ProfileViewProps) {
                     }
                     placeholder="Имя"
                   />
+                  <Input
+                    value={form.status}
+                    onChange={(e) =>
+                      setForm({ ...form, status: e.target.value })
+                    }
+                    placeholder="Статус: что сейчас хочется?"
+                  />
                   <Textarea
                     value={form.bio}
                     onChange={(e) => setForm({ ...form, bio: e.target.value })}
                     placeholder="О себе"
                     rows={3}
                   />
-                  <Input
-                    value={form.city}
-                    onChange={(e) => setForm({ ...form, city: e.target.value })}
-                    placeholder="Город"
-                  />
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div>
+                      <label className="mb-1.5 block text-xs font-medium text-slate-400">
+                        Город
+                      </label>
+                      <Input
+                        value={form.city}
+                        onChange={(e) =>
+                          setForm({ ...form, city: e.target.value })
+                        }
+                        placeholder="Начните вводить город"
+                        list="russian-cities"
+                      />
+                      <datalist id="russian-cities">
+                        {RUSSIAN_CITIES.map((city) => (
+                          <option key={city} value={city} />
+                        ))}
+                      </datalist>
+                    </div>
+                    <div>
+                      <label className="mb-1.5 block text-xs font-medium text-slate-400">
+                        Дата рождения
+                      </label>
+                      <Input
+                        type="date"
+                        value={form.birth_date}
+                        onChange={(e) =>
+                          setForm({ ...form, birth_date: e.target.value })
+                        }
+                      />
+                    </div>
+                  </div>
                   <div>
                     <label className="mb-1.5 block text-xs font-medium text-slate-400">
                       Пол
@@ -238,20 +364,64 @@ export function ProfileView({ profile, isOwn }: ProfileViewProps) {
                       onChange={(e) =>
                         setForm({ ...form, gender: e.target.value as any })
                       }
-                      className="h-10 w-full rounded-xl border border-white/[0.08] bg-base-800/60 px-3.5 text-sm text-slate-100 transition-all duration-300 focus:border-accent/50 focus:outline-none focus:ring-2 focus:ring-accent/20"
+                      className="h-10 w-full rounded-xl border border-gold/15 bg-base-800/60 px-3.5 text-sm text-slate-100 transition-all duration-300 focus:border-gold/50 focus:outline-none focus:ring-2 focus:ring-gold/15"
                     >
                       <option value="male">Мужской</option>
                       <option value="female">Женский</option>
                       <option value="prefer_not_to_say">Не указывать</option>
                     </select>
                   </div>
-                  <Input
-                    value={form.interests}
-                    onChange={(e) =>
-                      setForm({ ...form, interests: e.target.value })
-                    }
-                    placeholder="Интересы (через запятую)"
-                  />
+                  <div>
+                    <label className="mb-1.5 block text-xs font-medium text-slate-400">
+                      Зачем хотите познакомиться
+                    </label>
+                    <select
+                      value={form.dating_goal}
+                      onChange={(e) =>
+                        setForm({ ...form, dating_goal: e.target.value })
+                      }
+                      className="h-10 w-full rounded-xl border border-gold/15 bg-base-800/60 px-3.5 text-sm text-slate-100 transition-all duration-300 focus:border-gold/50 focus:outline-none focus:ring-2 focus:ring-gold/15"
+                    >
+                      <option value="">Не указано</option>
+                      {DATING_GOALS.map((goal) => (
+                        <option key={goal.value} value={goal.value}>
+                          {goal.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-xs font-medium text-slate-400">
+                      Интересы по разделам
+                    </label>
+                    <div className="space-y-3 rounded-xl border border-gold/10 bg-base-900/40 p-3">
+                      {INTEREST_SECTIONS.map((section) => (
+                        <div key={section.title}>
+                          <p className="mb-2 text-[11px] uppercase tracking-[0.14em] text-gold-soft/60">
+                            {section.title}
+                          </p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {section.items.map((interest) => (
+                              <Tag
+                                key={interest}
+                                label={interest}
+                                active={selectedInterests.includes(interest)}
+                                onClick={() => toggleInterest(interest)}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <Input
+                      value={form.interests}
+                      onChange={(e) =>
+                        setForm({ ...form, interests: e.target.value })
+                      }
+                      placeholder="Свои интересы через запятую"
+                      className="mt-3"
+                    />
+                  </div>
                   <div className="flex gap-2">
                     <Button
                       size="sm"
@@ -294,13 +464,20 @@ export function ProfileView({ profile, isOwn }: ProfileViewProps) {
                   </div>
 
                   {profile.status && (
-                    <p className="mt-2 text-sm text-accent-soft">
+                    <p className="mt-2 text-sm text-gold-soft">
                       {profile.status}
                     </p>
                   )}
 
                   {profile.bio && (
                     <p className="mt-2 text-sm text-slate-400">{profile.bio}</p>
+                  )}
+
+                  {datingGoalLabel && (
+                    <div className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-gold/20 bg-gold/10 px-3 py-1 text-xs font-medium text-gold-soft">
+                      <HeartHandshake size={14} />
+                      {datingGoalLabel}
+                    </div>
                   )}
 
                   <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
@@ -387,6 +564,80 @@ export function ProfileView({ profile, isOwn }: ProfileViewProps) {
           </div>
         </GlassCard>
       </motion.div>
+
+      <GlassCard className="p-5">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <div>
+            <h2 className="font-display text-lg font-semibold text-warm-100">
+              Фото профиля
+            </h2>
+            <p className="text-xs text-slate-500">
+              Личные фото, которые видны на странице профиля
+            </p>
+          </div>
+          {isOwn && (
+            <>
+              <input
+                ref={photoRef}
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={handleProfilePhotoUpload}
+              />
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => photoRef.current?.click()}
+                disabled={uploadingPhoto}
+              >
+                {uploadingPhoto ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <ImagePlus size={14} />
+                )}
+                Добавить
+              </Button>
+            </>
+          )}
+        </div>
+
+        {photos.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-gold/15 bg-base-900/30 p-8 text-center">
+            <p className="text-sm text-slate-400">
+              {isOwn
+                ? "Добавьте первое фото, чтобы профиль выглядел живее."
+                : "Пользователь пока не добавил фото."}
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {photos.map((photo) => (
+              <div
+                key={photo.id}
+                className="group relative aspect-[4/5] overflow-hidden rounded-xl border border-gold/10 bg-base-900"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={photo.url}
+                  alt={photo.caption ?? "Фото профиля"}
+                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                />
+                {isOwn && (
+                  <button
+                    type="button"
+                    onClick={() => deleteProfilePhoto(photo)}
+                    className="absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-lg border border-red-400/20 bg-black/60 text-red-200 opacity-0 backdrop-blur transition-opacity group-hover:opacity-100"
+                    aria-label="Удалить фото"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </GlassCard>
     </div>
   );
 }

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Search, Flame, Sparkles, PenLine } from "lucide-react";
+import { Crown, Flame, PenLine, Search, Sparkles, Users } from "lucide-react";
 import Link from "next/link";
 import { TopicCard } from "./TopicCard";
 import { Button } from "@/components/ui/Button";
@@ -109,27 +109,40 @@ export function Feed({ initialTopics, currentUserId }: FeedProps) {
   }
 
   return (
-    <div className="mx-auto w-full max-w-2xl">
+    <div className="mx-auto w-full max-w-3xl">
       {/* Header */}
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <motion.h1
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="font-display text-2xl font-bold text-gradient"
-          >
-            Обсуждения
-          </motion.h1>
-          <p className="text-sm text-slate-500">
-            Тёплые дискуссии сообщества
-          </p>
+      <div className="relative mb-7 overflow-hidden rounded-2xl border border-gold/15 bg-base-900/60 p-5 shadow-glass backdrop-blur-2xl md:p-7">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-soft/45 to-transparent" />
+        <div className="relative flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-gold/15 bg-gold/[0.07] px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-gold-soft/75">
+              <Crown size={13} />
+              закрытое сообщество
+            </div>
+            <motion.h1
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="font-display text-4xl font-bold leading-tight text-gradient md:text-5xl"
+            >
+              Обсуждения
+            </motion.h1>
+            <p className="mt-2 max-w-xl text-sm leading-6 text-slate-400">
+              Тёплые дискуссии сообщества в приватной, спокойной атмосфере.
+              Меньше шума, больше смысла.
+            </p>
+          </div>
+          <Link href="/topic/new" className="shrink-0">
+            <Button size="lg" className="w-full sm:w-auto">
+              <PenLine size={16} />
+              Создать тему
+            </Button>
+          </Link>
         </div>
-        <Link href="/topic/new">
-          <Button size="md">
-            <PenLine size={16} />
-            Создать тему
-          </Button>
-        </Link>
+        <div className="relative mt-6 grid grid-cols-3 gap-2 border-t border-gold/10 pt-4">
+          <Metric icon={<Sparkles size={14} />} label="Новые" value={topics.length} />
+          <Metric icon={<Flame size={14} />} label="Горячие" value={visible.length} />
+          <Metric icon={<Users size={14} />} label="Клуб" value="E2EE" />
+        </div>
       </div>
 
       {/* Search */}
@@ -142,12 +155,12 @@ export function Feed({ initialTopics, currentUserId }: FeedProps) {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Поиск по темам и тегам…"
-          className="h-11 w-full rounded-xl border border-white/[0.08] bg-base-800/60 pl-10 pr-4 text-sm text-white placeholder:text-slate-500 backdrop-blur transition-all duration-300 focus:border-accent/50 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:shadow-[0_0_20px_rgba(225,29,120,0.08)]"
+          className="h-11 w-full rounded-xl border border-gold/15 bg-base-900/60 pl-10 pr-4 text-sm text-white placeholder:text-slate-500 backdrop-blur transition-all duration-300 focus:border-gold/45 focus:outline-none focus:ring-2 focus:ring-gold/15 focus:shadow-[0_0_24px_rgba(245,213,138,0.1)]"
         />
       </div>
 
       {/* Tabs */}
-      <div className="mb-6 flex gap-1 rounded-xl border border-white/[0.06] bg-white/[0.02] p-1">
+      <div className="mb-6 flex gap-1 rounded-xl border border-gold/15 bg-base-900/60 p-1 shadow-inner-glow">
         <TabButton
           active={tab === "new"}
           onClick={() => setTab("new")}
@@ -203,16 +216,16 @@ function TabButton({
   return (
     <button
       onClick={onClick}
-      className="relative flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-slate-400 transition-all duration-200 hover:text-white"
+      className="relative flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-slate-400 transition-all duration-200 hover:text-warm-100"
     >
       {active && (
         <motion.span
           layoutId="feed-tab"
-          className="absolute inset-0 rounded-lg bg-accent-gradient shadow-glow-accent"
+          className="absolute inset-0 rounded-lg border border-gold/20 bg-accent-gradient shadow-glow-accent"
           transition={{ type: "spring", stiffness: 400, damping: 30 }}
         />
       )}
-      <span className={`relative z-10 flex items-center gap-2 ${active ? "text-white" : ""}`}>
+      <span className={`relative z-10 flex items-center gap-2 ${active ? "text-base-950" : ""}`}>
         {icon}
         {label}
       </span>
@@ -222,7 +235,7 @@ function TabButton({
 
 function TopicSkeleton() {
   return (
-    <div className="rounded-2xl border border-white/[0.06] bg-base-800/40 p-5">
+    <div className="rounded-2xl border border-gold/10 bg-base-800/45 p-5">
       <div className="flex items-center gap-3">
         <Skeleton className="h-10 w-10 rounded-full" />
         <div className="space-y-2">
@@ -244,9 +257,9 @@ function TopicSkeleton() {
 
 function EmptyState({ hasQuery }: { hasQuery: boolean }) {
   return (
-    <div className="rounded-2xl border border-dashed border-white/[0.08] bg-white/[0.01] p-12 text-center">
-      <div className="mx-auto mb-3 h-12 w-12 rounded-full bg-accent/10 grid place-items-center">
-        <Sparkles size={20} className="text-accent-soft" />
+    <div className="rounded-2xl border border-dashed border-gold/15 bg-base-900/35 p-12 text-center">
+      <div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-xl border border-gold/20 bg-gold/10">
+        <Sparkles size={20} className="text-gold-soft" />
       </div>
       <p className="text-slate-300">
         {hasQuery ? "Ничего не найдено" : "Пока нет активных тем"}
@@ -256,6 +269,28 @@ function EmptyState({ hasQuery }: { hasQuery: boolean }) {
           ? "Попробуйте другой запрос"
           : "Создайте первую и начните обсуждение"}
       </p>
+    </div>
+  );
+}
+
+function Metric({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-xl border border-gold/10 bg-black/20 px-3 py-2">
+      <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.14em] text-slate-500">
+        <span className="text-gold-soft/70">{icon}</span>
+        {label}
+      </div>
+      <div className="mt-1 font-display text-lg font-semibold text-warm-100">
+        {value}
+      </div>
     </div>
   );
 }

@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { Heart, MessageCircle, Eye, Image } from "lucide-react";
+import { Crown, Eye, Heart, Image, MessageCircle } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { Tag } from "@/components/ui/Badge";
 import { GlassCard } from "@/components/ui/GlassCard";
@@ -15,7 +15,7 @@ interface TopicCardProps {
   onLike?: (id: string) => void;
 }
 
-/** A single discussion card with gradient accent line and animated entry. */
+/** A single discussion card with premium gold accents and animated entry. */
 export function TopicCard({ topic, index, onLike }: TopicCardProps) {
   const author = topic.author;
   return (
@@ -29,11 +29,11 @@ export function TopicCard({ topic, index, onLike }: TopicCardProps) {
         ease: [0.22, 1, 0.36, 1],
       }}
     >
-      <GlassCard interactive className="relative overflow-hidden p-5">
-        {/* Gradient accent line on the left */}
-        <div className="absolute inset-y-0 left-0 w-[2px] bg-gradient-to-b from-accent via-accent-deep to-gold/60" />
+      <GlassCard interactive className="group relative overflow-hidden p-5">
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-soft/55 to-transparent" />
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent_0%,rgba(255,230,166,0.035)_42%,transparent_58%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
 
-        <div className="flex items-center gap-3">
+        <div className="relative flex items-center gap-3">
           <Avatar
             src={author?.avatar_url}
             name={author?.display_name ?? author?.username}
@@ -49,10 +49,14 @@ export function TopicCard({ topic, index, onLike }: TopicCardProps) {
               @{author?.username ?? "unknown"} · {timeAgo(topic.created_at)}
             </p>
           </div>
+          <span className="ml-auto hidden items-center gap-1 rounded-full border border-gold/15 bg-gold/[0.06] px-2 py-1 text-[10px] uppercase tracking-[0.16em] text-gold-soft/70 sm:flex">
+            <Crown size={11} />
+            live
+          </span>
         </div>
 
-        <Link href={`/topic/${topic.id}`} className="group mt-4 block">
-          <h3 className="font-display text-lg font-semibold text-white transition-colors group-hover:text-gradient">
+        <Link href={`/topic/${topic.id}`} className="relative mt-4 block">
+          <h3 className="font-display text-lg font-semibold text-warm-100 transition-colors hover:text-gold-soft">
             {topic.title}
           </h3>
           {topic.body && (
@@ -71,18 +75,18 @@ export function TopicCard({ topic, index, onLike }: TopicCardProps) {
         )}
 
         {topic.media && topic.media.length > 0 && (
-          <div className="mt-3 flex items-center gap-1.5 text-xs text-slate-500">
+          <div className="relative mt-3 flex items-center gap-1.5 text-xs text-slate-500">
             <Image size={14} />
             {topic.media.length} {topic.media.length === 1 ? "вложение" : "вложения"}
           </div>
         )}
 
-        <div className="mt-4 flex items-center gap-5 text-sm text-slate-500">
+        <div className="relative mt-4 flex items-center gap-5 border-t border-gold/10 pt-4 text-sm text-slate-500">
           <motion.button
             whileTap={{ scale: 0.8 }}
             onClick={() => onLike?.(topic.id)}
-            className={`flex items-center gap-1.5 transition-all duration-200 hover:text-accent-soft ${
-              topic.liked_by_me ? "text-accent-soft" : ""
+            className={`flex items-center gap-1.5 transition-all duration-200 hover:text-gold-soft ${
+              topic.liked_by_me ? "text-gold-soft" : ""
             }`}
             aria-label="Нравится"
           >
@@ -90,7 +94,7 @@ export function TopicCard({ topic, index, onLike }: TopicCardProps) {
               size={16}
               className={
                 topic.liked_by_me
-                  ? "fill-current drop-shadow-[0_0_6px_rgba(225,29,120,0.5)]"
+                  ? "fill-current drop-shadow-[0_0_7px_rgba(245,213,138,0.5)]"
                   : ""
               }
             />
@@ -105,8 +109,6 @@ export function TopicCard({ topic, index, onLike }: TopicCardProps) {
             {topic.view_count}
           </span>
         </div>
-
-        {/* Subtle shine overlay */}
         <div className="pointer-events-none absolute inset-0 bg-card-shine opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
       </GlassCard>
     </motion.article>

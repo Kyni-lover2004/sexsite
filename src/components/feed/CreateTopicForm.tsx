@@ -140,7 +140,7 @@ export function CreateTopicForm() {
       >
         <GlassCard premium className="p-6">
           <div className="flex items-center gap-2 mb-1">
-            <Sparkles size={18} className="text-accent-soft" />
+            <Sparkles size={18} className="text-gold-soft" />
             <h1 className="font-display text-xl font-bold text-gradient">
               Новая тема
             </h1>
@@ -216,7 +216,7 @@ export function CreateTopicForm() {
                 <button
                   type="button"
                   onClick={() => fileRef.current?.click()}
-                  className="flex h-20 w-20 items-center justify-center rounded-lg border border-dashed border-white/[0.12] text-slate-500 transition-colors hover:border-accent/50 hover:text-accent-soft"
+                  className="flex h-20 w-20 items-center justify-center rounded-lg border border-dashed border-gold/20 text-slate-500 transition-colors hover:border-gold/50 hover:text-gold-soft"
                 >
                   <Image size={20} />
                 </button>

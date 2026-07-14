@@ -19,10 +19,18 @@ export default async function UserProfilePage({ params }: Props) {
 
   if (!profile) notFound();
 
+  const { data: photos } = await (supabase as any)
+    .from("profile_photos")
+    .select("*")
+    .eq("user_id", params.id)
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: false });
+
   return (
     <AppShell>
       <ProfileView
         profile={profile as any}
+        photos={(photos ?? []) as any}
         isOwn={auth.user?.id === params.id}
       />
     </AppShell>

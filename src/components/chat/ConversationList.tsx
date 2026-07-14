@@ -48,8 +48,8 @@ export function ConversationList({
 
       {conversations.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-white/[0.08] bg-white/[0.01] p-12 text-center">
-          <div className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-full bg-accent/10 animate-pulse-glow">
-            <Shield size={24} className="text-accent-soft" />
+          <div className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-xl border border-gold/20 bg-gold/10 animate-pulse-glow">
+            <Shield size={24} className="text-gold-soft" />
           </div>
           <p className="text-slate-300">Нет диалогов</p>
           <p className="mt-1 text-sm text-slate-500">
@@ -93,7 +93,7 @@ export function ConversationList({
                       {timeAgo(conv.updated_at)}
                     </p>
                   </div>
-                  <span className="flex h-2 w-2 shrink-0 rounded-full bg-accent animate-pulse-glow shadow-neon-accent" />
+                  <span className="flex h-2 w-2 shrink-0 rounded-full bg-gold-soft animate-pulse-glow shadow-neon-gold" />
                 </GlassCard>
               </motion.a>
             );

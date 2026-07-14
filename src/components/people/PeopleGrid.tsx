@@ -9,14 +9,18 @@ import {
   Filter,
   MessageCircle,
   CheckCircle2,
+  HeartHandshake,
 } from "lucide-react";
 import Link from "next/link";
 import { Avatar } from "@/components/ui/Avatar";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { Tag } from "@/components/ui/Badge";
 import { ageFromBirthDate, isOnline } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
+import { RUSSIAN_CITIES } from "@/lib/data/russianCities";
+import { DATING_GOALS, getDatingGoalLabel } from "@/lib/data/profileOptions";
 import type { Profile } from "@/lib/types";
 
 export function PeopleGrid({ currentUserId }: { currentUserId: string | null }) {
@@ -29,6 +33,8 @@ export function PeopleGrid({ currentUserId }: { currentUserId: string | null }) 
   const [filters, setFilters] = useState({
     gender: "",
     city: "",
+    interest: "",
+    datingGoal: "",
     minAge: "",
     maxAge: "",
     onlineOnly: false,
@@ -59,11 +65,22 @@ export function PeopleGrid({ currentUserId }: { currentUserId: string | null }) 
       const matchesName =
         u.display_name?.toLowerCase().includes(q) ||
         u.username.toLowerCase().includes(q) ||
-        u.bio?.toLowerCase().includes(q);
+        u.bio?.toLowerCase().includes(q) ||
+        u.city?.toLowerCase().includes(q) ||
+        getDatingGoalLabel(u.dating_goal)?.toLowerCase().includes(q) ||
+        u.interests.some((interest) => interest.toLowerCase().includes(q));
       if (!matchesName) return false;
     }
     if (filters.gender && u.gender !== filters.gender) return false;
     if (filters.city && !u.city?.toLowerCase().includes(filters.city.toLowerCase()))
+      return false;
+    if (filters.datingGoal && u.dating_goal !== filters.datingGoal) return false;
+    if (
+      filters.interest &&
+      !u.interests.some((interest) =>
+        interest.toLowerCase().includes(filters.interest.toLowerCase())
+      )
+    )
       return false;
     if (filters.onlineOnly && !isOnline(u.last_seen)) return false;
     if (filters.availableOnly && !u.available_for_chat) return false;
@@ -99,7 +116,7 @@ export function PeopleGrid({ currentUserId }: { currentUserId: string | null }) 
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Поиск по имени или био…"
+            placeholder="Поиск по имени, городу, интересам…"
             className="pl-10"
           />
         </div>
@@ -125,7 +142,7 @@ export function PeopleGrid({ currentUserId }: { currentUserId: string | null }) 
               <select
                 value={filters.gender}
                 onChange={(e) => setFilters({ ...filters, gender: e.target.value })}
-                className="h-9 rounded-lg border border-white/[0.08] bg-base-800 px-2 text-sm text-white transition-colors focus:border-accent/50"
+                className="h-9 rounded-lg border border-gold/15 bg-base-800 px-2 text-sm text-white transition-colors focus:border-gold/50"
               >
                 <option value="">Всех</option>
                 <option value="female">Девушку</option>
@@ -138,8 +155,46 @@ export function PeopleGrid({ currentUserId }: { currentUserId: string | null }) 
                 value={filters.city}
                 onChange={(e) => setFilters({ ...filters, city: e.target.value })}
                 placeholder="Любой"
-                className="h-9 w-32"
+                className="h-9 w-36"
+                list="people-russian-cities"
               />
+              <datalist id="people-russian-cities">
+                {RUSSIAN_CITIES.map((city) => (
+                  <option key={city} value={city} />
+                ))}
+              </datalist>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs text-slate-500">
+                Интерес
+              </label>
+              <Input
+                value={filters.interest}
+                onChange={(e) =>
+                  setFilters({ ...filters, interest: e.target.value })
+                }
+                placeholder="кино"
+                className="h-9 w-28"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs text-slate-500">
+                Цель
+              </label>
+              <select
+                value={filters.datingGoal}
+                onChange={(e) =>
+                  setFilters({ ...filters, datingGoal: e.target.value })
+                }
+                className="h-9 rounded-lg border border-gold/15 bg-base-800 px-2 text-sm text-white transition-colors focus:border-gold/50"
+              >
+                <option value="">Любая</option>
+                {DATING_GOALS.map((goal) => (
+                  <option key={goal.value} value={goal.value}>
+                    {goal.label}
+                  </option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="mb-1 block text-xs text-slate-500">
@@ -237,6 +292,12 @@ export function PeopleGrid({ currentUserId }: { currentUserId: string | null }) 
                         {user.bio}
                       </p>
                     )}
+                    {getDatingGoalLabel(user.dating_goal) && (
+                      <span className="mt-2 inline-flex items-center gap-1 rounded-full border border-gold/20 bg-gold/10 px-2 py-0.5 text-[11px] text-gold-soft">
+                        <HeartHandshake size={11} />
+                        {getDatingGoalLabel(user.dating_goal)}
+                      </span>
+                    )}
                     <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-500">
                       {user.city && (
                         <span className="flex items-center gap-1">
@@ -257,6 +318,13 @@ export function PeopleGrid({ currentUserId }: { currentUserId: string | null }) 
                         </span>
                       )}
                     </div>
+                    {user.interests.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {user.interests.slice(0, 4).map((interest) => (
+                          <Tag key={interest} label={interest} />
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
 

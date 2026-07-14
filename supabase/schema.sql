@@ -33,6 +33,7 @@ create table if not exists public.profiles (
   status       text,                       -- short custom status line
   bio          text,
   interests    text[] default '{}',         -- tags / interests
+  dating_goal  text,                        -- why the person wants to meet
   city         text,
   birth_date   date,                        -- age is derived, never stored raw
   gender       gender default 'prefer_not_to_say',
@@ -45,6 +46,9 @@ create table if not exists public.profiles (
   updated_at   timestamptz default now()
 );
 
+alter table public.profiles
+  add column if not exists dating_goal text;
+
 -- Derived age helper (kept out of the table to avoid stale data)
 create or replace function public.profile_age(bd date)
 returns int language sql immutable as $$
@@ -54,9 +58,24 @@ $$;
 
 create index if not exists profiles_city_idx      on public.profiles (city);
 create index if not exists profiles_gender_idx    on public.profiles (gender);
+create index if not exists profiles_dating_goal_idx on public.profiles (dating_goal);
 create index if not exists profiles_interests_idx on public.profiles using gin (interests);
 create index if not exists profiles_username_trgm on public.profiles using gin (username gin_trgm_ops);
 create index if not exists profiles_bio_trgm      on public.profiles using gin (bio gin_trgm_ops);
+
+-- Profile gallery photos shown on a user's page.
+create table if not exists public.profile_photos (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid not null references public.profiles (id) on delete cascade,
+  url         text not null,
+  storage_path text not null,
+  caption     text,
+  sort_order  integer not null default 0,
+  created_at  timestamptz default now()
+);
+
+create index if not exists profile_photos_user_idx
+  on public.profile_photos (user_id, sort_order, created_at desc);
 
 -- =============================================================
 --  ENCRYPTION KEYS  (E2EE)
@@ -254,6 +273,7 @@ create trigger on_auth_user_created after insert on auth.users
 --  ROW LEVEL SECURITY
 -- =============================================================
 alter table public.profiles        enable row level security;
+alter table public.profile_photos  enable row level security;
 alter table public.encryption_keys enable row level security;
 alter table public.topics          enable row level security;
 alter table public.comments        enable row level security;
@@ -271,6 +291,20 @@ create policy profiles_update on public.profiles
 drop policy if exists profiles_insert on public.profiles;
 create policy profiles_insert on public.profiles
   for insert with check (auth.uid() = id);
+
+-- Profile photos: readable by authed users; owner manages own gallery.
+drop policy if exists profile_photos_select on public.profile_photos;
+create policy profile_photos_select on public.profile_photos
+  for select using (auth.role() = 'authenticated');
+drop policy if exists profile_photos_insert on public.profile_photos;
+create policy profile_photos_insert on public.profile_photos
+  for insert with check (auth.uid() = user_id);
+drop policy if exists profile_photos_update on public.profile_photos;
+create policy profile_photos_update on public.profile_photos
+  for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+drop policy if exists profile_photos_delete on public.profile_photos;
+create policy profile_photos_delete on public.profile_photos
+  for delete using (auth.uid() = user_id);
 
 -- Encryption keys: public keys readable by all (needed to encrypt TO a user),
 -- but only the owner may write their own key.
@@ -397,6 +431,10 @@ insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_typ
 values ('topic-media', 'topic-media', true, 20971520, array['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'video/mp4', 'video/webm', 'video/quicktime'])
 on conflict (id) do nothing;
 
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('profile-photos', 'profile-photos', true, 10485760, array['image/png', 'image/jpeg', 'image/webp', 'image/gif'])
+on conflict (id) do nothing;
+
 -- Storage RLS: avatars — authenticated users can read/upload
 drop policy if exists "Avatar read" on storage.objects;
 create policy "Avatar read" on storage.objects
@@ -431,6 +469,23 @@ create policy "Topic media read" on storage.objects
 drop policy if exists "Topic media write" on storage.objects;
 create policy "Topic media write" on storage.objects
   for insert with check (bucket_id = 'topic-media' and auth.role() = 'authenticated');
+
+-- Storage RLS: profile-photos — authenticated can read/upload/manage.
+drop policy if exists "Profile photo read" on storage.objects;
+create policy "Profile photo read" on storage.objects
+  for select using (bucket_id = 'profile-photos' and auth.role() = 'authenticated');
+
+drop policy if exists "Profile photo write" on storage.objects;
+create policy "Profile photo write" on storage.objects
+  for insert with check (bucket_id = 'profile-photos' and auth.role() = 'authenticated');
+
+drop policy if exists "Profile photo update" on storage.objects;
+create policy "Profile photo update" on storage.objects
+  for update using (bucket_id = 'profile-photos' and auth.role() = 'authenticated');
+
+drop policy if exists "Profile photo delete" on storage.objects;
+create policy "Profile photo delete" on storage.objects
+  for delete using (bucket_id = 'profile-photos' and auth.role() = 'authenticated');
 
 -- =============================================================
 --  REALTIME — broadcast message + typing changes

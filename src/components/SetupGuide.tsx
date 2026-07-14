@@ -3,15 +3,11 @@ import { Database, Key, ExternalLink, Copy, Sparkles } from "lucide-react";
 export function SetupGuide() {
   return (
     <div className="relative flex min-h-dvh items-center justify-center px-4 overflow-hidden">
-      {/* Floating orbs */}
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute top-1/4 left-1/5 h-60 w-60 rounded-full bg-accent/[0.06] blur-[100px] animate-float" />
-        <div className="absolute bottom-1/4 right-1/4 h-48 w-48 rounded-full bg-gold/[0.04] blur-[80px] animate-float-slow" />
-      </div>
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent_12%,rgba(255,230,166,0.08)_13%,transparent_14%),linear-gradient(245deg,transparent_72%,rgba(201,151,63,0.07)_73%,transparent_74%)]" />
 
       <div className="relative z-10 w-full max-w-lg glass-premium rounded-2xl p-8 shadow-glow-accent">
         <div className="mb-6 text-center">
-          <span className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-2xl bg-accent-gradient text-2xl font-bold text-white shadow-glow-accent animate-glow-breathe">
+          <span className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-2xl border border-gold/30 bg-gold-gradient text-2xl font-bold text-base-950 shadow-glow-gold animate-glow-breathe">
             N
           </span>
           <h1 className="font-display text-xl font-bold text-gradient">
@@ -32,7 +28,7 @@ export function SetupGuide() {
             <a
               href="https://supabase.com"
               target="_blank"
-              className="text-accent-soft hover:underline"
+              className="text-gold-soft hover:underline"
             >
               supabase.com
             </a>
@@ -79,7 +75,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJI...`}</code>
 
         <div className="mt-6 rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 text-sm text-slate-400">
           После этого перезапусти сервер:
-          <code className="ml-2 rounded bg-base-800 px-2 py-0.5 text-accent-soft">
+          <code className="ml-2 rounded bg-base-800 px-2 py-0.5 text-gold-soft">
             npm run dev
           </code>
         </div>
@@ -101,7 +97,7 @@ function Step({
 }) {
   return (
     <div className="flex gap-3">
-      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent/15 text-xs font-bold text-accent-soft shadow-[0_0_8px_rgba(225,29,120,0.15)]">
+      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gold/15 text-xs font-bold text-gold-soft shadow-[0_0_8px_rgba(245,213,138,0.15)]">
         {number}
       </span>
       <div>

@@ -13,7 +13,7 @@ export interface GlassCardProps extends Omit<HTMLMotionProps<"div">, "ref"> {
 
 /**
  * Frosted-glass surface with gradient border accent.
- * Premium variant adds a pink→gold gradient border.
+ * Premium variant adds a champagne-gold gradient border.
  */
 export const GlassCard = forwardRef<HTMLDivElement, GlassCardProps>(
   ({ className, interactive = false, premium = false, ...props }, ref) => (
@@ -21,13 +21,13 @@ export const GlassCard = forwardRef<HTMLDivElement, GlassCardProps>(
       ref={ref}
       className={cn(
         "relative rounded-2xl backdrop-blur-xl",
-        "bg-base-800/50 border border-white/[0.06]",
+        "bg-base-800/62 border border-gold/10",
         "shadow-glass shadow-inner-glow",
         premium && "glass-premium",
         interactive && [
           "transition-all duration-300",
-          "hover:border-accent/30 hover:shadow-glow-accent",
-          "hover:bg-base-800/60",
+          "hover:border-gold/30 hover:shadow-glow-accent",
+          "hover:bg-base-800/75",
           "hover:-translate-y-0.5",
         ],
         className

@@ -13,10 +13,10 @@ export function LoginPrompt() {
       animate={{ opacity: 1, y: 0 }}
       className="mb-6"
     >
-      <GlassCard className="border border-accent/20 bg-accent/[0.03] p-5">
+      <GlassCard className="border border-gold/20 bg-gold/[0.04] p-5">
         <div className="flex items-center gap-3">
-          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-accent/10">
-            <Lock size={18} className="text-accent-soft" />
+          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-gold/20 bg-gold/10">
+            <Lock size={18} className="text-gold-soft" />
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-sm font-medium text-white">

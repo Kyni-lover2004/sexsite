@@ -17,6 +17,7 @@ export interface Profile {
   status: string | null;
   bio: string | null;
   interests: string[];
+  dating_goal: string | null;
   city: string | null;
   birth_date: string | null;
   gender: Gender;
@@ -55,6 +56,16 @@ export interface Topic {
 export interface TopicMedia {
   type: "image" | "video";
   url: string;
+}
+
+export interface ProfilePhoto {
+  id: string;
+  user_id: string;
+  url: string;
+  storage_path: string;
+  caption: string | null;
+  sort_order: number;
+  created_at: string;
 }
 
 // Topic joined with its author profile (used in the feed)

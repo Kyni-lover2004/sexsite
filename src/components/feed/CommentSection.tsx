@@ -60,7 +60,7 @@ export function CommentSection({
   return (
     <div className="mt-8">
       <h3 className="mb-4 font-display text-lg font-semibold text-white">
-        Комментарии <span className="text-accent-soft">({comments.length})</span>
+        Комментарии <span className="text-gold-soft">({comments.length})</span>
       </h3>
 
       {currentUserId && (
@@ -70,7 +70,7 @@ export function CommentSection({
               Ответ на комментарий{" "}
               <button
                 onClick={() => setReplyTo(null)}
-                className="ml-1 text-accent-soft hover:underline"
+                className="ml-1 text-gold-soft hover:underline"
               >
                 отменить
               </button>
@@ -158,7 +158,7 @@ function CommentItem({
             {currentUserId && (
               <button
                 onClick={() => onReply(comment.id)}
-                className="mt-2 text-xs text-slate-500 transition-colors hover:text-accent-soft"
+                className="mt-2 text-xs text-slate-500 transition-colors hover:text-gold-soft"
               >
                 Ответить
               </button>
@@ -168,7 +168,7 @@ function CommentItem({
       </GlassCard>
 
       {replies.length > 0 && (
-        <div className="ml-8 space-y-3 border-l border-accent/15 pl-4">
+        <div className="ml-8 space-y-3 border-l border-gold/15 pl-4">
           {replies.map((reply, i) => (
             <CommentItem
               key={reply.id}

@@ -357,7 +357,7 @@ export function ChatWindow({
           </p>
         </div>
         <span
-          className="flex items-center gap-1.5 rounded-full border border-accent/25 bg-accent/10 px-2.5 py-1 text-[10px] text-accent-soft shadow-[0_0_12px_rgba(225,29,120,0.1)]"
+          className="flex items-center gap-1.5 rounded-full border border-gold/25 bg-gold/10 px-2.5 py-1 text-[10px] text-gold-soft shadow-[0_0_12px_rgba(245,213,138,0.1)]"
           title="Защищено сквозным шифрованием"
         >
           <Shield size={11} />
@@ -368,16 +368,16 @@ export function ChatWindow({
       {/* Messages */}
       <div
         ref={scrollRef}
-        className="particle-field flex-1 space-y-3 overflow-y-auto rounded-2xl border border-white/[0.06] bg-base-800/20 p-4"
+        className="particle-field flex-1 space-y-3 overflow-y-auto rounded-2xl border border-gold/10 bg-base-800/25 p-4"
       >
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-6 w-6 animate-spin text-accent-soft" />
+            <Loader2 className="h-6 w-6 animate-spin text-gold-soft" />
           </div>
         ) : !peerKey ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
-            <div className="mb-3 grid h-12 w-12 place-items-center rounded-full bg-accent/10">
-              <AlertTriangle size={20} className="text-accent-soft" />
+            <div className="mb-3 grid h-12 w-12 place-items-center rounded-xl border border-gold/20 bg-gold/10">
+              <AlertTriangle size={20} className="text-gold-soft" />
             </div>
             <p className="text-sm text-slate-400">
               Собеседник ещё не настроил сквозное шифрование
@@ -388,8 +388,8 @@ export function ChatWindow({
           </div>
         ) : messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
-            <div className="mb-3 grid h-12 w-12 place-items-center rounded-full bg-accent/10 animate-pulse-glow">
-              <Lock size={20} className="text-accent-soft" />
+            <div className="mb-3 grid h-12 w-12 place-items-center rounded-xl border border-gold/20 bg-gold/10 animate-pulse-glow">
+              <Lock size={20} className="text-gold-soft" />
             </div>
             <p className="text-sm text-slate-300">
               🔒 Чат защищён сквозным шифрованием
@@ -413,8 +413,8 @@ export function ChatWindow({
                 <div
                   className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm ${
                     isMine
-                      ? "bg-accent-gradient text-white shadow-glow-accent/30"
-                      : "bg-white/[0.06] text-slate-200 border border-white/[0.06]"
+                      ? "border border-gold/25 bg-accent-gradient text-base-950 shadow-glow-accent"
+                      : "bg-base-900/70 text-slate-200 border border-gold/10"
                   }`}
                 >
                   {isImage ? (
@@ -440,7 +440,7 @@ export function ChatWindow({
                   )}
                   <p
                     className={`mt-1 text-[10px] ${
-                      isMine ? "text-white/50" : "text-slate-600"
+                      isMine ? "text-base-950/55" : "text-slate-600"
                     }`}
                   >
                     {timeAgo(msg.created_at)}

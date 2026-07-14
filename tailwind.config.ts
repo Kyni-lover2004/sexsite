@@ -12,30 +12,30 @@ const config: Config = {
       colors: {
         // Deep obsidian background scale
         base: {
-          950: "#030304",
-          900: "#09090b",
-          800: "#0f0f14",
-          700: "#18181f",
-          600: "#22222d",
-          500: "#2e2e3a",
+          950: "#030302",
+          900: "#070604",
+          800: "#0d0b08",
+          700: "#17130c",
+          600: "#241d12",
+          500: "#342916",
         },
-        // Hot pink / magenta primary accent
+        // Champagne gold primary accent
         accent: {
-          DEFAULT: "#e11d78",
-          soft: "#f472b6",
-          deep: "#be185d",
-          muted: "#9d174d",
+          DEFAULT: "#d6a84f",
+          soft: "#f5d58a",
+          deep: "#9c6d24",
+          muted: "#6f4b19",
         },
-        // Gold / amber secondary accent
+        // Rich gold secondary accent
         gold: {
-          DEFAULT: "#f59e0b",
-          soft: "#fbbf24",
-          deep: "#d97706",
-          glow: "#fde68a",
+          DEFAULT: "#c9973f",
+          soft: "#ffe6a6",
+          deep: "#8f5f1a",
+          glow: "#fff2bf",
         },
-        // Rose supplementary
-        rose: {
-          glow: "#fb7185",
+        // Ruby is reserved for rare highlights and errors
+        ruby: {
+          glow: "#b4533f",
         },
         // Keep emerald for online status
         emerald: {
@@ -43,8 +43,8 @@ const config: Config = {
         },
         // Warm neutral for some text
         warm: {
-          100: "#fef3c7",
-          200: "#fde68a",
+          100: "#fff7dd",
+          200: "#ecd49c",
         },
       },
       fontFamily: {
@@ -53,30 +53,30 @@ const config: Config = {
       },
       backgroundImage: {
         "accent-gradient":
-          "linear-gradient(135deg, #e11d78 0%, #f59e0b 100%)",
+          "linear-gradient(135deg, #9c6d24 0%, #f5d58a 48%, #b8842c 100%)",
         "accent-gradient-v":
-          "linear-gradient(180deg, #e11d78 0%, #f59e0b 100%)",
+          "linear-gradient(180deg, #f5d58a 0%, #b8842c 100%)",
         "accent-gradient-subtle":
-          "linear-gradient(135deg, rgba(225,29,120,0.15) 0%, rgba(245,158,11,0.15) 100%)",
+          "linear-gradient(135deg, rgba(245,213,138,0.13) 0%, rgba(156,109,36,0.14) 100%)",
         "gold-gradient":
-          "linear-gradient(135deg, #f59e0b 0%, #fbbf24 50%, #f59e0b 100%)",
+          "linear-gradient(135deg, #8f5f1a 0%, #ffe6a6 46%, #c9973f 100%)",
         "mesh-gradient":
-          "radial-gradient(ellipse at 20% 0%, rgba(225,29,120,0.12) 0%, transparent 50%), radial-gradient(ellipse at 80% 0%, rgba(245,158,11,0.08) 0%, transparent 50%), radial-gradient(ellipse at 50% 100%, rgba(225,29,120,0.06) 0%, transparent 50%)",
+          "linear-gradient(135deg, rgba(255,230,166,0.08) 0%, transparent 34%), linear-gradient(180deg, rgba(201,151,63,0.06) 0%, transparent 42%)",
         "glow-radial":
-          "radial-gradient(circle at 50% 0%, rgba(225,29,120,0.14), transparent 60%)",
+          "radial-gradient(circle at 50% 0%, rgba(245,213,138,0.12), transparent 62%)",
         "card-shine":
-          "linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.03) 45%, rgba(255,255,255,0.05) 50%, rgba(255,255,255,0.03) 55%, transparent 60%)",
+          "linear-gradient(105deg, transparent 34%, rgba(255,242,191,0.04) 45%, rgba(255,255,255,0.09) 50%, rgba(255,230,166,0.04) 56%, transparent 66%)",
       },
       boxShadow: {
-        glass: "0 8px 32px rgba(0,0,0,0.5)",
-        "glow-accent": "0 0 30px rgba(225,29,120,0.3)",
-        "glow-accent-lg": "0 0 60px rgba(225,29,120,0.25), 0 0 120px rgba(225,29,120,0.1)",
-        "glow-gold": "0 0 30px rgba(245,158,11,0.3)",
-        "glow-gold-lg": "0 0 60px rgba(245,158,11,0.2)",
+        glass: "0 18px 55px rgba(0,0,0,0.58)",
+        "glow-accent": "0 0 34px rgba(245,213,138,0.2)",
+        "glow-accent-lg": "0 0 60px rgba(245,213,138,0.18), 0 0 120px rgba(201,151,63,0.1)",
+        "glow-gold": "0 0 34px rgba(255,230,166,0.24)",
+        "glow-gold-lg": "0 0 70px rgba(255,230,166,0.2)",
         "glow-emerald": "0 0 24px rgba(52,211,153,0.35)",
-        "neon-accent": "0 0 8px rgba(225,29,120,0.6), 0 0 24px rgba(225,29,120,0.3)",
-        "neon-gold": "0 0 8px rgba(245,158,11,0.6), 0 0 24px rgba(245,158,11,0.3)",
-        "inner-glow": "inset 0 1px 1px rgba(255,255,255,0.06)",
+        "neon-accent": "0 0 10px rgba(245,213,138,0.42), 0 0 28px rgba(201,151,63,0.2)",
+        "neon-gold": "0 0 10px rgba(255,230,166,0.45), 0 0 26px rgba(201,151,63,0.22)",
+        "inner-glow": "inset 0 1px 1px rgba(255,242,191,0.08)",
       },
       backdropBlur: {
         xs: "2px",
@@ -121,12 +121,12 @@ const config: Config = {
           "100%": { transform: "translateY(-100vh) translateX(20px)", opacity: "0" },
         },
         "glow-breathe": {
-          "0%, 100%": { boxShadow: "0 0 20px rgba(225,29,120,0.15)" },
-          "50%": { boxShadow: "0 0 40px rgba(225,29,120,0.3), 0 0 80px rgba(225,29,120,0.1)" },
+          "0%, 100%": { boxShadow: "0 0 20px rgba(245,213,138,0.12)" },
+          "50%": { boxShadow: "0 0 45px rgba(245,213,138,0.24), 0 0 90px rgba(201,151,63,0.1)" },
         },
         "text-glow": {
-          "0%, 100%": { textShadow: "0 0 10px rgba(225,29,120,0.3)" },
-          "50%": { textShadow: "0 0 20px rgba(225,29,120,0.5), 0 0 40px rgba(225,29,120,0.2)" },
+          "0%, 100%": { textShadow: "0 0 10px rgba(245,213,138,0.22)" },
+          "50%": { textShadow: "0 0 22px rgba(245,213,138,0.42), 0 0 44px rgba(201,151,63,0.16)" },
         },
       },
       animation: {

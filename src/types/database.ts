@@ -28,6 +28,7 @@ export interface Database {
           status: string | null;
           bio: string | null;
           interests: string[];
+          dating_goal: string | null;
           city: string | null;
           birth_date: string | null;
           gender: Gender;
@@ -44,6 +45,7 @@ export interface Database {
           status?: string | null;
           bio?: string | null;
           interests?: string[];
+          dating_goal?: string | null;
           city?: string | null;
           birth_date?: string | null;
           gender?: Gender;
@@ -53,6 +55,30 @@ export interface Database {
           updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["profiles"]["Insert"]>;
+        Relationships: [];
+      };
+      profile_photos: {
+        Row: {
+          id: string;
+          user_id: string;
+          url: string;
+          storage_path: string;
+          caption: string | null;
+          sort_order: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          url: string;
+          storage_path: string;
+          caption?: string | null;
+          sort_order?: number;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["profile_photos"]["Insert"]
+        >;
         Relationships: [];
       };
       encryption_keys: {

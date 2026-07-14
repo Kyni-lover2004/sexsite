@@ -22,48 +22,37 @@ body {
   min-height: 100vh;
   min-height: -webkit-fill-available;
   background-image:
-    radial-gradient(ellipse at 15% -5%, rgba(225, 29, 120, 0.12), transparent 50%),
-    radial-gradient(ellipse at 85% 0%, rgba(245, 158, 11, 0.07), transparent 45%),
-    radial-gradient(ellipse at 50% 60%, rgba(225, 29, 120, 0.04), transparent 50%);
+    linear-gradient(115deg, rgba(255, 230, 166, 0.08) 0%, transparent 24%),
+    linear-gradient(245deg, rgba(201, 151, 63, 0.08) 0%, transparent 28%),
+    repeating-linear-gradient(90deg, rgba(255, 242, 191, 0.035) 0 1px, transparent 1px 120px),
+    linear-gradient(180deg, #030302 0%, #080604 48%, #030302 100%);
   background-attachment: fixed;
   min-height: 100vh;
   position: relative;
 }
 
-/* Animated floating orbs behind content */
-body::before,
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.46;
+  background-image:
+    linear-gradient(115deg, transparent 8%, rgba(255, 230, 166, 0.11) 9%, transparent 10%),
+    linear-gradient(115deg, transparent 72%, rgba(201, 151, 63, 0.08) 73%, transparent 74%);
+  mask-image: linear-gradient(to bottom, black 0%, transparent 78%);
+}
+
 body::after {
   content: "";
   position: fixed;
-  border-radius: 50%;
+  inset: 0;
   pointer-events: none;
   z-index: 0;
-  filter: blur(80px);
-  animation: orb-float 16s ease-in-out infinite;
-}
-
-body::before {
-  width: 500px;
-  height: 500px;
-  background: radial-gradient(circle, rgba(225, 29, 120, 0.08), transparent 70%);
-  top: -10%;
-  left: -5%;
-}
-
-body::after {
-  width: 400px;
-  height: 400px;
-  background: radial-gradient(circle, rgba(245, 158, 11, 0.06), transparent 70%);
-  bottom: -10%;
-  right: -5%;
-  animation-delay: -8s;
-}
-
-@keyframes orb-float {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  25% { transform: translate(30px, -20px) scale(1.05); }
-  50% { transform: translate(-20px, 15px) scale(0.95); }
-  75% { transform: translate(15px, 25px) scale(1.02); }
+  opacity: 0.24;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 220 220' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)' opacity='.34'/%3E%3C/svg%3E");
+  mix-blend-mode: soft-light;
 }
 
 /* ------------------------------------------------------------------ */
@@ -72,17 +61,17 @@ body::after {
 @layer components {
   /* Glassmorphism surface */
   .glass {
-    @apply bg-base-800/50 backdrop-blur-xl border border-white/[0.06] shadow-glass;
+    @apply bg-base-800/60 backdrop-blur-xl border border-gold/10 shadow-glass;
   }
 
   .glass-strong {
-    @apply bg-base-800/70 backdrop-blur-2xl border border-white/[0.08] shadow-glass;
+    @apply bg-base-800/80 backdrop-blur-2xl border border-gold/15 shadow-glass;
   }
 
-  /* Premium glassmorphism with gradient border */
+  /* Premium glassmorphism with champagne border */
   .glass-premium {
     position: relative;
-    @apply bg-base-800/60 backdrop-blur-2xl shadow-glass;
+    @apply bg-base-800/70 backdrop-blur-2xl shadow-glass;
     border: 1px solid transparent;
     background-clip: padding-box;
   }
@@ -94,8 +83,8 @@ body::after {
     padding: 1px;
     background: linear-gradient(
       135deg,
-      rgba(225, 29, 120, 0.3),
-      rgba(245, 158, 11, 0.15),
+      rgba(255, 230, 166, 0.48),
+      rgba(201, 151, 63, 0.18),
       transparent 60%
     );
     -webkit-mask:
@@ -119,8 +108,8 @@ body::after {
     background: conic-gradient(
       from var(--border-angle, 0deg),
       transparent 40%,
-      rgba(225, 29, 120, 0.6) 50%,
-      rgba(245, 158, 11, 0.4) 55%,
+      rgba(255, 230, 166, 0.62) 50%,
+      rgba(201, 151, 63, 0.42) 55%,
       transparent 60%
     );
     -webkit-mask:
@@ -144,22 +133,22 @@ body::after {
   /* Gradient text accent */
   .text-gradient {
     @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(135deg, #f472b6, #e11d78, #f59e0b);
+    background-image: linear-gradient(135deg, #fff7dd, #f5d58a 42%, #b8842c);
   }
 
   .text-gradient-gold {
     @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(135deg, #fbbf24, #f59e0b, #d97706);
+    background-image: linear-gradient(135deg, #fff7dd, #ffe6a6 42%, #c9973f);
   }
 
   /* Glow text */
   .glow-text {
-    text-shadow: 0 0 12px rgba(225, 29, 120, 0.4), 0 0 30px rgba(225, 29, 120, 0.15);
+    text-shadow: 0 0 14px rgba(245, 213, 138, 0.34), 0 0 36px rgba(201, 151, 63, 0.14);
   }
 
   /* Focus ring used across inputs / buttons */
   .focus-ring {
-    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70 focus-visible:ring-offset-2 focus-visible:ring-offset-base-950;
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60 focus-visible:ring-offset-2 focus-visible:ring-offset-base-950;
   }
 
   /* Shimmer button overlay */
@@ -174,9 +163,9 @@ body::after {
     background: linear-gradient(
       105deg,
       transparent 40%,
-      rgba(255, 255, 255, 0.15) 45%,
-      rgba(255, 255, 255, 0.25) 50%,
-      rgba(255, 255, 255, 0.15) 55%,
+      rgba(255, 242, 191, 0.18) 45%,
+      rgba(255, 255, 255, 0.34) 50%,
+      rgba(255, 230, 166, 0.18) 55%,
       transparent 60%
     );
     transform: translateX(-100%) skewX(-15deg);
@@ -201,14 +190,14 @@ body::after {
     position: absolute;
     inset: 0;
     background-image:
-      radial-gradient(1px 1px at 10% 20%, rgba(244, 114, 182, 0.4), transparent),
-      radial-gradient(1px 1px at 30% 70%, rgba(245, 158, 11, 0.3), transparent),
-      radial-gradient(1px 1px at 55% 15%, rgba(244, 114, 182, 0.3), transparent),
-      radial-gradient(1px 1px at 70% 55%, rgba(245, 158, 11, 0.25), transparent),
-      radial-gradient(1px 1px at 85% 35%, rgba(244, 114, 182, 0.35), transparent),
-      radial-gradient(1px 1px at 20% 85%, rgba(245, 158, 11, 0.2), transparent),
-      radial-gradient(1.5px 1.5px at 45% 45%, rgba(244, 114, 182, 0.3), transparent),
-      radial-gradient(1px 1px at 90% 80%, rgba(244, 114, 182, 0.25), transparent);
+      radial-gradient(1px 1px at 10% 20%, rgba(255, 242, 191, 0.34), transparent),
+      radial-gradient(1px 1px at 30% 70%, rgba(255, 230, 166, 0.3), transparent),
+      radial-gradient(1px 1px at 55% 15%, rgba(245, 213, 138, 0.26), transparent),
+      radial-gradient(1px 1px at 70% 55%, rgba(201, 151, 63, 0.25), transparent),
+      radial-gradient(1px 1px at 85% 35%, rgba(255, 242, 191, 0.32), transparent),
+      radial-gradient(1px 1px at 20% 85%, rgba(201, 151, 63, 0.2), transparent),
+      radial-gradient(1.5px 1.5px at 45% 45%, rgba(245, 213, 138, 0.28), transparent),
+      radial-gradient(1px 1px at 90% 80%, rgba(255, 230, 166, 0.24), transparent);
     pointer-events: none;
     animation: particle-twinkle 4s ease-in-out infinite alternate;
     z-index: 0;
@@ -234,7 +223,7 @@ body::after {
   border: 2px solid theme("colors.base.950");
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: theme("colors.accent.deep");
+  background: theme("colors.gold.deep");
 }
 
 /* Skeleton shimmer — enhanced with gradient */
@@ -247,8 +236,8 @@ body::after {
   background-image: linear-gradient(
     90deg,
     transparent,
-    rgba(225, 29, 120, 0.04),
-    rgba(245, 158, 11, 0.04),
+    rgba(255, 230, 166, 0.05),
+    rgba(201, 151, 63, 0.05),
     transparent
   );
 }

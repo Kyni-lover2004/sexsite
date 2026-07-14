@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { Mail, Lock, LogIn, Sparkles } from "lucide-react";
+import { Crown, Mail, Lock, LogIn } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -56,13 +56,9 @@ export function AuthForm() {
   }
 
   return (
-    <div className="relative flex min-h-dvh items-center justify-center bg-base-950 px-4 overflow-hidden">
-      {/* Floating orbs background */}
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute top-1/4 left-1/4 h-72 w-72 rounded-full bg-accent/[0.07] blur-[100px] animate-float" />
-        <div className="absolute bottom-1/3 right-1/4 h-56 w-56 rounded-full bg-gold/[0.05] blur-[80px] animate-float-slow" />
-        <div className="absolute top-1/2 right-1/3 h-40 w-40 rounded-full bg-accent/[0.04] blur-[60px] animate-float" style={{ animationDelay: "-3s" }} />
-      </div>
+    <div className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-base-950 px-4">
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent_12%,rgba(255,230,166,0.09)_13%,transparent_14%),linear-gradient(245deg,transparent_70%,rgba(201,151,63,0.08)_71%,transparent_72%)]" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-44 border-b border-gold/10 bg-[linear-gradient(180deg,rgba(255,230,166,0.08),transparent)]" />
 
       <motion.div
         initial={{ opacity: 0, y: 24, scale: 0.96 }}
@@ -76,9 +72,9 @@ export function AuthForm() {
               initial={{ scale: 0, rotate: -90 }}
               animate={{ scale: 1, rotate: 0 }}
               transition={{ type: "spring", stiffness: 300, damping: 20, delay: 0.2 }}
-              className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-2xl bg-accent-gradient font-display text-2xl font-bold text-white shadow-glow-accent animate-glow-breathe"
+              className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-2xl border border-gold/30 bg-gold-gradient text-base-950 shadow-glow-gold animate-glow-breathe"
             >
-              N
+              <Crown size={26} />
             </motion.span>
             <h1 className="font-display text-xl font-bold text-gradient">
               {mode === "login" ? "Вход" : "Регистрация"}
@@ -165,7 +161,7 @@ export function AuthForm() {
                 Нет аккаунта?{" "}
                 <button
                   onClick={() => { setMode("register"); setError(""); }}
-                  className="font-medium text-accent-soft hover:underline"
+                  className="font-medium text-gold-soft hover:underline"
                 >
                   Зарегистрироваться
                 </button>
@@ -175,7 +171,7 @@ export function AuthForm() {
                 Уже есть аккаунт?{" "}
                 <button
                   onClick={() => { setMode("login"); setError(""); }}
-                  className="font-medium text-accent-soft hover:underline"
+                  className="font-medium text-gold-soft hover:underline"
                 >
                   Войти
                 </button>

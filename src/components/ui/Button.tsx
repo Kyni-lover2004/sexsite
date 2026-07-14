@@ -9,11 +9,11 @@ type Size = "sm" | "md" | "lg" | "icon";
 
 const variants: Record<Variant, string> = {
   primary:
-    "bg-accent-gradient text-white shadow-glow-accent btn-shimmer hover:shadow-glow-accent-lg",
-  gold: "bg-gold-gradient text-base-950 font-semibold shadow-glow-gold btn-shimmer hover:shadow-glow-gold-lg",
-  ghost: "text-slate-300 hover:bg-white/5 hover:text-white",
+    "border border-gold/30 bg-accent-gradient text-base-950 font-semibold shadow-glow-accent btn-shimmer hover:shadow-glow-accent-lg",
+  gold: "border border-gold/40 bg-gold-gradient text-base-950 font-semibold shadow-glow-gold btn-shimmer hover:shadow-glow-gold-lg",
+  ghost: "text-slate-300 hover:bg-gold/[0.06] hover:text-warm-100",
   outline:
-    "border border-white/10 text-slate-200 hover:border-accent/50 hover:text-white hover:shadow-[0_0_20px_rgba(225,29,120,0.1)]",
+    "border border-gold/20 bg-base-900/35 text-slate-200 hover:border-gold/45 hover:text-warm-100 hover:shadow-[0_0_24px_rgba(245,213,138,0.1)]",
   danger: "bg-red-500/90 text-white hover:bg-red-500",
 };
 
@@ -41,7 +41,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       className={cn(
         "inline-flex items-center justify-center gap-2 font-medium",
         "transition-all duration-300 focus-visible:outline-none focus-visible:ring-2",
-        "focus-visible:ring-accent/60 disabled:opacity-50 disabled:pointer-events-none",
+        "focus-visible:ring-gold/60 disabled:opacity-50 disabled:pointer-events-none",
         variants[variant],
         sizes[size],
         className

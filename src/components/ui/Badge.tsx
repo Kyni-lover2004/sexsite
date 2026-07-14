@@ -3,10 +3,10 @@ import { cn } from "@/lib/utils";
 type BadgeTone = "accent" | "gold" | "emerald" | "neutral";
 
 const tones: Record<BadgeTone, string> = {
-  accent: "bg-accent/10 text-accent-soft border-accent/25 hover:border-accent/50 hover:shadow-[0_0_12px_rgba(225,29,120,0.15)]",
-  gold: "bg-gold/10 text-gold-soft border-gold/25 hover:border-gold/50 hover:shadow-[0_0_12px_rgba(245,158,11,0.15)]",
+  accent: "bg-gold/10 text-gold-soft border-gold/25 hover:border-gold/50 hover:shadow-[0_0_14px_rgba(245,213,138,0.15)]",
+  gold: "bg-gold/10 text-gold-soft border-gold/25 hover:border-gold/50 hover:shadow-[0_0_14px_rgba(255,230,166,0.15)]",
   emerald: "bg-emerald-glow/10 text-emerald-glow border-emerald-glow/25",
-  neutral: "bg-white/[0.04] text-slate-300 border-white/[0.08] hover:border-white/20",
+  neutral: "bg-base-900/55 text-slate-300 border-gold/10 hover:border-gold/25",
 };
 
 /** Small count / status badge. */
@@ -52,9 +52,9 @@ export function Tag({
       className={cn(
         "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium transition-all duration-200",
         active
-          ? "border-accent/40 bg-accent/15 text-accent-soft shadow-[0_0_12px_rgba(225,29,120,0.15)]"
-          : "border-white/[0.08] bg-white/[0.04] text-slate-400",
-        onClick && "hover:border-accent/40 hover:text-accent-soft hover:bg-accent/10",
+          ? "border-gold/45 bg-gold/15 text-gold-soft shadow-[0_0_14px_rgba(245,213,138,0.14)]"
+          : "border-gold/10 bg-base-900/50 text-slate-400",
+        onClick && "hover:border-gold/40 hover:text-gold-soft hover:bg-gold/10",
         className
       )}
     >
