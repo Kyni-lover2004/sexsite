@@ -149,6 +149,48 @@ body::after {
   background-color: rgb(var(--accent-deep) / 0.55) !important;
 }
 
+/* Profile labels and section headings must remain solid and high-contrast. */
+.light [class*="text-gold-soft"] {
+  color: #17131d !important;
+  font-weight: 700;
+}
+
+.light .text-gradient,
+.light .text-gradient-gold {
+  background-image: none;
+  color: #17131d !important;
+  -webkit-text-fill-color: #17131d;
+}
+
+.dark [class*="text-gold-soft"] {
+  color: #fff !important;
+}
+
+.dark .text-gradient,
+.dark .text-gradient-gold {
+  background-image: none;
+  color: #fff !important;
+  -webkit-text-fill-color: #fff;
+}
+
+.dark .bg-accent-gradient,
+.dark .bg-accent-gradient-v,
+.dark .bg-gold-gradient {
+  background-image: none !important;
+  background-color: rgb(var(--accent-deep)) !important;
+}
+
+.dark .bg-accent-gradient,
+.dark .bg-accent-gradient-v,
+.dark .bg-gold-gradient,
+.dark .bg-accent-gradient * {
+  color: #fff !important;
+}
+
+.dark .text-slate-500 {
+  color: rgb(226 232 240 / 0.82) !important;
+}
+
 .light .placeholder\:text-slate-500::placeholder {
   color: rgb(117 98 90 / 0.7);
 }
