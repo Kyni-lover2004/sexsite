@@ -749,10 +749,46 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                   )}
 
                   {profile.interests.length > 0 && (
-                    <div className="mt-3 flex flex-wrap gap-1.5">
-                      {profile.interests.map((tag) => (
-                        <Tag key={tag} label={tag} />
-                      ))}
+                    <div className="mt-3 space-y-3">
+                      {INTEREST_SECTIONS.map((section) => {
+                        const sectionTags = profile.interests.filter((i) =>
+                          (section.items as unknown as string[]).includes(i)
+                        );
+                        if (sectionTags.length === 0) return null;
+                        return (
+                          <div key={section.title}>
+                            <p className="mb-2 text-[11px] uppercase tracking-[0.14em] text-gold-soft/60">
+                              {section.title}
+                            </p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {sectionTags.map((tag) => (
+                                <Tag key={tag} label={tag} />
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                      {(() => {
+                        const allSectionItems = new Set<string>(
+                          INTEREST_SECTIONS.flatMap((s) => s.items) as unknown as string[]
+                        );
+                        const customTags = profile.interests.filter(
+                          (i) => !allSectionItems.has(i)
+                        );
+                        if (customTags.length === 0) return null;
+                        return (
+                          <div>
+                            <p className="mb-2 text-[11px] uppercase tracking-[0.14em] text-gold-soft/60">
+                              Свои теги
+                            </p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {customTags.map((tag) => (
+                                <Tag key={tag} label={tag} />
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </div>
                   )}
 
