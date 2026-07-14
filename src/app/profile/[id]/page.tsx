@@ -26,12 +26,16 @@ export default async function UserProfilePage({ params }: Props) {
     .order("sort_order", { ascending: true })
     .order("created_at", { ascending: false });
 
+  const isPremium =
+    profile.premium_until && new Date(profile.premium_until) > new Date();
+
   return (
     <AppShell>
       <ProfileView
         profile={profile as any}
         photos={(photos ?? []) as any}
         isOwn={auth.user?.id === params.id}
+        isPremium={isPremium}
       />
     </AppShell>
   );

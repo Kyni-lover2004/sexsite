@@ -26,6 +26,9 @@ import { GlassCard } from "@/components/ui/GlassCard";
 import { Button } from "@/components/ui/Button";
 import { Input, Textarea } from "@/components/ui/Input";
 import { Tag } from "@/components/ui/Badge";
+import { AvatarCropper } from "@/components/ui/AvatarCropper";
+import { PhotoLightbox } from "@/components/ui/PhotoLightbox";
+import { usePhotoViewLimit } from "@/hooks/usePhotoViewLimit";
 import { ageFromBirthDate, isOnline, timeAgo } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { RUSSIAN_CITIES } from "@/lib/data/russianCities";
@@ -40,9 +43,10 @@ interface ProfileViewProps {
   profile: Profile;
   photos: ProfilePhoto[];
   isOwn: boolean;
+  isPremium?: boolean;
 }
 
-export function ProfileView({ profile, photos, isOwn }: ProfileViewProps) {
+export function ProfileView({ profile, photos, isOwn, isPremium = false }: ProfileViewProps) {
   const supabase = createClient();
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -56,6 +60,14 @@ export function ProfileView({ profile, photos, isOwn }: ProfileViewProps) {
   const [photoError, setPhotoError] = useState("");
   const [localPhotos, setLocalPhotos] = useState(photos);
   const [available, setAvailable] = useState(profile.available_for_chat);
+
+  const [cropperOpen, setCropperOpen] = useState(false);
+  const [cropperSrc, setCropperSrc] = useState("");
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+
+  const photoLimit = usePhotoViewLimit(isOwn ? null : profile.id, isPremium);
+
   const [form, setForm] = useState({
     username: profile.username,
     display_name: profile.display_name ?? "",
@@ -78,18 +90,31 @@ export function ProfileView({ profile, photos, isOwn }: ProfileViewProps) {
     setLocalPhotos(photos);
   }, [photos]);
 
-  async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleAvatarFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setCropperSrc(ev.target?.result as string);
+      setCropperOpen(true);
+    };
+    reader.readAsDataURL(file);
+
+    if (fileRef.current) fileRef.current.value = "";
+  }
+
+  async function handleCroppedAvatar(blob: Blob) {
+    setCropperOpen(false);
     setUploadingAvatar(true);
 
     try {
-      const ext = file.name.split(".").pop() ?? "jpg";
+      const ext = "jpg";
       const filePath = `${profile.id}/avatar-${Date.now()}.${ext}`;
 
       const { error: uploadError } = await (supabase as any).storage
         .from("avatars")
-        .upload(filePath, file, { upsert: true, contentType: file.type });
+        .upload(filePath, blob, { upsert: true, contentType: "image/jpeg" });
 
       if (uploadError) throw uploadError;
 
@@ -336,6 +361,20 @@ export function ProfileView({ profile, photos, isOwn }: ProfileViewProps) {
 
   return (
     <div className="space-y-5">
+      <AvatarCropper
+        open={cropperOpen}
+        imageSrc={cropperSrc}
+        onCrop={handleCroppedAvatar}
+        onClose={() => setCropperOpen(false)}
+      />
+
+      <PhotoLightbox
+        open={lightboxOpen}
+        photos={localPhotos.map((p) => ({ url: p.url, caption: p.caption }))}
+        initialIndex={lightboxIndex}
+        onClose={() => setLightboxOpen(false)}
+      />
+
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
         <GlassCard premium className="relative overflow-hidden p-6">
           <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-br from-gold/20 via-accent-deep/10 to-gold/10" />
@@ -359,7 +398,7 @@ export function ProfileView({ profile, photos, isOwn }: ProfileViewProps) {
                     type="file"
                     accept="image/*"
                     className="hidden"
-                    onChange={handleAvatarUpload}
+                    onChange={handleAvatarFileSelect}
                   />
                   <button
                     type="button"
@@ -726,31 +765,88 @@ export function ProfileView({ profile, photos, isOwn }: ProfileViewProps) {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {localPhotos.map((photo) => (
-              <div
-                key={photo.id}
-                className="group relative aspect-[4/5] overflow-hidden rounded-xl border border-gold/10 bg-base-900"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={photo.url}
-                  alt={photo.caption ?? "Фото профиля"}
-                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                />
-                {isOwn && (
-                  <button
-                    type="button"
-                    onClick={() => deleteProfilePhoto(photo)}
-                    className="absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-lg border border-red-400/20 bg-black/60 text-red-200 opacity-0 backdrop-blur transition-opacity group-hover:opacity-100"
-                    aria-label="Удалить фото"
-                  >
-                    <Trash2 size={14} />
-                  </button>
+          <>
+            {!isOwn && !isPremium && (
+              <div className="mb-3 flex items-center justify-between rounded-lg border border-gold/10 bg-base-900/40 px-3 py-2">
+                <span className="text-xs text-slate-400">
+                  Просмотров фото: {photoLimit.viewedCount} / {photoLimit.limit}
+                </span>
+                {photoLimit.limitReached ? (
+                  <Link href="/premium">
+                    <Button variant="gold" size="sm">
+                      <Crown size={12} />
+                      Докупить Premium
+                    </Button>
+                  </Link>
+                ) : (
+                  <span className="text-xs text-emerald-400">
+                    Осталось: {photoLimit.remaining}
+                  </span>
                 )}
               </div>
-            ))}
-          </div>
+            )}
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {localPhotos.map((photo, idx) => (
+                  <div
+                    key={photo.id}
+                    className="group relative aspect-[4/5] overflow-hidden rounded-xl border border-gold/10 bg-base-900"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!isOwn && !isPremium && photoLimit.limitReached) {
+                          return;
+                        }
+                        if (!isOwn && !isPremium) {
+                          const allowed = photoLimit.recordView(photo.id);
+                          if (!allowed) return;
+                        }
+                        setLightboxIndex(idx);
+                        setLightboxOpen(true);
+                      }}
+                      className="absolute inset-0"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={photo.url}
+                        alt={photo.caption ?? "Фото профиля"}
+                        className={`h-full w-full object-cover transition-transform duration-500 group-hover:scale-105 ${
+                          !isOwn && !isPremium && photoLimit.limitReached
+                            ? "blur-md brightness-50"
+                            : ""
+                        }`}
+                      />
+                      {!isOwn && !isPremium && photoLimit.limitReached && (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/60">
+                          <Crown size={24} className="text-gold" />
+                          <span className="text-xs text-gold-soft">
+                            Лимит исчерпан
+                          </span>
+                          <Link
+                            href="/premium"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Button variant="gold" size="sm">
+                              Докупить Premium
+                            </Button>
+                          </Link>
+                        </div>
+                      )}
+                    </button>
+                    {isOwn && (
+                      <button
+                        type="button"
+                        onClick={() => deleteProfilePhoto(photo)}
+                        className="absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-lg border border-red-400/20 bg-black/60 text-red-200 opacity-0 backdrop-blur transition-opacity group-hover:opacity-100"
+                        aria-label="Удалить фото"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
+                  </div>
+              ))}
+            </div>
+          </>
         )}
       </GlassCard>
     </div>

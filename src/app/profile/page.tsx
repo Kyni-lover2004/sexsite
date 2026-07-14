@@ -21,6 +21,9 @@ export default async function MyProfilePage() {
     .order("sort_order", { ascending: true })
     .order("created_at", { ascending: false });
 
+  const isPremium =
+    profile?.premium_until && new Date(profile.premium_until) > new Date();
+
   return (
     <AppShell>
       {profile ? (
@@ -28,6 +31,7 @@ export default async function MyProfilePage() {
           profile={profile as any}
           photos={(photos ?? []) as any}
           isOwn
+          isPremium={isPremium}
         />
       ) : (
         <p className="text-slate-400">Профиль не найден</p>
