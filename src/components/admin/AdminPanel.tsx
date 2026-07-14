@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   Crown,
   Headphones,
+  ImagePlus,
   Loader2,
   MessageSquare,
   Search,
@@ -16,6 +17,7 @@ import {
   Shield,
   Trash2,
   Users,
+  X,
   type LucideIcon,
 } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
@@ -26,6 +28,7 @@ import { createClient } from "@/lib/supabase/client";
 import { timeAgo } from "@/lib/utils";
 import type {
   Profile,
+  SupportAttachment,
   SupportTicketWithMessages,
   TopicWithAuthor,
 } from "@/lib/types";
@@ -93,6 +96,44 @@ export function AdminPanel({
   const [premiumUserId, setPremiumUserId] = useState<string | null>(null);
   const [banReason, setBanReason] = useState("Нарушение правил сайта");
   const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
+  const [replyFiles, setReplyFiles] = useState<Record<string, File[]>>({});
+
+  async function uploadSupportAttachments(
+    ticketId: string,
+    files: File[]
+  ): Promise<SupportAttachment[]> {
+    const uploaded: SupportAttachment[] = [];
+
+    for (const file of files) {
+      if (!file.type.startsWith("image/")) {
+        throw new Error("Можно прикреплять только изображения.");
+      }
+
+      const ext = file.name.split(".").pop() ?? "jpg";
+      const path = `${currentUserId}/${ticketId}/${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2)}.${ext}`;
+
+      const { error: uploadError } = await supa.storage
+        .from("support-attachments")
+        .upload(path, file, { contentType: file.type, upsert: false });
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = await supa.storage
+        .from("support-attachments")
+        .getPublicUrl(path);
+
+      uploaded.push({
+        url: urlData.publicUrl,
+        path,
+        name: file.name,
+        type: file.type,
+      });
+    }
+
+    return uploaded;
+  }
 
   async function banUser(user: Profile, duration: BanDuration) {
     setActionLoading(user.id);
@@ -219,18 +260,33 @@ export function AdminPanel({
 
   async function replyToTicket(ticketId: string) {
     const draft = replyDrafts[ticketId]?.trim();
-    if (!draft) return;
+    const files = replyFiles[ticketId] ?? [];
+    if (!draft && files.length === 0) return;
 
     setActionLoading(ticketId);
+    let attachments: SupportAttachment[] = [];
+
+    try {
+      attachments = await uploadSupportAttachments(ticketId, files);
+    } catch (err: any) {
+      alert(
+        `Не удалось прикрепить фото: ${err?.message ?? "проверьте bucket support-attachments."}`
+      );
+      setActionLoading(null);
+      return;
+    }
+
     const { error } = await supa.from("support_messages").insert({
       ticket_id: ticketId,
       sender_id: currentUserId,
       is_admin: true,
       body: draft,
+      attachments,
     });
 
     if (error) alert(`Ошибка ответа: ${error.message}`);
     setReplyDrafts((prev) => ({ ...prev, [ticketId]: "" }));
+    setReplyFiles((prev) => ({ ...prev, [ticketId]: [] }));
     setActionLoading(null);
     router.refresh();
   }
@@ -647,6 +703,9 @@ export function AdminPanel({
                         }`}
                       >
                         <p className="whitespace-pre-wrap text-sm">{message.body}</p>
+                        {message.attachments?.length > 0 && (
+                          <AttachmentGallery attachments={message.attachments} />
+                        )}
                         <p className="mt-1 text-[10px] text-slate-500">
                           {message.is_admin ? "Админ" : "Пользователь"} ·{" "}
                           {timeAgo(message.created_at)}
@@ -655,32 +714,42 @@ export function AdminPanel({
                     ))}
                   </div>
 
-                  <div className="mt-4 flex gap-2">
-                    <Input
-                      value={replyDrafts[ticket.id] ?? ""}
-                      onChange={(e) =>
-                        setReplyDrafts((prev) => ({
-                          ...prev,
-                          [ticket.id]: e.target.value,
-                        }))
+                  <div className="mt-4 space-y-2">
+                    <div className="flex gap-2">
+                      <Input
+                        value={replyDrafts[ticket.id] ?? ""}
+                        onChange={(e) =>
+                          setReplyDrafts((prev) => ({
+                            ...prev,
+                            [ticket.id]: e.target.value,
+                          }))
+                        }
+                        placeholder="Ответить пользователю"
+                      />
+                      <Button
+                        type="button"
+                        size="icon"
+                        onClick={() => replyToTicket(ticket.id)}
+                        disabled={
+                          actionLoading === ticket.id ||
+                          (!replyDrafts[ticket.id]?.trim() &&
+                            (replyFiles[ticket.id] ?? []).length === 0)
+                        }
+                      >
+                        {actionLoading === ticket.id ? (
+                          <Loader2 size={16} className="animate-spin" />
+                        ) : (
+                          <Send size={16} />
+                        )}
+                      </Button>
+                    </div>
+                    <AttachmentPicker
+                      files={replyFiles[ticket.id] ?? []}
+                      onChange={(files) =>
+                        setReplyFiles((prev) => ({ ...prev, [ticket.id]: files }))
                       }
-                      placeholder="Ответить пользователю"
+                      inputId={`admin-support-files-${ticket.id}`}
                     />
-                    <Button
-                      type="button"
-                      size="icon"
-                      onClick={() => replyToTicket(ticket.id)}
-                      disabled={
-                        actionLoading === ticket.id ||
-                        !replyDrafts[ticket.id]?.trim()
-                      }
-                    >
-                      {actionLoading === ticket.id ? (
-                        <Loader2 size={16} className="animate-spin" />
-                      ) : (
-                        <Send size={16} />
-                      )}
-                    </Button>
                   </div>
                 </GlassCard>
               ))
@@ -755,5 +824,84 @@ function Badge({
       <Icon size={10} />
       {label}
     </span>
+  );
+}
+
+function AttachmentPicker({
+  files,
+  onChange,
+  inputId,
+}: {
+  files: File[];
+  onChange: (files: File[]) => void;
+  inputId: string;
+}) {
+  return (
+    <div className="space-y-2">
+      <input
+        id={inputId}
+        type="file"
+        accept="image/*"
+        multiple
+        className="hidden"
+        onChange={(e) => {
+          onChange([...files, ...Array.from(e.target.files ?? [])]);
+          e.currentTarget.value = "";
+        }}
+      />
+      <label
+        htmlFor={inputId}
+        className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-lg border border-gold/25 bg-base-900/60 px-3 text-xs font-medium text-gold-soft transition-colors hover:bg-gold/10"
+      >
+        <ImagePlus size={14} />
+        Прикрепить фото
+      </label>
+      {files.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {files.map((file, index) => (
+            <span
+              key={`${file.name}-${index}`}
+              className="inline-flex items-center gap-1 rounded-full border border-gold/15 bg-gold/10 px-2 py-1 text-[11px] text-gold-soft"
+            >
+              {file.name}
+              <button
+                type="button"
+                onClick={() => onChange(files.filter((_, i) => i !== index))}
+                aria-label="Убрать фото"
+              >
+                <X size={12} />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AttachmentGallery({
+  attachments,
+}: {
+  attachments: SupportAttachment[];
+}) {
+  return (
+    <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+      {attachments.map((attachment) => (
+        <a
+          key={attachment.path}
+          href={attachment.url}
+          target="_blank"
+          rel="noreferrer"
+          className="group block overflow-hidden rounded-lg border border-gold/10 bg-base-950/50"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={attachment.url}
+            alt={attachment.name || "Фото обращения"}
+            className="aspect-square w-full object-cover transition-transform duration-300 group-hover:scale-105"
+          />
+        </a>
+      ))}
+    </div>
   );
 }

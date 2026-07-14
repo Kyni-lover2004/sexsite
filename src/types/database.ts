@@ -288,6 +288,7 @@ export interface Database {
           sender_id: string;
           is_admin: boolean;
           body: string;
+          attachments: Json;
           created_at: string;
         };
         Insert: {
@@ -296,6 +297,7 @@ export interface Database {
           sender_id: string;
           is_admin?: boolean;
           body: string;
+          attachments?: Json;
           created_at?: string;
         };
         Update: Partial<

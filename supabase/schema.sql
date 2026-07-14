@@ -239,9 +239,33 @@ create table if not exists public.support_messages (
   ticket_id   uuid not null references public.support_tickets (id) on delete cascade,
   sender_id   uuid not null references public.profiles (id) on delete cascade,
   is_admin    boolean not null default false,
-  body        text not null check (char_length(body) between 1 and 4000),
+  body        text not null default '',
+  attachments jsonb not null default '[]'::jsonb,
+  check (
+    char_length(body) <= 4000
+    and (char_length(body) > 0 or jsonb_array_length(attachments) > 0)
+  ),
   created_at  timestamptz default now()
 );
+
+alter table public.support_messages
+  add column if not exists attachments jsonb not null default '[]'::jsonb;
+
+alter table public.support_messages
+  alter column body set default '';
+
+do $$ begin
+  alter table public.support_messages drop constraint support_messages_body_check;
+exception when undefined_object then null; end $$;
+
+do $$ begin
+  alter table public.support_messages
+    add constraint support_messages_body_or_attachment_check
+    check (
+      char_length(body) <= 4000
+      and (char_length(body) > 0 or jsonb_array_length(attachments) > 0)
+    );
+exception when duplicate_object then null; end $$;
 
 create index if not exists support_tickets_user_status_idx
   on public.support_tickets (user_id, status, updated_at desc);
@@ -632,6 +656,14 @@ update storage.buckets
 set allowed_mime_types = array['image/png', 'image/jpeg', 'image/webp', 'image/gif']
 where id = 'profile-photos';
 
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('support-attachments', 'support-attachments', true, 10485760, array['image/png', 'image/jpeg', 'image/webp', 'image/gif'])
+on conflict (id) do nothing;
+
+update storage.buckets
+set allowed_mime_types = array['image/png', 'image/jpeg', 'image/webp', 'image/gif']
+where id = 'support-attachments';
+
 -- Storage RLS: avatars — authenticated users can read/upload
 drop policy if exists "Avatar read" on storage.objects;
 create policy "Avatar read" on storage.objects
@@ -683,6 +715,15 @@ create policy "Profile photo update" on storage.objects
 drop policy if exists "Profile photo delete" on storage.objects;
 create policy "Profile photo delete" on storage.objects
   for delete using (bucket_id = 'profile-photos' and auth.role() = 'authenticated');
+
+-- Storage RLS: support-attachments — authenticated users can read/upload support images.
+drop policy if exists "Support attachment read" on storage.objects;
+create policy "Support attachment read" on storage.objects
+  for select using (bucket_id = 'support-attachments' and auth.uid() is not null);
+
+drop policy if exists "Support attachment write" on storage.objects;
+create policy "Support attachment write" on storage.objects
+  for insert with check (bucket_id = 'support-attachments' and auth.uid() is not null);
 
 -- =============================================================
 --  REALTIME — broadcast message + typing changes

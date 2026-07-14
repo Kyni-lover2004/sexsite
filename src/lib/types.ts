@@ -57,12 +57,20 @@ export interface SupportTicket {
   closed_at: string | null;
 }
 
+export interface SupportAttachment {
+  url: string;
+  path: string;
+  name: string;
+  type: string;
+}
+
 export interface SupportMessage {
   id: string;
   ticket_id: string;
   sender_id: string;
   is_admin: boolean;
   body: string;
+  attachments: SupportAttachment[];
   created_at: string;
 }
 

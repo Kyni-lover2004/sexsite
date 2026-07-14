@@ -2,13 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Headphones, Loader2, MessageSquare, Send } from "lucide-react";
+import { Headphones, ImagePlus, Loader2, MessageSquare, Send, X } from "lucide-react";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { Button } from "@/components/ui/Button";
 import { Input, Textarea } from "@/components/ui/Input";
 import { createClient } from "@/lib/supabase/client";
 import { timeAgo } from "@/lib/utils";
-import type { SupportTicketWithMessages } from "@/lib/types";
+import type { SupportAttachment, SupportTicketWithMessages } from "@/lib/types";
 
 interface SupportCenterProps {
   currentUserId: string;
@@ -21,12 +21,51 @@ export function SupportCenter({ currentUserId, tickets }: SupportCenterProps) {
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
+  const [newFiles, setNewFiles] = useState<File[]>([]);
+  const [replyFiles, setReplyFiles] = useState<Record<string, File[]>>({});
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState("");
 
+  async function uploadAttachments(
+    ticketId: string,
+    files: File[]
+  ): Promise<SupportAttachment[]> {
+    const uploaded: SupportAttachment[] = [];
+
+    for (const file of files) {
+      if (!file.type.startsWith("image/")) {
+        throw new Error("Можно прикреплять только изображения.");
+      }
+
+      const ext = file.name.split(".").pop() ?? "jpg";
+      const path = `${currentUserId}/${ticketId}/${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2)}.${ext}`;
+
+      const { error: uploadError } = await (supabase as any).storage
+        .from("support-attachments")
+        .upload(path, file, { contentType: file.type, upsert: false });
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = await (supabase as any).storage
+        .from("support-attachments")
+        .getPublicUrl(path);
+
+      uploaded.push({
+        url: urlData.publicUrl,
+        path,
+        name: file.name,
+        type: file.type,
+      });
+    }
+
+    return uploaded;
+  }
+
   async function createTicket(e: React.FormEvent) {
     e.preventDefault();
-    if (!subject.trim() || !body.trim()) return;
+    if (!subject.trim() || (!body.trim() && newFiles.length === 0)) return;
 
     setLoading("new");
     setError("");
@@ -46,6 +85,18 @@ export function SupportCenter({ currentUserId, tickets }: SupportCenterProps) {
       return;
     }
 
+    let attachments: SupportAttachment[] = [];
+
+    try {
+      attachments = await uploadAttachments(ticket.id, newFiles);
+    } catch (err: any) {
+      setError(
+        `Не удалось прикрепить фото: ${err?.message ?? "проверьте bucket support-attachments."}`
+      );
+      setLoading(null);
+      return;
+    }
+
     const { error: messageError } = await (supabase as any)
       .from("support_messages")
       .insert({
@@ -53,6 +104,7 @@ export function SupportCenter({ currentUserId, tickets }: SupportCenterProps) {
         sender_id: currentUserId,
         is_admin: false,
         body: body.trim(),
+        attachments,
       });
 
     if (messageError) {
@@ -63,16 +115,30 @@ export function SupportCenter({ currentUserId, tickets }: SupportCenterProps) {
 
     setSubject("");
     setBody("");
+    setNewFiles([]);
     setLoading(null);
     router.refresh();
   }
 
   async function sendReply(ticketId: string) {
     const draft = replyDrafts[ticketId]?.trim();
-    if (!draft) return;
+    const files = replyFiles[ticketId] ?? [];
+    if (!draft && files.length === 0) return;
 
     setLoading(ticketId);
     setError("");
+
+    let attachments: SupportAttachment[] = [];
+
+    try {
+      attachments = await uploadAttachments(ticketId, files);
+    } catch (err: any) {
+      setError(
+        `Не удалось прикрепить фото: ${err?.message ?? "проверьте bucket support-attachments."}`
+      );
+      setLoading(null);
+      return;
+    }
 
     const { error: messageError } = await (supabase as any)
       .from("support_messages")
@@ -81,6 +147,7 @@ export function SupportCenter({ currentUserId, tickets }: SupportCenterProps) {
         sender_id: currentUserId,
         is_admin: false,
         body: draft,
+        attachments,
       });
 
     if (messageError) {
@@ -90,6 +157,7 @@ export function SupportCenter({ currentUserId, tickets }: SupportCenterProps) {
     }
 
     setReplyDrafts((prev) => ({ ...prev, [ticketId]: "" }));
+    setReplyFiles((prev) => ({ ...prev, [ticketId]: [] }));
     setLoading(null);
     router.refresh();
   }
@@ -124,6 +192,11 @@ export function SupportCenter({ currentUserId, tickets }: SupportCenterProps) {
             rows={4}
             maxLength={4000}
           />
+          <AttachmentPicker
+            files={newFiles}
+            onChange={setNewFiles}
+            inputId="support-new-files"
+          />
           {error && (
             <p className="rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs text-red-300">
               {error}
@@ -131,7 +204,11 @@ export function SupportCenter({ currentUserId, tickets }: SupportCenterProps) {
           )}
           <Button
             type="submit"
-            disabled={loading === "new" || !subject.trim() || !body.trim()}
+            disabled={
+              loading === "new" ||
+              !subject.trim() ||
+              (!body.trim() && newFiles.length === 0)
+            }
           >
             {loading === "new" ? (
               <Loader2 size={16} className="animate-spin" />
@@ -181,6 +258,9 @@ export function SupportCenter({ currentUserId, tickets }: SupportCenterProps) {
                     }`}
                   >
                     <p className="whitespace-pre-wrap text-sm">{message.body}</p>
+                    {message.attachments?.length > 0 && (
+                      <AttachmentGallery attachments={message.attachments} />
+                    )}
                     <p className="mt-1 text-[10px] text-slate-500">
                       {message.is_admin ? "Администратор" : "Вы"} ·{" "}
                       {timeAgo(message.created_at)}
@@ -190,35 +270,127 @@ export function SupportCenter({ currentUserId, tickets }: SupportCenterProps) {
               </div>
 
               {ticket.status !== "closed" && (
-                <div className="mt-4 flex gap-2">
-                  <Input
-                    value={replyDrafts[ticket.id] ?? ""}
-                    onChange={(e) =>
-                      setReplyDrafts((prev) => ({
-                        ...prev,
-                        [ticket.id]: e.target.value,
-                      }))
+                <div className="mt-4 space-y-2">
+                  <div className="flex gap-2">
+                    <Input
+                      value={replyDrafts[ticket.id] ?? ""}
+                      onChange={(e) =>
+                        setReplyDrafts((prev) => ({
+                          ...prev,
+                          [ticket.id]: e.target.value,
+                        }))
+                      }
+                      placeholder="Дополнить обращение"
+                    />
+                    <Button
+                      type="button"
+                      size="icon"
+                      onClick={() => sendReply(ticket.id)}
+                      disabled={
+                        loading === ticket.id ||
+                        (!replyDrafts[ticket.id]?.trim() &&
+                          (replyFiles[ticket.id] ?? []).length === 0)
+                      }
+                    >
+                      {loading === ticket.id ? (
+                        <Loader2 size={16} className="animate-spin" />
+                      ) : (
+                        <Send size={16} />
+                      )}
+                    </Button>
+                  </div>
+                  <AttachmentPicker
+                    files={replyFiles[ticket.id] ?? []}
+                    onChange={(files) =>
+                      setReplyFiles((prev) => ({ ...prev, [ticket.id]: files }))
                     }
-                    placeholder="Дополнить обращение"
+                    inputId={`support-reply-files-${ticket.id}`}
                   />
-                  <Button
-                    type="button"
-                    size="icon"
-                    onClick={() => sendReply(ticket.id)}
-                    disabled={loading === ticket.id || !replyDrafts[ticket.id]?.trim()}
-                  >
-                    {loading === ticket.id ? (
-                      <Loader2 size={16} className="animate-spin" />
-                    ) : (
-                      <Send size={16} />
-                    )}
-                  </Button>
                 </div>
               )}
             </GlassCard>
           ))
         )}
       </div>
+    </div>
+  );
+}
+
+function AttachmentPicker({
+  files,
+  onChange,
+  inputId,
+}: {
+  files: File[];
+  onChange: (files: File[]) => void;
+  inputId: string;
+}) {
+  return (
+    <div className="space-y-2">
+      <input
+        id={inputId}
+        type="file"
+        accept="image/*"
+        multiple
+        className="hidden"
+        onChange={(e) => {
+          onChange([...files, ...Array.from(e.target.files ?? [])]);
+          e.currentTarget.value = "";
+        }}
+      />
+      <label
+        htmlFor={inputId}
+        className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-lg border border-gold/25 bg-base-900/60 px-3 text-xs font-medium text-gold-soft transition-colors hover:bg-gold/10"
+      >
+        <ImagePlus size={14} />
+        Прикрепить фото
+      </label>
+      {files.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {files.map((file, index) => (
+            <span
+              key={`${file.name}-${index}`}
+              className="inline-flex items-center gap-1 rounded-full border border-gold/15 bg-gold/10 px-2 py-1 text-[11px] text-gold-soft"
+            >
+              {file.name}
+              <button
+                type="button"
+                onClick={() => onChange(files.filter((_, i) => i !== index))}
+                aria-label="Убрать фото"
+              >
+                <X size={12} />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AttachmentGallery({
+  attachments,
+}: {
+  attachments: SupportAttachment[];
+}) {
+  return (
+    <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+      {attachments.map((attachment) => (
+        <a
+          key={attachment.path}
+          href={attachment.url}
+          target="_blank"
+          rel="noreferrer"
+          className="group block overflow-hidden rounded-lg border border-gold/10 bg-base-950/50"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={attachment.url}
+            alt={attachment.name || "Фото обращения"}
+            className="aspect-square w-full object-cover transition-transform duration-300 group-hover:scale-105"
+          />
+        </a>
+      ))}
     </div>
   );
 }
