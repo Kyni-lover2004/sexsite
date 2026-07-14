@@ -15,7 +15,7 @@ export async function getTopics(
   let query = supa
     .from("topics")
     .select(
-      `id, author_id, title, body, tags, status, view_count, like_count,
+      `id, author_id, title, body, tags, media, status, view_count, like_count,
        comment_count, created_at, updated_at,
        author:profiles!topics_author_id_fkey (
          id, username, display_name, avatar_url, last_seen

@@ -446,7 +446,7 @@ where id = 'profile-photos';
 -- Storage RLS: avatars — authenticated users can read/upload
 drop policy if exists "Avatar read" on storage.objects;
 create policy "Avatar read" on storage.objects
-  for select using (bucket_id = 'avatars' and auth.role() = 'authenticated');
+  for select using (bucket_id = 'avatars');
 
 drop policy if exists "Avatar write" on storage.objects;
 create policy "Avatar write" on storage.objects
@@ -472,7 +472,7 @@ create policy "Chat image write" on storage.objects
 -- Storage RLS: topic-media — authenticated can upload, all authenticated can read
 drop policy if exists "Topic media read" on storage.objects;
 create policy "Topic media read" on storage.objects
-  for select using (bucket_id = 'topic-media' and auth.role() = 'authenticated');
+  for select using (bucket_id = 'topic-media');
 
 drop policy if exists "Topic media write" on storage.objects;
 create policy "Topic media write" on storage.objects
@@ -481,7 +481,7 @@ create policy "Topic media write" on storage.objects
 -- Storage RLS: profile-photos — authenticated can read/upload/manage.
 drop policy if exists "Profile photo read" on storage.objects;
 create policy "Profile photo read" on storage.objects
-  for select using (bucket_id = 'profile-photos' and auth.role() = 'authenticated');
+  for select using (bucket_id = 'profile-photos');
 
 drop policy if exists "Profile photo write" on storage.objects;
 create policy "Profile photo write" on storage.objects
