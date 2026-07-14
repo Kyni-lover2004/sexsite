@@ -48,7 +48,7 @@ export function ConversationList({
 
       {conversations.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-white/[0.08] bg-white/[0.01] p-12 text-center">
-          <div className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-xl border border-gold/20 bg-gold/10 animate-pulse-glow">
+          <div className="chat-lavender mx-auto mb-3 grid h-14 w-14 place-items-center rounded-xl border border-gold/20 bg-gold/10 animate-pulse-glow">
             <Shield size={24} className="text-gold-soft" />
           </div>
           <p className="text-slate-300">Нет диалогов</p>

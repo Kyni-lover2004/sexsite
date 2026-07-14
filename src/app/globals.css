@@ -14,14 +14,14 @@
   --base-600: 207 198 224;
   --base-500: 143 126 171;
 
-  --accent: 181 159 224;
-  --accent-soft: 139 116 190;
-  --accent-deep: 108 83 160;
-  --accent-muted: 164 145 202;
-  --gold: 193 171 231;
-  --gold-soft: 151 128 202;
-  --gold-deep: 111 87 165;
-  --gold-glow: 222 210 247;
+  --accent: 198 181 232;
+  --accent-soft: 165 145 211;
+  --accent-deep: 128 103 179;
+  --accent-muted: 181 163 218;
+  --gold: 207 190 238;
+  --gold-soft: 174 153 218;
+  --gold-deep: 127 103 177;
+  --gold-glow: 232 224 249;
   --warm-100: 35 29 46;
   --warm-200: 74 62 91;
 }
@@ -124,6 +124,31 @@ body::after {
 .light .text-gradient-gold {
   color: rgb(var(--warm-100));
   -webkit-text-fill-color: rgb(var(--warm-100));
+}
+
+.light [class*="text-gold-soft"] {
+  color: rgb(var(--warm-200)) !important;
+}
+
+/* Keep every label on lavender gradient controls readable in light mode. */
+.light .bg-accent-gradient,
+.light .bg-gold-gradient,
+.light .bg-accent-gradient-v {
+  color: rgb(var(--warm-100)) !important;
+}
+
+.light .bg-accent-gradient .text-white,
+.light .bg-gold-gradient .text-white,
+.light .bg-accent-gradient-v .text-white {
+  color: rgb(var(--warm-100)) !important;
+}
+
+/* Softer lavender treatment for chat notices and status pills. */
+.light .chat-lavender,
+.light .chat-lavender * {
+  border-color: rgb(var(--gold) / 0.22);
+  color: rgb(var(--warm-200));
+  box-shadow: none;
 }
 
 .light .placeholder\:text-slate-500::placeholder {

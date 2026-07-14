@@ -381,7 +381,7 @@ export function ChatWindow({
           </p>
         </div>
         <span
-          className="flex items-center gap-1.5 rounded-full border border-gold/25 bg-gold/10 px-2.5 py-1 text-[10px] text-gold-soft shadow-[0_0_12px_rgb(var(--gold-glow)/0.1)]"
+          className="chat-lavender flex items-center gap-1.5 rounded-full border border-gold/20 bg-gold/5 px-2.5 py-1 text-[10px] text-gold-soft shadow-[0_0_12px_rgb(var(--gold-glow)/0.08)]"
           title="Защищено сквозным шифрованием"
         >
           <Shield size={11} />
@@ -400,7 +400,7 @@ export function ChatWindow({
           </div>
         ) : !peerKey ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
-            <div className="mb-3 grid h-12 w-12 place-items-center rounded-xl border border-gold/20 bg-gold/10">
+            <div className="chat-lavender mb-3 grid h-12 w-12 place-items-center rounded-xl border border-gold/20 bg-gold/10">
               <AlertTriangle size={20} className="text-gold-soft" />
             </div>
             <p className="text-sm text-slate-400">
@@ -412,7 +412,7 @@ export function ChatWindow({
           </div>
         ) : messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
-            <div className="mb-3 grid h-12 w-12 place-items-center rounded-xl border border-gold/20 bg-gold/10 animate-pulse-glow">
+            <div className="chat-lavender mb-3 grid h-12 w-12 place-items-center rounded-xl border border-gold/20 bg-gold/10 animate-pulse-glow">
               <Lock size={20} className="text-gold-soft" />
             </div>
             <p className="text-sm text-slate-300">
