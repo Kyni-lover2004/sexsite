@@ -35,6 +35,13 @@ export interface Database {
           birth_date: string | null;
           gender: Gender;
           available_for_chat: boolean;
+          role: "user" | "admin";
+          is_banned: boolean;
+          banned_until: string | null;
+          ban_reason: string | null;
+          banned_by: string | null;
+          banned_at: string | null;
+          premium_until: string | null;
           last_seen: string;
           looking_for: string[];
           age_preference: string | null;
@@ -63,6 +70,13 @@ export interface Database {
           birth_date?: string | null;
           gender?: Gender;
           available_for_chat?: boolean;
+          role?: "user" | "admin";
+          is_banned?: boolean;
+          banned_until?: string | null;
+          ban_reason?: string | null;
+          banned_by?: string | null;
+          banned_at?: string | null;
+          premium_until?: string | null;
           last_seen?: string;
           looking_for?: string[];
           age_preference?: string | null;
@@ -241,6 +255,52 @@ export interface Database {
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["messages"]["Insert"]>;
+        Relationships: [];
+      };
+      support_tickets: {
+        Row: {
+          id: string;
+          user_id: string;
+          subject: string;
+          status: "open" | "answered" | "closed";
+          created_at: string;
+          updated_at: string;
+          closed_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          subject: string;
+          status?: "open" | "answered" | "closed";
+          created_at?: string;
+          updated_at?: string;
+          closed_at?: string | null;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["support_tickets"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      support_messages: {
+        Row: {
+          id: string;
+          ticket_id: string;
+          sender_id: string;
+          is_admin: boolean;
+          body: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          ticket_id: string;
+          sender_id: string;
+          is_admin?: boolean;
+          body: string;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["support_messages"]["Insert"]
+        >;
         Relationships: [];
       };
     };

@@ -41,6 +41,10 @@ create table if not exists public.profiles (
   available_for_chat boolean default false, -- "готов(а) пообщаться сейчас"
   role         text not null default 'user',          -- 'user' | 'admin'
   is_banned    boolean not null default false,
+  banned_until timestamptz,
+  ban_reason   text,
+  banned_by    uuid references public.profiles (id) on delete set null,
+  banned_at    timestamptz,
   premium_until timestamptz,                          -- null = no premium
   created_at   timestamptz default now(),
   updated_at   timestamptz default now()
@@ -49,6 +53,9 @@ create table if not exists public.profiles (
 alter table public.profiles
   add column if not exists dating_goal text,
   add column if not exists banned_until timestamptz,
+  add column if not exists ban_reason text,
+  add column if not exists banned_by uuid references public.profiles (id) on delete set null,
+  add column if not exists banned_at timestamptz,
   add column if not exists country text,
   add column if not exists region text;
 
@@ -78,6 +85,8 @@ create index if not exists profiles_dating_goal_idx on public.profiles (dating_g
 create index if not exists profiles_interests_idx on public.profiles using gin (interests);
 create index if not exists profiles_username_trgm on public.profiles using gin (username gin_trgm_ops);
 create index if not exists profiles_bio_trgm      on public.profiles using gin (bio gin_trgm_ops);
+create index if not exists profiles_banned_until_idx on public.profiles (banned_until);
+create index if not exists profiles_premium_until_idx on public.profiles (premium_until);
 
 -- Profile gallery photos shown on a user's page.
 create table if not exists public.profile_photos (
@@ -213,6 +222,69 @@ create table if not exists public.messages (
 create index if not exists messages_conversation_idx on public.messages (conversation_id, created_at);
 
 -- =============================================================
+--  SUPPORT  (user tickets answered by admins)
+-- =============================================================
+create table if not exists public.support_tickets (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid not null references public.profiles (id) on delete cascade,
+  subject     text not null check (char_length(subject) between 3 and 160),
+  status      text not null default 'open' check (status in ('open', 'answered', 'closed')),
+  created_at  timestamptz default now(),
+  updated_at  timestamptz default now(),
+  closed_at   timestamptz
+);
+
+create table if not exists public.support_messages (
+  id          uuid primary key default gen_random_uuid(),
+  ticket_id   uuid not null references public.support_tickets (id) on delete cascade,
+  sender_id   uuid not null references public.profiles (id) on delete cascade,
+  is_admin    boolean not null default false,
+  body        text not null check (char_length(body) between 1 and 4000),
+  created_at  timestamptz default now()
+);
+
+create index if not exists support_tickets_user_status_idx
+  on public.support_tickets (user_id, status, updated_at desc);
+create index if not exists support_tickets_status_idx
+  on public.support_tickets (status, updated_at desc);
+create index if not exists support_messages_ticket_idx
+  on public.support_messages (ticket_id, created_at);
+
+-- Helper: check if the current user is admin. Defined early because profile
+-- guards and RLS policies both depend on it.
+create or replace function public.is_admin()
+returns boolean language sql stable security definer as $$
+  select coalesce(
+    (select role = 'admin' from public.profiles where id = auth.uid()),
+    false
+  );
+$$;
+
+create or replace function public.guard_profile_admin_fields()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if public.is_admin() then
+    return new;
+  end if;
+
+  if new.role is distinct from old.role
+    or new.is_banned is distinct from old.is_banned
+    or new.banned_until is distinct from old.banned_until
+    or new.ban_reason is distinct from old.ban_reason
+    or new.banned_by is distinct from old.banned_by
+    or new.banned_at is distinct from old.banned_at
+    or new.premium_until is distinct from old.premium_until then
+    raise exception 'Only admins can update moderation and premium fields';
+  end if;
+
+  return new;
+end $$;
+
+drop trigger if exists trg_guard_profile_admin_fields on public.profiles;
+create trigger trg_guard_profile_admin_fields before update on public.profiles
+  for each row execute function public.guard_profile_admin_fields();
+
+-- =============================================================
 --  TRIGGERS — keep denormalised counters accurate
 -- =============================================================
 create or replace function public.bump_topic_updated()
@@ -267,6 +339,35 @@ drop trigger if exists trg_bump_conversation on public.messages;
 create trigger trg_bump_conversation after insert on public.messages
   for each row execute function public.bump_conversation();
 
+create or replace function public.bump_support_ticket()
+returns trigger language plpgsql security definer as $$
+begin
+  if (tg_op = 'INSERT') then
+    update public.support_tickets
+    set
+      updated_at = now(),
+      status = case when new.is_admin then 'answered' else status end
+    where id = new.ticket_id;
+  elsif (tg_op = 'UPDATE') then
+    new.updated_at = now();
+    if new.status = 'closed' and old.status <> 'closed' then
+      new.closed_at = now();
+    elsif new.status <> 'closed' then
+      new.closed_at = null;
+    end if;
+    return new;
+  end if;
+  return null;
+end $$;
+
+drop trigger if exists trg_support_ticket_message on public.support_messages;
+create trigger trg_support_ticket_message after insert on public.support_messages
+  for each row execute function public.bump_support_ticket();
+
+drop trigger if exists trg_support_ticket_updated on public.support_tickets;
+create trigger trg_support_ticket_updated before update on public.support_tickets
+  for each row execute function public.bump_support_ticket();
+
 -- auto-create a profile row when a new auth user signs up
 create or replace function public.handle_new_user()
 returns trigger language plpgsql security definer set search_path = public as $$
@@ -297,6 +398,8 @@ alter table public.comments        enable row level security;
 alter table public.reactions       enable row level security;
 alter table public.conversations   enable row level security;
 alter table public.messages        enable row level security;
+alter table public.support_tickets enable row level security;
+alter table public.support_messages enable row level security;
 
 -- Profiles: readable by all authed users; writable only by owner
 drop policy if exists profiles_select on public.profiles;
@@ -409,6 +512,46 @@ returns boolean language sql stable security definer as $$
     false
   );
 $$;
+
+-- Support: users manage their own tickets; admins manage all tickets.
+drop policy if exists support_tickets_select on public.support_tickets;
+create policy support_tickets_select on public.support_tickets
+  for select using (auth.uid() = user_id or public.is_admin());
+drop policy if exists support_tickets_insert on public.support_tickets;
+create policy support_tickets_insert on public.support_tickets
+  for insert with check (auth.uid() = user_id);
+drop policy if exists support_tickets_update on public.support_tickets;
+create policy support_tickets_update on public.support_tickets
+  for update using (auth.uid() = user_id or public.is_admin())
+  with check (auth.uid() = user_id or public.is_admin());
+drop policy if exists support_tickets_delete on public.support_tickets;
+create policy support_tickets_delete on public.support_tickets
+  for delete using (public.is_admin());
+
+drop policy if exists support_messages_select on public.support_messages;
+create policy support_messages_select on public.support_messages
+  for select using (
+    public.is_admin() or exists (
+      select 1 from public.support_tickets t
+      where t.id = support_messages.ticket_id
+        and t.user_id = auth.uid()
+    )
+  );
+drop policy if exists support_messages_insert on public.support_messages;
+create policy support_messages_insert on public.support_messages
+  for insert with check (
+    sender_id = auth.uid() and (
+      (public.is_admin() and is_admin = true) or (is_admin = false and exists (
+        select 1 from public.support_tickets t
+        where t.id = support_messages.ticket_id
+          and t.user_id = auth.uid()
+          and t.status <> 'closed'
+      ))
+    )
+  );
+drop policy if exists support_messages_delete on public.support_messages;
+create policy support_messages_delete on public.support_messages
+  for delete using (public.is_admin());
 
 -- =============================================================
 --  ADMIN RLS POLICIES — admins can modify / delete anything

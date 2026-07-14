@@ -1,7 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Space_Grotesk } from "next/font/google";
-import { supabaseConfigured } from "@/lib/supabase/server";
+import { createClient, supabaseConfigured } from "@/lib/supabase/server";
 import { SetupGuide } from "@/components/SetupGuide";
+import { BannedScreen } from "@/components/auth/BannedScreen";
 import "./globals.css";
 
 const inter = Inter({
@@ -47,7 +48,7 @@ const themeScript = `
 
 import { PresenceTracker } from "@/components/auth/PresenceTracker";
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -66,6 +67,31 @@ export default function RootLayout({
     );
   }
 
+  const supabase = createClient();
+  const { data: auth } = await supabase.auth.getUser();
+  let activeBan:
+    | { banned_until: string | null; ban_reason: string | null }
+    | null = null;
+
+  if (auth.user) {
+    const { data: profile } = await (supabase as any)
+      .from("profiles")
+      .select("is_banned, banned_until, ban_reason")
+      .eq("id", auth.user.id)
+      .maybeSingle();
+
+    const bannedUntil = profile?.banned_until
+      ? new Date(profile.banned_until)
+      : null;
+
+    if (profile?.is_banned && (!bannedUntil || bannedUntil > new Date())) {
+      activeBan = {
+        banned_until: profile.banned_until,
+        ban_reason: profile.ban_reason,
+      };
+    }
+  }
+
   return (
     <html
       lang="ru"
@@ -76,8 +102,17 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className="font-sans">
-        {children}
-        <PresenceTracker />
+        {activeBan ? (
+          <BannedScreen
+            bannedUntil={activeBan.banned_until}
+            reason={activeBan.ban_reason}
+          />
+        ) : (
+          <>
+            {children}
+            <PresenceTracker />
+          </>
+        )}
       </body>
     </html>
   );

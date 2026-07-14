@@ -13,6 +13,7 @@ interface ConversationWithProfile {
     display_name: string | null;
     avatar_url: string | null;
     last_seen: string;
+    premium_until: string | null;
   } | null;
   lastMessage: {
     ciphertext: string;
@@ -45,7 +46,7 @@ export async function getConversations(
       const otherId = c.user_a === userId ? c.user_b : c.user_a;
       const { data: profile } = await supa
         .from("profiles")
-        .select("id, username, display_name, avatar_url, last_seen")
+        .select("id, username, display_name, avatar_url, last_seen, premium_until")
         .eq("id", otherId)
         .single();
 

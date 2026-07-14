@@ -28,6 +28,9 @@ export interface Profile {
   role: UserRole;
   is_banned: boolean;
   banned_until: string | null;
+  ban_reason: string | null;
+  banned_by: string | null;
+  banned_at: string | null;
   premium_until: string | null;
   looking_for: string[];
   age_preference: string | null;
@@ -40,6 +43,32 @@ export interface Profile {
   orientation_roles: string[];
   created_at: string;
   updated_at: string;
+}
+
+export type SupportTicketStatus = "open" | "answered" | "closed";
+
+export interface SupportTicket {
+  id: string;
+  user_id: string;
+  subject: string;
+  status: SupportTicketStatus;
+  created_at: string;
+  updated_at: string;
+  closed_at: string | null;
+}
+
+export interface SupportMessage {
+  id: string;
+  ticket_id: string;
+  sender_id: string;
+  is_admin: boolean;
+  body: string;
+  created_at: string;
+}
+
+export interface SupportTicketWithMessages extends SupportTicket {
+  user?: Pick<Profile, "id" | "username" | "display_name" | "avatar_url"> | null;
+  messages: SupportMessage[];
 }
 
 export interface EncryptionKeyRow {

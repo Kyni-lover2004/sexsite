@@ -1,14 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { useRouter } from "next/navigation";
-import { ArrowLeft, Lock, Loader2, Shield } from "lucide-react";
+import { Crown, Shield } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { timeAgo, isOnline } from "@/lib/utils";
-import { createClient } from "@/lib/supabase/client";
-import type { Conversation } from "@/lib/types";
 
 interface ConversationItem {
   id: string;
@@ -21,6 +17,7 @@ interface ConversationItem {
     display_name: string | null;
     avatar_url: string | null;
     last_seen: string;
+    premium_until: string | null;
   } | null;
   lastMessage: {
     ciphertext: string;
@@ -61,6 +58,8 @@ export function ConversationList({
           {conversations.map((conv, i) => {
             const isUserA = currentUserId === conv.user_a;
             const other = conv.otherUser;
+            const hasPremium =
+              !!other?.premium_until && new Date(other.premium_until) > new Date();
             return (
               <motion.a
                 key={conv.id}
@@ -86,8 +85,14 @@ export function ConversationList({
                     size="md"
                   />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-white">
+                    <p className="flex items-center gap-1.5 truncate text-sm font-medium text-white">
                       {other?.display_name ?? other?.username ?? "Пользователь"}
+                      {hasPremium && (
+                        <Crown
+                          size={13}
+                          className="shrink-0 fill-current text-gold-soft drop-shadow-[0_0_8px_rgb(var(--gold-glow)/0.45)]"
+                        />
+                      )}
                     </p>
                     <p className="truncate text-xs">
                       {other && isOnline(other.last_seen) ? (

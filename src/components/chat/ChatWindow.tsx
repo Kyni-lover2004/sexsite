@@ -10,6 +10,7 @@ import {
   AlertTriangle,
   Shield,
   Image,
+  Crown,
 } from "lucide-react";
 import Link from "next/link";
 import { Avatar } from "@/components/ui/Avatar";
@@ -38,6 +39,7 @@ interface ChatWindowProps {
     display_name: string | null;
     avatar_url: string | null;
     last_seen: string;
+    premium_until?: string | null;
   };
 }
 
@@ -60,6 +62,8 @@ export function ChatWindow({
   const [peerKey, setPeerKey] = useState<JsonWebKey | null>(null);
   const [decryptError, setDecryptError] = useState(false);
   const [sendError, setSendError] = useState("");
+  const otherUserPremium =
+    !!otherUser.premium_until && new Date(otherUser.premium_until) > new Date();
 
   // Initialize keys and fetch messages
   useEffect(() => {
@@ -373,8 +377,14 @@ export function ChatWindow({
           size="md"
         />
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium text-white">
+          <p className="flex items-center gap-1.5 truncate text-sm font-medium text-white">
             {otherUser.display_name ?? otherUser.username}
+            {otherUserPremium && (
+              <Crown
+                size={13}
+                className="shrink-0 fill-current text-gold-soft drop-shadow-[0_0_8px_rgb(var(--gold-glow)/0.45)]"
+              />
+            )}
           </p>
           <p className="text-xs text-slate-500">
             {isOnline(otherUser.last_seen) ? "В сети" : `Был(а) ${timeAgo(otherUser.last_seen)}`}

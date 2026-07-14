@@ -4,33 +4,83 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Shield,
-  Users,
-  MessageSquare,
+  AlertTriangle,
   Ban,
   CheckCircle2,
-  Trash2,
-  Search,
   Crown,
-  AlertTriangle,
+  Headphones,
+  Loader2,
+  MessageSquare,
+  Search,
+  Send,
+  Shield,
+  Trash2,
+  Users,
+  type LucideIcon,
 } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
+import { Input, Textarea } from "@/components/ui/Input";
 import { createClient } from "@/lib/supabase/client";
 import { timeAgo } from "@/lib/utils";
-import type { Profile, TopicWithAuthor } from "@/lib/types";
+import type {
+  Profile,
+  SupportTicketWithMessages,
+  TopicWithAuthor,
+} from "@/lib/types";
 
-type Tab = "users" | "topics";
+type Tab = "users" | "topics" | "support";
+type BanDuration = "30d" | "90d" | "365d" | "permanent";
+type PremiumDuration = "7d" | "30d" | "90d" | "365d" | "permanent";
 
 interface AdminPanelProps {
   currentUserId: string;
   users: Profile[];
   topics: TopicWithAuthor[];
+  supportTickets: SupportTicketWithMessages[];
 }
 
-export function AdminPanel({ currentUserId, users, topics }: AdminPanelProps) {
+const BAN_DURATIONS: { value: BanDuration; label: string }[] = [
+  { value: "30d", label: "30 дней" },
+  { value: "90d", label: "90 дней" },
+  { value: "365d", label: "1 год" },
+  { value: "permanent", label: "Навсегда" },
+];
+
+const PREMIUM_DURATIONS: { value: PremiumDuration; label: string }[] = [
+  { value: "7d", label: "7 дней" },
+  { value: "30d", label: "30 дней" },
+  { value: "90d", label: "90 дней" },
+  { value: "365d", label: "1 год" },
+  { value: "permanent", label: "Навсегда" },
+];
+
+function addDays(date: Date, days: number) {
+  return new Date(date.getTime() + days * 24 * 60 * 60 * 1000);
+}
+
+function formatDate(value: string | null) {
+  if (!value) return "без срока";
+  return new Date(value).toLocaleString("ru-RU", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function isPremiumActive(user: Profile) {
+  return !!user.premium_until && new Date(user.premium_until) > new Date();
+}
+
+export function AdminPanel({
+  currentUserId,
+  users,
+  topics,
+  supportTickets,
+}: AdminPanelProps) {
   const supabase = createClient();
   const supa = supabase as any;
   const router = useRouter();
@@ -39,34 +89,35 @@ export function AdminPanel({ currentUserId, users, topics }: AdminPanelProps) {
   const [query, setQuery] = useState("");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
-  const [banOptionsUserId, setBanOptionsUserId] = useState<string | null>(null);
+  const [banUserId, setBanUserId] = useState<string | null>(null);
+  const [premiumUserId, setPremiumUserId] = useState<string | null>(null);
+  const [banReason, setBanReason] = useState("Нарушение правил сайта");
+  const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
 
-  /* ───── User actions ───── */
-
-  async function banUser(userId: string, duration: "30m" | "1d" | "3d" | "permanent") {
-    setActionLoading(userId);
-    let banned_until: string | null = null;
+  async function banUser(user: Profile, duration: BanDuration) {
+    setActionLoading(user.id);
     const now = new Date();
-    
-    if (duration === "30m") {
-      banned_until = new Date(now.getTime() + 30 * 60 * 1000).toISOString();
-    } else if (duration === "1d") {
-      banned_until = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString();
-    } else if (duration === "3d") {
-      banned_until = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000).toISOString();
-    }
+    const bannedUntil =
+      duration === "permanent"
+        ? null
+        : addDays(now, duration === "30d" ? 30 : duration === "90d" ? 90 : 365)
+            .toISOString();
 
     const { error } = await supa
       .from("profiles")
-      .update({ is_banned: true, banned_until })
-      .eq("id", userId);
+      .update({
+        is_banned: true,
+        banned_until: bannedUntil,
+        ban_reason: banReason.trim() || "Нарушение правил сайта",
+        banned_by: currentUserId,
+        banned_at: now.toISOString(),
+      })
+      .eq("id", user.id);
 
-    if (error) {
-      alert(`Ошибка при бане: ${error.message}`);
-    }
+    if (error) alert(`Ошибка при бане: ${error.message}`);
 
     setActionLoading(null);
-    setBanOptionsUserId(null);
+    setBanUserId(null);
     router.refresh();
   }
 
@@ -74,44 +125,89 @@ export function AdminPanel({ currentUserId, users, topics }: AdminPanelProps) {
     setActionLoading(userId);
     const { error } = await supa
       .from("profiles")
-      .update({ is_banned: false, banned_until: null })
+      .update({
+        is_banned: false,
+        banned_until: null,
+        ban_reason: null,
+        banned_by: null,
+        banned_at: null,
+      })
       .eq("id", userId);
 
-    if (error) {
-      alert(`Ошибка при разбане: ${error.message}`);
-    }
+    if (error) alert(`Ошибка при разбане: ${error.message}`);
+
+    setActionLoading(null);
+    router.refresh();
+  }
+
+  async function grantPremium(user: Profile, duration: PremiumDuration) {
+    setActionLoading(user.id);
+    const currentExpiry =
+      user.premium_until && new Date(user.premium_until) > new Date()
+        ? new Date(user.premium_until)
+        : new Date();
+    const premiumUntil =
+      duration === "permanent"
+        ? addDays(new Date(), 36500).toISOString()
+        : addDays(
+            currentExpiry,
+            duration === "7d"
+              ? 7
+              : duration === "30d"
+                ? 30
+                : duration === "90d"
+                  ? 90
+                  : 365
+          ).toISOString();
+
+    const { error } = await supa
+      .from("profiles")
+      .update({ premium_until: premiumUntil })
+      .eq("id", user.id);
+
+    if (error) alert(`Ошибка при выдаче премиума: ${error.message}`);
+
+    setActionLoading(null);
+    setPremiumUserId(null);
+    router.refresh();
+  }
+
+  async function revokePremium(userId: string) {
+    setActionLoading(userId);
+    const { error } = await supa
+      .from("profiles")
+      .update({ premium_until: null })
+      .eq("id", userId);
+
+    if (error) alert(`Ошибка при снятии премиума: ${error.message}`);
 
     setActionLoading(null);
     router.refresh();
   }
 
   async function deleteUser(userId: string) {
-    if (!window.confirm("Вы уверены, что хотите НАВСЕГДА удалить этот профиль? Все топики, сообщения, комментарии, фото и ключи шифрования пользователя будут безвозвратно удалены из базы данных.")) {
+    if (
+      !window.confirm(
+        "Навсегда удалить профиль и связанные данные пользователя?"
+      )
+    ) {
       return;
     }
+
     setActionLoading(userId);
-    const { error } = await supa
-      .from("profiles")
-      .delete()
-      .eq("id", userId);
-    if (error) {
-      alert(`Ошибка при удалении профиля: ${error.message}`);
-    }
+    const { error } = await supa.from("profiles").delete().eq("id", userId);
+    if (error) alert(`Ошибка при удалении профиля: ${error.message}`);
     setActionLoading(null);
     router.refresh();
   }
 
   async function setRole(userId: string, role: "admin" | "user") {
     setActionLoading(userId);
-    await supa
-      .from("profiles")
-      .update({ role })
-      .eq("id", userId);
+    const { error } = await supa.from("profiles").update({ role }).eq("id", userId);
+    if (error) alert(`Ошибка смены роли: ${error.message}`);
     setActionLoading(null);
     router.refresh();
   }
-
-  /* ───── Topic actions ───── */
 
   async function deleteTopic(topicId: string) {
     setActionLoading(topicId);
@@ -121,30 +217,76 @@ export function AdminPanel({ currentUserId, users, topics }: AdminPanelProps) {
     router.refresh();
   }
 
-  /* ───── Filtering ───── */
+  async function replyToTicket(ticketId: string) {
+    const draft = replyDrafts[ticketId]?.trim();
+    if (!draft) return;
+
+    setActionLoading(ticketId);
+    const { error } = await supa.from("support_messages").insert({
+      ticket_id: ticketId,
+      sender_id: currentUserId,
+      is_admin: true,
+      body: draft,
+    });
+
+    if (error) alert(`Ошибка ответа: ${error.message}`);
+    setReplyDrafts((prev) => ({ ...prev, [ticketId]: "" }));
+    setActionLoading(null);
+    router.refresh();
+  }
+
+  async function setTicketStatus(
+    ticketId: string,
+    status: "open" | "answered" | "closed"
+  ) {
+    setActionLoading(ticketId);
+    const { error } = await supa
+      .from("support_tickets")
+      .update({ status })
+      .eq("id", ticketId);
+
+    if (error) alert(`Ошибка смены статуса: ${error.message}`);
+    setActionLoading(null);
+    router.refresh();
+  }
 
   const q = query.toLowerCase();
-  const filteredUsers = users.filter((u) => {
+  const filteredUsers = users.filter((user) => {
     if (!q) return true;
     return (
-      u.username.toLowerCase().includes(q) ||
-      u.display_name?.toLowerCase().includes(q) ||
-      u.id.toLowerCase().includes(q)
+      user.username.toLowerCase().includes(q) ||
+      user.display_name?.toLowerCase().includes(q) ||
+      user.id.toLowerCase().includes(q)
     );
   });
 
-  const filteredTopics = topics.filter((t) => {
+  const filteredTopics = topics.filter((topic) => {
     if (!q) return true;
     return (
-      t.title.toLowerCase().includes(q) ||
-      t.body?.toLowerCase().includes(q) ||
-      t.author?.username.toLowerCase().includes(q)
+      topic.title.toLowerCase().includes(q) ||
+      topic.body?.toLowerCase().includes(q) ||
+      topic.author?.username.toLowerCase().includes(q)
     );
   });
+
+  const filteredTickets = supportTickets.filter((ticket) => {
+    if (!q) return true;
+    return (
+      ticket.subject.toLowerCase().includes(q) ||
+      ticket.user?.username.toLowerCase().includes(q) ||
+      ticket.messages.some((message) => message.body.toLowerCase().includes(q))
+    );
+  });
+
+  const activeBans = users.filter(
+    (user) =>
+      user.is_banned &&
+      (!user.banned_until || new Date(user.banned_until) > new Date())
+  ).length;
+  const premiumCount = users.filter(isPremiumActive).length;
 
   return (
     <div>
-      {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -159,61 +301,34 @@ export function AdminPanel({ currentUserId, users, topics }: AdminPanelProps) {
               Админ-панель
             </h1>
             <p className="text-sm text-slate-500">
-              Управление пользователями и контентом
+              Пользователи, премиум, блокировки и поддержка
             </p>
           </div>
         </div>
       </motion.div>
 
-      {/* Stats row */}
-      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
-        <GlassCard className="p-4">
-          <p className="text-xs text-slate-500">Пользователей</p>
-          <p className="mt-1 font-display text-2xl font-bold text-white">
-            {users.length}
-          </p>
-        </GlassCard>
-        <GlassCard className="p-4">
-          <p className="text-xs text-slate-500">Топиков</p>
-          <p className="mt-1 font-display text-2xl font-bold text-white">
-            {topics.length}
-          </p>
-        </GlassCard>
-        <GlassCard className="p-4">
-          <p className="text-xs text-slate-500">Забанено</p>
-          <p className="mt-1 font-display text-2xl font-bold text-red-400">
-            {users.filter((u) => u.is_banned).length}
-          </p>
-        </GlassCard>
+      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCard label="Пользователей" value={users.length} />
+        <StatCard label="Премиум" value={premiumCount} tone="gold" />
+        <StatCard label="Забанено" value={activeBans} tone="red" />
+        <StatCard label="Поддержка" value={supportTickets.length} />
       </div>
 
-      {/* Tabs */}
-      <div className="mb-4 flex gap-2">
-        <button
-          onClick={() => setTab("users")}
-          className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all ${
-            tab === "users"
-              ? "bg-accent-gradient text-white shadow-glow-accent"
-              : "bg-base-800/50 text-slate-400 hover:text-white"
-          }`}
-        >
+      <div className="mb-4 flex flex-wrap gap-2">
+        <TabButton active={tab === "users"} onClick={() => setTab("users")}>
           <Users size={16} />
           Пользователи
-        </button>
-        <button
-          onClick={() => setTab("topics")}
-          className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all ${
-            tab === "topics"
-              ? "bg-accent-gradient text-white shadow-glow-accent"
-              : "bg-base-800/50 text-slate-400 hover:text-white"
-          }`}
-        >
+        </TabButton>
+        <TabButton active={tab === "topics"} onClick={() => setTab("topics")}>
           <MessageSquare size={16} />
           Топики
-        </button>
+        </TabButton>
+        <TabButton active={tab === "support"} onClick={() => setTab("support")}>
+          <Headphones size={16} />
+          Поддержка
+        </TabButton>
       </div>
 
-      {/* Search */}
       <div className="relative mb-4">
         <Search
           size={18}
@@ -222,237 +337,350 @@ export function AdminPanel({ currentUserId, users, topics }: AdminPanelProps) {
         <Input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder={
-            tab === "users"
-              ? "Поиск по имени, username или ID…"
-              : "Поиск по заголовку или автору…"
-          }
+          placeholder="Поиск по текущему разделу..."
           className="pl-10"
         />
       </div>
 
-      {/* Content */}
       <AnimatePresence mode="wait">
-        {tab === "users" ? (
+        {tab === "users" && (
           <motion.div
             key="users"
-            initial={{ opacity: 0, x: -20 }}
+            initial={{ opacity: 0, x: -18 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 20 }}
+            exit={{ opacity: 0, x: 18 }}
             className="space-y-2"
           >
-            {filteredUsers.length === 0 ? (
-              <p className="py-8 text-center text-slate-500">
-                Пользователи не найдены
-              </p>
-            ) : (
-              filteredUsers.map((user) => (
-                <GlassCard
-                  key={user.id}
-                  className={`p-4 ${
-                    user.is_banned
-                      ? "border-red-500/20 bg-red-950/10"
-                      : ""
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
+            {filteredUsers.map((user) => (
+              <GlassCard
+                key={user.id}
+                className={`p-4 ${
+                  user.is_banned ? "border-red-500/20 bg-red-950/10" : ""
+                }`}
+              >
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
+                  <div className="flex min-w-0 flex-1 items-center gap-3">
                     <Avatar
                       src={user.avatar_url}
                       name={user.display_name ?? user.username}
                       size="md"
                     />
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <p className="font-medium text-white truncate">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="truncate font-medium text-white">
                           {user.display_name ?? user.username}
                         </p>
-                        {user.role === "admin" && (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-gold/15 px-2 py-0.5 text-[10px] font-semibold text-gold-soft">
-                            <Crown size={10} />
-                            ADMIN
-                          </span>
-                        )}
+                        {user.role === "admin" && <Badge icon={Shield} label="ADMIN" />}
+                        {isPremiumActive(user) && <Badge icon={Crown} label="PRO" />}
                         {user.is_banned && (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-red-500/15 px-2 py-0.5 text-[10px] font-semibold text-red-400">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-red-500/15 px-2 py-0.5 text-[10px] font-semibold text-red-300">
                             <Ban size={10} />
-                            ЗАБАНЕН {user.banned_until ? `до ${new Date(user.banned_until).toLocaleString("ru-RU", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}` : "навсегда"}
+                            БАН до {formatDate(user.banned_until)}
                           </span>
                         )}
-                        {user.premium_until &&
-                          new Date(user.premium_until) > new Date() && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-gold/15 px-2 py-0.5 text-[10px] font-semibold text-gradient-gold">
-                              <Crown size={10} className="text-gold-soft" />
-                              PRO
-                            </span>
-                          )}
                       </div>
                       <p className="text-xs text-slate-500">
-                        @{user.username} · {user.gender} ·{" "}
-                        {user.city ?? "город не указан"} · рег.{" "}
+                        @{user.username} · {user.city ?? "город не указан"} ·{" "}
                         {timeAgo(user.created_at)}
                       </p>
-                    </div>
-
-                    {/* Actions */}
-                    {user.id !== currentUserId && (
-                      <div className="flex flex-shrink-0 items-center gap-2">
-                        {banOptionsUserId === user.id ? (
-                          <div className="flex flex-wrap items-center gap-1">
-                            <span className="text-[11px] text-slate-400 mr-1">Срок:</span>
-                            <Button
-                              variant="danger"
-                              size="sm"
-                              className="h-7 px-2 text-xs"
-                              onClick={() => banUser(user.id, "30m")}
-                              disabled={actionLoading === user.id}
-                            >
-                              30м
-                            </Button>
-                            <Button
-                              variant="danger"
-                              size="sm"
-                              className="h-7 px-2 text-xs"
-                              onClick={() => banUser(user.id, "1d")}
-                              disabled={actionLoading === user.id}
-                            >
-                              1д
-                            </Button>
-                            <Button
-                              variant="danger"
-                              size="sm"
-                              className="h-7 px-2 text-xs"
-                              onClick={() => banUser(user.id, "3d")}
-                              disabled={actionLoading === user.id}
-                            >
-                              3д
-                            </Button>
-                            <Button
-                              variant="danger"
-                              size="sm"
-                              className="h-7 px-2 text-xs"
-                              onClick={() => banUser(user.id, "permanent")}
-                              disabled={actionLoading === user.id}
-                            >
-                              Навсегда
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-7 px-2 text-xs"
-                              onClick={() => setBanOptionsUserId(null)}
-                            >
-                              Отмена
-                            </Button>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-1.5">
-                            {user.is_banned ? (
-                              <Button
-                                variant="primary"
-                                size="sm"
-                                onClick={() => unbanUser(user.id)}
-                                disabled={actionLoading === user.id}
-                              >
-                                <CheckCircle2 size={14} />
-                                Разбан
-                              </Button>
-                            ) : (
-                              <Button
-                                variant="danger"
-                                size="sm"
-                                onClick={() => setBanOptionsUserId(user.id)}
-                                disabled={actionLoading === user.id}
-                              >
-                                <Ban size={14} />
-                                Бан
-                              </Button>
-                            )}
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="border-red-500/20 text-red-400 hover:bg-red-500/10"
-                              onClick={() => deleteUser(user.id)}
-                              disabled={actionLoading === user.id}
-                            >
-                              <Trash2 size={14} />
-                              Удалить
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </GlassCard>
-              ))
-            )}
-          </motion.div>
-        ) : (
-          <motion.div
-            key="topics"
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 20 }}
-            className="space-y-2"
-          >
-            {filteredTopics.length === 0 ? (
-              <p className="py-8 text-center text-slate-500">
-                Топики не найдены
-              </p>
-            ) : (
-              filteredTopics.map((topic) => (
-                <GlassCard key={topic.id} className="p-4">
-                  <div className="flex items-start gap-3">
-                    <div className="min-w-0 flex-1">
-                      <p className="font-medium text-white">{topic.title}</p>
-                      <p className="mt-1 line-clamp-2 text-xs text-slate-400">
-                        {topic.body}
-                      </p>
-                      <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-slate-500">
-                        <span>
-                          Автор: @
-                          {topic.author?.username ?? "?"}
-                        </span>
-                        <span>👁 {topic.view_count}</span>
-                        <span>❤️ {topic.like_count}</span>
-                        <span>💬 {topic.comment_count}</span>
-                        <span>{timeAgo(topic.created_at)}</span>
-                      </div>
-                    </div>
-
-                    {/* Delete with confirmation */}
-                    <div className="flex-shrink-0">
-                      {confirmDelete === topic.id ? (
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-red-400 flex items-center gap-1">
-                            <AlertTriangle size={12} />
-                            Удалить?
-                          </span>
-                          <Button
-                            variant="danger"
-                            size="sm"
-                            onClick={() => deleteTopic(topic.id)}
-                            disabled={actionLoading === topic.id}
-                          >
-                            Да
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setConfirmDelete(null)}
-                          >
-                            Нет
-                          </Button>
-                        </div>
-                      ) : (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setConfirmDelete(topic.id)}
-                        >
-                          <Trash2 size={14} className="text-red-400" />
-                        </Button>
+                      {user.ban_reason && user.is_banned && (
+                        <p className="mt-1 text-xs text-red-300">
+                          Причина: {user.ban_reason}
+                        </p>
+                      )}
+                      {user.premium_until && (
+                        <p className="mt-1 text-xs text-gold-soft/80">
+                          Премиум до {formatDate(user.premium_until)}
+                        </p>
                       )}
                     </div>
+                  </div>
+
+                  {user.id !== currentUserId && (
+                    <div className="flex flex-wrap gap-2 lg:justify-end">
+                      {user.role === "admin" ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setRole(user.id, "user")}
+                          disabled={actionLoading === user.id}
+                        >
+                          Снять админа
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setRole(user.id, "admin")}
+                          disabled={actionLoading === user.id}
+                        >
+                          Сделать админом
+                        </Button>
+                      )}
+                      {user.is_banned ? (
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          onClick={() => unbanUser(user.id)}
+                          disabled={actionLoading === user.id}
+                        >
+                          <CheckCircle2 size={14} />
+                          Разбан
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          onClick={() => setBanUserId(banUserId === user.id ? null : user.id)}
+                          disabled={actionLoading === user.id}
+                        >
+                          <Ban size={14} />
+                          Бан
+                        </Button>
+                      )}
+                      <Button
+                        variant="gold"
+                        size="sm"
+                        onClick={() =>
+                          setPremiumUserId(premiumUserId === user.id ? null : user.id)
+                        }
+                        disabled={actionLoading === user.id}
+                      >
+                        <Crown size={14} />
+                        Выдать премиум
+                      </Button>
+                      {isPremiumActive(user) && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => revokePremium(user.id)}
+                          disabled={actionLoading === user.id}
+                        >
+                          Снять PRO
+                        </Button>
+                      )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-red-500/20 text-red-400 hover:bg-red-500/10"
+                        onClick={() => deleteUser(user.id)}
+                        disabled={actionLoading === user.id}
+                      >
+                        <Trash2 size={14} />
+                        Удалить
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
+                {banUserId === user.id && (
+                  <div className="mt-4 rounded-xl border border-red-500/20 bg-red-500/10 p-3">
+                    <Textarea
+                      value={banReason}
+                      onChange={(e) => setBanReason(e.target.value)}
+                      rows={2}
+                      placeholder="Причина блокировки"
+                    />
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {BAN_DURATIONS.map((duration) => (
+                        <Button
+                          key={duration.value}
+                          variant="danger"
+                          size="sm"
+                          onClick={() => banUser(user, duration.value)}
+                          disabled={actionLoading === user.id}
+                        >
+                          {duration.label}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {premiumUserId === user.id && (
+                  <div className="mt-4 rounded-xl border border-gold/20 bg-gold/10 p-3">
+                    <p className="mb-2 text-xs text-gold-soft/80">
+                      Срок добавляется к текущей активной подписке, если она уже есть.
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {PREMIUM_DURATIONS.map((duration) => (
+                        <Button
+                          key={duration.value}
+                          variant="gold"
+                          size="sm"
+                          onClick={() => grantPremium(user, duration.value)}
+                          disabled={actionLoading === user.id}
+                        >
+                          {duration.label}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </GlassCard>
+            ))}
+          </motion.div>
+        )}
+
+        {tab === "topics" && (
+          <motion.div
+            key="topics"
+            initial={{ opacity: 0, x: -18 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 18 }}
+            className="space-y-2"
+          >
+            {filteredTopics.map((topic) => (
+              <GlassCard key={topic.id} className="p-4">
+                <div className="flex items-start gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-white">{topic.title}</p>
+                    <p className="mt-1 line-clamp-2 text-xs text-slate-400">
+                      {topic.body}
+                    </p>
+                    <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+                      <span>Автор: @{topic.author?.username ?? "?"}</span>
+                      <span>{topic.view_count} просмотров</span>
+                      <span>{topic.like_count} лайков</span>
+                      <span>{topic.comment_count} комментариев</span>
+                      <span>{timeAgo(topic.created_at)}</span>
+                    </div>
+                  </div>
+                  {confirmDelete === topic.id ? (
+                    <div className="flex items-center gap-2">
+                      <span className="flex items-center gap-1 text-xs text-red-400">
+                        <AlertTriangle size={12} />
+                        Удалить?
+                      </span>
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        onClick={() => deleteTopic(topic.id)}
+                        disabled={actionLoading === topic.id}
+                      >
+                        Да
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setConfirmDelete(null)}
+                      >
+                        Нет
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setConfirmDelete(topic.id)}
+                    >
+                      <Trash2 size={14} className="text-red-400" />
+                    </Button>
+                  )}
+                </div>
+              </GlassCard>
+            ))}
+          </motion.div>
+        )}
+
+        {tab === "support" && (
+          <motion.div
+            key="support"
+            initial={{ opacity: 0, x: -18 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 18 }}
+            className="space-y-3"
+          >
+            {filteredTickets.length === 0 ? (
+              <GlassCard className="p-8 text-center text-slate-400">
+                Обращений пока нет
+              </GlassCard>
+            ) : (
+              filteredTickets.map((ticket) => (
+                <GlassCard key={ticket.id} className="p-5">
+                  <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <h2 className="font-display text-lg font-semibold text-warm-100">
+                        {ticket.subject}
+                      </h2>
+                      <p className="text-xs text-slate-500">
+                        @{ticket.user?.username ?? "unknown"} · обновлено{" "}
+                        {timeAgo(ticket.updated_at)}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        variant={ticket.status === "open" ? "primary" : "outline"}
+                        size="sm"
+                        onClick={() => setTicketStatus(ticket.id, "open")}
+                        disabled={actionLoading === ticket.id}
+                      >
+                        Открыто
+                      </Button>
+                      <Button
+                        variant={ticket.status === "answered" ? "gold" : "outline"}
+                        size="sm"
+                        onClick={() => setTicketStatus(ticket.id, "answered")}
+                        disabled={actionLoading === ticket.id}
+                      >
+                        Отвечено
+                      </Button>
+                      <Button
+                        variant={ticket.status === "closed" ? "danger" : "outline"}
+                        size="sm"
+                        onClick={() => setTicketStatus(ticket.id, "closed")}
+                        disabled={actionLoading === ticket.id}
+                      >
+                        Закрыто
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    {ticket.messages.map((message) => (
+                      <div
+                        key={message.id}
+                        className={`rounded-xl border px-3 py-2 ${
+                          message.is_admin
+                            ? "border-gold/20 bg-gold/10 text-gold-soft"
+                            : "border-white/10 bg-base-900/50 text-slate-200"
+                        }`}
+                      >
+                        <p className="whitespace-pre-wrap text-sm">{message.body}</p>
+                        <p className="mt-1 text-[10px] text-slate-500">
+                          {message.is_admin ? "Админ" : "Пользователь"} ·{" "}
+                          {timeAgo(message.created_at)}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-4 flex gap-2">
+                    <Input
+                      value={replyDrafts[ticket.id] ?? ""}
+                      onChange={(e) =>
+                        setReplyDrafts((prev) => ({
+                          ...prev,
+                          [ticket.id]: e.target.value,
+                        }))
+                      }
+                      placeholder="Ответить пользователю"
+                    />
+                    <Button
+                      type="button"
+                      size="icon"
+                      onClick={() => replyToTicket(ticket.id)}
+                      disabled={
+                        actionLoading === ticket.id ||
+                        !replyDrafts[ticket.id]?.trim()
+                      }
+                    >
+                      {actionLoading === ticket.id ? (
+                        <Loader2 size={16} className="animate-spin" />
+                      ) : (
+                        <Send size={16} />
+                      )}
+                    </Button>
                   </div>
                 </GlassCard>
               ))
@@ -461,5 +689,71 @@ export function AdminPanel({ currentUserId, users, topics }: AdminPanelProps) {
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+function StatCard({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number;
+  tone?: "gold" | "red";
+}) {
+  return (
+    <GlassCard className="p-4">
+      <p className="text-xs text-slate-500">{label}</p>
+      <p
+        className={`mt-1 font-display text-2xl font-bold ${
+          tone === "gold"
+            ? "text-gold-soft"
+            : tone === "red"
+              ? "text-red-400"
+              : "text-white"
+        }`}
+      >
+        {value}
+      </p>
+    </GlassCard>
+  );
+}
+
+function TabButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all ${
+        active
+          ? "bg-accent-gradient text-white shadow-glow-accent"
+          : "bg-base-800/50 text-slate-400 hover:text-white"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function Badge({
+  icon: Icon,
+  label,
+}: {
+  icon: LucideIcon;
+  label: string;
+}) {
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full bg-gold/15 px-2 py-0.5 text-[10px] font-semibold text-gold-soft">
+      <Icon size={10} />
+      {label}
+    </span>
   );
 }

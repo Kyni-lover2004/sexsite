@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
-import { Crown, MessageSquare, MessagesSquare, User, Users } from "lucide-react";
+import { Crown, Headphones, MessageSquare, MessagesSquare, User, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "./ThemeToggle";
 
@@ -17,6 +17,7 @@ const NAV: NavItem[] = [
   { href: "/", label: "Обсуждения", icon: MessageSquare },
   { href: "/people", label: "Поиск", icon: Users },
   { href: "/chat", label: "Чаты", icon: MessagesSquare },
+  { href: "/support", label: "Поддержка", icon: Headphones },
   { href: "/profile", label: "Профиль", icon: User },
   { href: "/premium", label: "Премиум", icon: Crown },
 ];

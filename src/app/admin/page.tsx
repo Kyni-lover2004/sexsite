@@ -22,12 +22,38 @@ export default async function AdminPage() {
     .order("created_at", { ascending: false })
     .limit(100);
 
+  const { data: supportTickets } = await (supabase as any)
+    .from("support_tickets")
+    .select("*")
+    .order("updated_at", { ascending: false })
+    .limit(100);
+
+  const ticketIds = (supportTickets ?? []).map((ticket: any) => ticket.id);
+  const { data: supportMessages } =
+    ticketIds.length > 0
+      ? await (supabase as any)
+          .from("support_messages")
+          .select("*")
+          .in("ticket_id", ticketIds)
+          .order("created_at", { ascending: true })
+      : { data: [] };
+
+  const supportWithMessages = (supportTickets ?? []).map((ticket: any) => ({
+    ...ticket,
+    user:
+      (users ?? []).find((user: any) => user.id === ticket.user_id) ?? null,
+    messages: (supportMessages ?? []).filter(
+      (message: any) => message.ticket_id === ticket.id
+    ),
+  }));
+
   return (
     <AppShell>
       <AdminPanel
         currentUserId={auth.user!.id}
         users={(users ?? []) as any}
         topics={(topics ?? []) as any}
+        supportTickets={supportWithMessages as any}
       />
     </AppShell>
   );

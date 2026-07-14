@@ -70,7 +70,7 @@ export default async function ConversationPage({ params }: Props) {
 
   const { data: profileRow, error: profileError } = await supabase
     .from("profiles")
-    .select("id, username, display_name, avatar_url, last_seen")
+    .select("id, username, display_name, avatar_url, last_seen, premium_until")
     .eq("id", otherUserId)
     .single();
 
@@ -93,6 +93,7 @@ export default async function ConversationPage({ params }: Props) {
           display_name: otherProfile.display_name,
           avatar_url: otherProfile.avatar_url,
           last_seen: otherProfile.last_seen,
+          premium_until: (otherProfile as any).premium_until,
         }}
       />
     </AppShell>

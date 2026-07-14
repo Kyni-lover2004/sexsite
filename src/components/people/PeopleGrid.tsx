@@ -11,6 +11,7 @@ import {
   CheckCircle2,
   HeartHandshake,
   X,
+  Crown,
 } from "lucide-react";
 import Link from "next/link";
 import { Avatar } from "@/components/ui/Avatar";
@@ -124,6 +125,10 @@ export function PeopleGrid({ currentUserId }: { currentUserId: string | null }) 
         ? prev.datingGoals.filter((g) => g !== value)
         : [...prev.datingGoals, value],
     }));
+  }
+
+  function hasPremium(user: Profile) {
+    return !!user.premium_until && new Date(user.premium_until) > new Date();
   }
 
   return (
@@ -387,8 +392,15 @@ export function PeopleGrid({ currentUserId }: { currentUserId: string | null }) 
                   />
                   <div className="min-w-0 flex-1">
                     <Link href={`/profile/${user.id}`}>
-                      <p className="font-medium text-white transition-colors hover:text-gradient">
+                      <p className="flex items-center gap-1.5 font-medium text-white transition-colors hover:text-gradient">
                         {user.display_name ?? user.username}
+                        {hasPremium(user) && (
+                          <Crown
+                            size={14}
+                            className="shrink-0 fill-current text-gold-soft drop-shadow-[0_0_8px_rgb(var(--gold-glow)/0.45)]"
+                            aria-label="Премиум"
+                          />
+                        )}
                       </p>
                     </Link>
                     <p className="text-xs text-slate-500">@{user.username}</p>
