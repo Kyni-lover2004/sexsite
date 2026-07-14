@@ -89,11 +89,22 @@ export function ConversationList({
                     <p className="truncate text-sm font-medium text-white">
                       {other?.display_name ?? other?.username ?? "Пользователь"}
                     </p>
-                    <p className="truncate text-xs text-slate-500">
-                      {timeAgo(conv.updated_at)}
+                    <p className="truncate text-xs">
+                      {other && isOnline(other.last_seen) ? (
+                        <span className="text-emerald-400 font-medium">В сети</span>
+                      ) : other ? (
+                        <span className="text-slate-500">Был(а) {timeAgo(other.last_seen)}</span>
+                      ) : (
+                        ""
+                      )}
                     </p>
                   </div>
-                  <span className="flex h-2 w-2 shrink-0 rounded-full bg-gold-soft animate-pulse-glow shadow-neon-gold" />
+                  <div className="flex flex-col items-end gap-1.5 shrink-0">
+                    <span className="text-[10px] text-slate-500">
+                      {timeAgo(conv.updated_at)}
+                    </span>
+                    <span className="flex h-2 w-2 rounded-full bg-gold-soft animate-pulse-glow shadow-neon-gold" />
+                  </div>
                 </GlassCard>
               </motion.a>
             );
