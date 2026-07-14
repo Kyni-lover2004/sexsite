@@ -65,6 +65,7 @@ export function PeopleGrid({ currentUserId }: { currentUserId: string | null }) 
       });
 
     return () => { active = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUserId]);
 
   const countries = useMemo(() => getCountries(), []);

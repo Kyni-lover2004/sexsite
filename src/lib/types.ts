@@ -5,7 +5,7 @@
 //  Kept hand-written here so the app is typed out of the box.
 // =============================================================
 
-export type Gender = "male" | "female" | "other" | "prefer_not_to_say";
+export type Gender = "male" | "female" | "couple_mf" | "other" | "prefer_not_to_say";
 export type TopicStatus = "active" | "archived";
 export type UserRole = "user" | "admin";
 

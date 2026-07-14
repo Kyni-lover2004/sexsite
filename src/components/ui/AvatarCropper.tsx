@@ -75,7 +75,8 @@ export function AvatarCropper({ open, imageSrc, onCrop, onClose }: AvatarCropper
     const y = (CROP_SIZE - scaledH) / 2 + offsetY;
 
     ctx.drawImage(img, x, y, scaledW, scaledH);
-  }, [zoom, offsetX, offsetY, imgLoaded]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [zoom, offsetX, offsetY]);
 
   useEffect(() => {
     drawCanvas();
