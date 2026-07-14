@@ -45,6 +45,8 @@ const themeScript = `
 })();
 `;
 
+import { PresenceTracker } from "@/components/auth/PresenceTracker";
+
 export default function RootLayout({
   children,
 }: {
@@ -73,7 +75,10 @@ export default function RootLayout({
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
-      <body className="font-sans">{children}</body>
+      <body className="font-sans">
+        {children}
+        <PresenceTracker />
+      </body>
     </html>
   );
 }
