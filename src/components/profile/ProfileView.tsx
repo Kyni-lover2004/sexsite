@@ -320,7 +320,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
 
     const profileUpdate: Record<string, unknown> = {
       username: newUsername,
-      display_name: form.display_name || null,
+      display_name: form.display_name.trim().slice(0, 10) || null,
       status: form.status || null,
       bio: form.bio || null,
       country: form.country || null,
@@ -450,8 +450,8 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
 
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
         <GlassCard premium className="relative overflow-hidden p-4 sm:p-6">
-          <div className="absolute inset-x-0 top-0 h-[6.5rem] bg-gradient-to-br from-gold/20 via-accent-deep/10 to-gold/10 sm:h-[7.5rem]" />
-          <div className="absolute inset-x-0 top-[6.5rem] h-px bg-gradient-to-r from-transparent via-gold/30 to-transparent sm:top-[7.5rem]" />
+          <div className="absolute inset-x-0 top-0 h-[8.5rem] bg-gradient-to-br from-gold/20 via-accent-deep/10 to-gold/10 sm:h-[9.5rem]" />
+          <div className="absolute inset-x-0 top-[8.5rem] h-px bg-gradient-to-r from-transparent via-gold/30 to-transparent sm:top-[9.5rem]" />
 
           <div className="relative flex flex-col gap-3 pt-5 sm:flex-row sm:items-start sm:gap-4 sm:pt-7">
             <div className="relative group w-fit shrink-0">
@@ -512,6 +512,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                     onChange={(e) =>
                       setForm({ ...form, display_name: e.target.value })
                     }
+                    maxLength={10}
                     placeholder="Имя"
                   />
                   <Input
@@ -891,7 +892,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                    <div className="flex min-w-0 items-start justify-between gap-2">
                     <div className="min-w-0">
                       <h1 className="flex min-w-0 flex-wrap items-center gap-1.5 break-words font-display text-lg font-bold leading-tight text-gradient sm:gap-2 sm:text-xl">
-                        {profile.display_name ?? profile.username}
+                        {(profile.display_name ?? profile.username).slice(0, 10)}
                         {profile.role === "admin" && (
                           <span className="inline-flex items-center gap-1 rounded-full bg-red-500/10 border border-red-500/20 px-2 py-0.5 text-[10px] font-semibold text-red-400 shadow-[0_0_12px_rgba(239,68,68,0.15)]">
                             <Shield size={10} className="fill-current" />
@@ -903,6 +904,27 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                             <Crown size={10} className="fill-current" />
                             PRO
                           </span>
+                        )}
+                        {(available || isOwn) && (
+                          isOwn ? (
+                            <button
+                              type="button"
+                              onClick={toggleAvailable}
+                              className={`inline-flex min-h-8 max-w-full touch-manipulation items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold leading-none shadow-inner-glow transition-all ${
+                                available
+                                  ? "border border-emerald-500/30 bg-emerald-500/10 text-emerald-600 hover:border-emerald-500/45 dark:text-emerald-400"
+                                  : "border border-gold/25 bg-base-900/65 text-warm-200 hover:border-gold/45 dark:text-white"
+                              }`}
+                            >
+                              {available ? <CheckCircle2 size={12} /> : <MessageSquare size={12} />}
+                              {available ? "Готов(а) общаться" : "Не готов(а) общаться"}
+                            </button>
+                          ) : (
+                            <span className="inline-flex min-h-8 items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/15 px-2.5 py-1 text-[10px] font-semibold leading-none text-emerald-600 dark:text-emerald-400">
+                              <CheckCircle2 size={12} />
+                              Готов(а) общаться
+                            </span>
+                          )
                         )}
                       </h1>
                       <p className="mt-1 truncate text-sm text-slate-500">
@@ -967,38 +989,6 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                       {online ? "В сети" : `Был(а) ${timeAgo(profile.last_seen)}`}
                     </span>
                   </div>
-
-                  {(available || isOwn) && (
-                    <div className="mt-4">
-                      {isOwn ? (
-                        <button
-                          onClick={toggleAvailable}
-                          className={`inline-flex min-h-11 w-full max-w-full touch-manipulation items-center justify-center gap-2 rounded-full px-3.5 py-2 text-center text-xs font-medium shadow-inner-glow transition-all min-[420px]:w-auto min-[420px]:text-left sm:min-h-0 sm:py-1.5 ${
-                            available
-                              ? "border border-emerald-500/25 bg-emerald-500/10 text-emerald-600 hover:border-emerald-500/40 dark:text-emerald-400"
-                              : "border border-gold/25 bg-base-900/65 text-warm-200 hover:border-gold/45 hover:bg-gold/10 hover:text-warm-100"
-                          }`}
-                        >
-                          {available ? (
-                            <>
-                              <CheckCircle2 size={14} />
-                              Готов(а) пообщаться сейчас
-                            </>
-                          ) : (
-                            <>
-                              <MessageSquare size={14} />
-                              Включить «готов(а) пообщаться»
-                            </>
-                          )}
-                        </button>
-                      ) : available ? (
-                        <span className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/15 px-3.5 py-2 text-xs font-medium text-emerald-600 dark:text-emerald-400 sm:min-h-0 sm:py-1.5">
-                          <CheckCircle2 size={14} />
-                          Готов(а) пообщаться
-                        </span>
-                      ) : null}
-                    </div>
-                  )}
 
                   <section className="mt-4 space-y-2">
                     <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-gold-soft/60">
