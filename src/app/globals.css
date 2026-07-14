@@ -117,38 +117,36 @@ body::after {
   color: rgb(122 102 94 / 0.72);
 }
 
-/* Lavender surfaces need dark ink for comfortable reading in light mode. */
-.light .text-gold,
-.light .text-gold-soft,
-.light .text-gradient,
-.light .text-gradient-gold {
-  color: rgb(var(--warm-100));
-  -webkit-text-fill-color: rgb(var(--warm-100));
-}
-
-.light [class*="text-gold-soft"] {
-  color: rgb(var(--warm-200)) !important;
-}
-
-/* Keep every label on lavender gradient controls readable in light mode. */
+/* Keep every label on accent controls readable in both themes. */
 .light .bg-accent-gradient,
 .light .bg-gold-gradient,
 .light .bg-accent-gradient-v {
-  color: rgb(var(--warm-100)) !important;
+  color: #fff !important;
 }
 
 .light .bg-accent-gradient .text-white,
 .light .bg-gold-gradient .text-white,
 .light .bg-accent-gradient-v .text-white {
-  color: rgb(var(--warm-100)) !important;
+  color: #fff !important;
+}
+
+.light button.bg-accent-gradient,
+.light button.bg-gold-gradient,
+.light button.bg-accent-gradient-v,
+.light .chat-lavender {
+  color: #fff !important;
 }
 
 /* Softer lavender treatment for chat notices and status pills. */
 .light .chat-lavender,
 .light .chat-lavender * {
-  border-color: rgb(var(--gold) / 0.22);
-  color: rgb(var(--warm-200));
+  border-color: rgb(var(--accent-deep) / 0.28);
+  color: #fff !important;
   box-shadow: none;
+}
+
+.light .chat-lavender {
+  background-color: rgb(var(--accent-deep) / 0.55) !important;
 }
 
 .light .placeholder\:text-slate-500::placeholder {
