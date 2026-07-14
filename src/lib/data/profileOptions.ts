@@ -12,8 +12,8 @@ export const DATING_GOALS = [
 ] as const;
 
 export const GENDER_OPTIONS = [
-  { value: "female", label: "Девушку" },
-  { value: "male", label: "Мужчину" },
+  { value: "female", label: "Женщина" },
+  { value: "male", label: "Мужчина" },
   { value: "couple_mf", label: "Пара МЖ" },
 ] as const;
 
