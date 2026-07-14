@@ -365,8 +365,9 @@ export function PeopleGrid({ currentUserId }: { currentUserId: string | null }) 
                 duration: 0.4,
                 ease: [0.22, 1, 0.36, 1],
               }}
+              className="flex flex-col h-full"
             >
-              <GlassCard interactive className="group relative overflow-hidden p-4">
+              <GlassCard interactive className="group relative flex flex-1 flex-col justify-between overflow-hidden p-4 h-full">
                 <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-accent/[0.03] to-gold/[0.02] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
 
                 {user.available_for_chat && (
