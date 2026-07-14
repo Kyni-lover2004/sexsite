@@ -10,28 +10,28 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Deep obsidian background scale
+        // Theme-driven surface scale
         base: {
-          950: "#030302",
-          900: "#070604",
-          800: "#0d0b08",
-          700: "#17130c",
-          600: "#241d12",
-          500: "#342916",
+          950: "rgb(var(--base-950) / <alpha-value>)",
+          900: "rgb(var(--base-900) / <alpha-value>)",
+          800: "rgb(var(--base-800) / <alpha-value>)",
+          700: "rgb(var(--base-700) / <alpha-value>)",
+          600: "rgb(var(--base-600) / <alpha-value>)",
+          500: "rgb(var(--base-500) / <alpha-value>)",
         },
-        // Champagne gold primary accent
+        // Muted luxury metal accent
         accent: {
-          DEFAULT: "#d6a84f",
-          soft: "#f5d58a",
-          deep: "#9c6d24",
-          muted: "#6f4b19",
+          DEFAULT: "rgb(var(--accent) / <alpha-value>)",
+          soft: "rgb(var(--accent-soft) / <alpha-value>)",
+          deep: "rgb(var(--accent-deep) / <alpha-value>)",
+          muted: "rgb(var(--accent-muted) / <alpha-value>)",
         },
-        // Rich gold secondary accent
+        // Champagne / platinum gold secondary accent
         gold: {
-          DEFAULT: "#c9973f",
-          soft: "#ffe6a6",
-          deep: "#8f5f1a",
-          glow: "#fff2bf",
+          DEFAULT: "rgb(var(--gold) / <alpha-value>)",
+          soft: "rgb(var(--gold-soft) / <alpha-value>)",
+          deep: "rgb(var(--gold-deep) / <alpha-value>)",
+          glow: "rgb(var(--gold-glow) / <alpha-value>)",
         },
         // Ruby is reserved for rare highlights and errors
         ruby: {
@@ -43,8 +43,8 @@ const config: Config = {
         },
         // Warm neutral for some text
         warm: {
-          100: "#fff7dd",
-          200: "#ecd49c",
+          100: "rgb(var(--warm-100) / <alpha-value>)",
+          200: "rgb(var(--warm-200) / <alpha-value>)",
         },
       },
       fontFamily: {
@@ -53,30 +53,30 @@ const config: Config = {
       },
       backgroundImage: {
         "accent-gradient":
-          "linear-gradient(135deg, #9c6d24 0%, #f5d58a 48%, #b8842c 100%)",
+          "linear-gradient(135deg, rgb(var(--accent-deep)) 0%, rgb(var(--gold-soft)) 48%, rgb(var(--accent)) 100%)",
         "accent-gradient-v":
-          "linear-gradient(180deg, #f5d58a 0%, #b8842c 100%)",
+          "linear-gradient(180deg, rgb(var(--gold-soft)) 0%, rgb(var(--accent)) 100%)",
         "accent-gradient-subtle":
-          "linear-gradient(135deg, rgba(245,213,138,0.13) 0%, rgba(156,109,36,0.14) 100%)",
+          "linear-gradient(135deg, rgb(var(--gold-soft) / 0.13) 0%, rgb(var(--accent-deep) / 0.14) 100%)",
         "gold-gradient":
-          "linear-gradient(135deg, #8f5f1a 0%, #ffe6a6 46%, #c9973f 100%)",
+          "linear-gradient(135deg, rgb(var(--gold-deep)) 0%, rgb(var(--gold-soft)) 48%, rgb(var(--gold)) 100%)",
         "mesh-gradient":
-          "linear-gradient(135deg, rgba(255,230,166,0.08) 0%, transparent 34%), linear-gradient(180deg, rgba(201,151,63,0.06) 0%, transparent 42%)",
+          "linear-gradient(135deg, rgb(var(--gold-soft) / 0.08) 0%, transparent 34%), linear-gradient(180deg, rgb(var(--gold) / 0.06) 0%, transparent 42%)",
         "glow-radial":
-          "radial-gradient(circle at 50% 0%, rgba(245,213,138,0.12), transparent 62%)",
+          "radial-gradient(circle at 50% 0%, rgb(var(--gold-soft) / 0.12), transparent 62%)",
         "card-shine":
-          "linear-gradient(105deg, transparent 34%, rgba(255,242,191,0.04) 45%, rgba(255,255,255,0.09) 50%, rgba(255,230,166,0.04) 56%, transparent 66%)",
+          "linear-gradient(105deg, transparent 34%, rgb(var(--gold-glow) / 0.04) 45%, rgba(255,255,255,0.09) 50%, rgb(var(--gold-soft) / 0.04) 56%, transparent 66%)",
       },
       boxShadow: {
-        glass: "0 18px 55px rgba(0,0,0,0.58)",
-        "glow-accent": "0 0 34px rgba(245,213,138,0.2)",
-        "glow-accent-lg": "0 0 60px rgba(245,213,138,0.18), 0 0 120px rgba(201,151,63,0.1)",
-        "glow-gold": "0 0 34px rgba(255,230,166,0.24)",
-        "glow-gold-lg": "0 0 70px rgba(255,230,166,0.2)",
+        glass: "0 18px 55px rgb(0 0 0 / 0.18)",
+        "glow-accent": "0 0 34px rgb(var(--gold-soft) / 0.16)",
+        "glow-accent-lg": "0 0 60px rgb(var(--gold-soft) / 0.14), 0 0 120px rgb(var(--gold) / 0.08)",
+        "glow-gold": "0 0 34px rgb(var(--gold-glow) / 0.2)",
+        "glow-gold-lg": "0 0 70px rgb(var(--gold-glow) / 0.16)",
         "glow-emerald": "0 0 24px rgba(52,211,153,0.35)",
-        "neon-accent": "0 0 10px rgba(245,213,138,0.42), 0 0 28px rgba(201,151,63,0.2)",
-        "neon-gold": "0 0 10px rgba(255,230,166,0.45), 0 0 26px rgba(201,151,63,0.22)",
-        "inner-glow": "inset 0 1px 1px rgba(255,242,191,0.08)",
+        "neon-accent": "0 0 10px rgb(var(--gold-soft) / 0.34), 0 0 28px rgb(var(--gold) / 0.16)",
+        "neon-gold": "0 0 10px rgb(var(--gold-glow) / 0.35), 0 0 26px rgb(var(--gold) / 0.18)",
+        "inner-glow": "inset 0 1px 1px rgb(var(--gold-glow) / 0.08)",
       },
       backdropBlur: {
         xs: "2px",
@@ -121,12 +121,12 @@ const config: Config = {
           "100%": { transform: "translateY(-100vh) translateX(20px)", opacity: "0" },
         },
         "glow-breathe": {
-          "0%, 100%": { boxShadow: "0 0 20px rgba(245,213,138,0.12)" },
-          "50%": { boxShadow: "0 0 45px rgba(245,213,138,0.24), 0 0 90px rgba(201,151,63,0.1)" },
+          "0%, 100%": { boxShadow: "0 0 20px rgb(var(--gold-soft) / 0.12)" },
+          "50%": { boxShadow: "0 0 45px rgb(var(--gold-soft) / 0.22), 0 0 90px rgb(var(--gold) / 0.1)" },
         },
         "text-glow": {
-          "0%, 100%": { textShadow: "0 0 10px rgba(245,213,138,0.22)" },
-          "50%": { textShadow: "0 0 22px rgba(245,213,138,0.42), 0 0 44px rgba(201,151,63,0.16)" },
+          "0%, 100%": { textShadow: "0 0 10px rgb(var(--gold-soft) / 0.2)" },
+          "50%": { textShadow: "0 0 22px rgb(var(--gold-soft) / 0.34), 0 0 44px rgb(var(--gold) / 0.14)" },
         },
       },
       animation: {

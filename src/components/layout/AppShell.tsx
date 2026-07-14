@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { Crown, MessageSquare, MessagesSquare, User, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ThemeToggle } from "./ThemeToggle";
 
 interface NavItem {
   href: string;
@@ -30,7 +31,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="relative min-h-svh overflow-hidden">
-      <div className="pointer-events-none fixed inset-x-0 top-0 z-0 h-40 border-b border-gold/10 bg-[linear-gradient(180deg,rgba(255,230,166,0.08),transparent)]" />
+      <div className="pointer-events-none fixed inset-x-0 top-0 z-0 h-40 border-b border-gold/10 bg-[linear-gradient(180deg,rgb(var(--gold-glow)/0.12),transparent)]" />
 
       {/* Desktop sidebar */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-gold/10 bg-base-950/82 px-4 py-6 shadow-[18px_0_60px_rgba(0,0,0,0.34)] backdrop-blur-2xl md:flex">
@@ -92,8 +93,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           })}
         </nav>
 
-        <div className="mx-3 mt-4 mb-2 h-px bg-gradient-to-r from-transparent via-gold/10 to-transparent" />
-        <p className="px-3 text-[10px] uppercase tracking-[0.18em] text-gold-soft/35">v0.1 · E2EE ready</p>
+        <div className="mx-3 mt-4 mb-3 h-px bg-gradient-to-r from-transparent via-gold/10 to-transparent" />
+        <div className="flex items-center justify-between px-3">
+          <p className="text-[10px] uppercase tracking-[0.18em] text-gold-soft/35">v0.1 · E2EE ready</p>
+          <ThemeToggle />
+        </div>
       </aside>
 
       {/* Main content */}
@@ -104,6 +108,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </main>
 
       {/* Mobile bottom nav */}
+      <div className="fixed right-4 top-4 z-30 md:hidden">
+        <ThemeToggle />
+      </div>
+
       <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-gold/10 bg-base-950/90 shadow-[0_-18px_45px_rgba(0,0,0,0.42)] backdrop-blur-2xl md:hidden">
         <div className="mx-auto flex max-w-md items-stretch justify-around">
           {NAV.map((item) => {

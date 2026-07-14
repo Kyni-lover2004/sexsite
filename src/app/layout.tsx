@@ -26,10 +26,24 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#030304",
+  themeColor: "#040404",
   width: "device-width",
   initialScale: 1,
 };
+
+const themeScript = `
+(() => {
+  try {
+    const stored = localStorage.getItem("nebula-theme");
+    const theme = stored === "light" || stored === "dark"
+      ? stored
+      : (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+    document.documentElement.classList.toggle("dark", theme === "dark");
+    document.documentElement.classList.toggle("light", theme === "light");
+    document.documentElement.style.colorScheme = theme;
+  } catch (_) {}
+})();
+`;
 
 export default function RootLayout({
   children,
@@ -40,6 +54,9 @@ export default function RootLayout({
   if (!supabaseConfigured) {
     return (
       <html lang="ru" className={`${inter.variable} ${spaceGrotesk.variable} dark`} suppressHydrationWarning>
+        <head>
+          <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        </head>
         <body className="font-sans">
           <SetupGuide />
         </body>
@@ -53,6 +70,9 @@ export default function RootLayout({
       className={`${inter.variable} ${spaceGrotesk.variable} dark`}
       suppressHydrationWarning
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body className="font-sans">{children}</body>
     </html>
   );

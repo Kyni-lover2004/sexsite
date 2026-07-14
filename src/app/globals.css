@@ -5,6 +5,47 @@
 :root {
   --font-sans: "Inter", system-ui, sans-serif;
   --font-display: "Space Grotesk", system-ui, sans-serif;
+  color-scheme: light;
+
+  --base-950: 253 251 248;
+  --base-900: 248 244 239;
+  --base-800: 241 235 228;
+  --base-700: 225 214 205;
+  --base-600: 194 176 164;
+  --base-500: 144 119 105;
+
+  --accent: 174 119 105;
+  --accent-soft: 122 83 75;
+  --accent-deep: 104 67 58;
+  --accent-muted: 152 116 103;
+  --gold: 190 142 125;
+  --gold-soft: 128 83 74;
+  --gold-deep: 112 72 62;
+  --gold-glow: 237 212 202;
+  --warm-100: 35 29 27;
+  --warm-200: 78 62 56;
+}
+
+.dark {
+  color-scheme: dark;
+
+  --base-950: 4 4 4;
+  --base-900: 9 8 7;
+  --base-800: 15 13 10;
+  --base-700: 25 21 16;
+  --base-600: 38 31 23;
+  --base-500: 54 45 33;
+
+  --accent: 168 137 97;
+  --accent-soft: 222 206 175;
+  --accent-deep: 105 83 55;
+  --accent-muted: 90 74 53;
+  --gold: 185 160 118;
+  --gold-soft: 232 220 194;
+  --gold-deep: 118 93 59;
+  --gold-glow: 244 236 216;
+  --warm-100: 245 239 224;
+  --warm-200: 212 198 165;
 }
 
 * {
@@ -18,14 +59,14 @@ html {
 }
 
 body {
-  @apply bg-base-950 text-slate-100 antialiased;
+  @apply bg-base-950 text-slate-800 antialiased dark:text-slate-100;
   min-height: 100vh;
   min-height: -webkit-fill-available;
   background-image:
-    linear-gradient(115deg, rgba(255, 230, 166, 0.08) 0%, transparent 24%),
-    linear-gradient(245deg, rgba(201, 151, 63, 0.08) 0%, transparent 28%),
-    repeating-linear-gradient(90deg, rgba(255, 242, 191, 0.035) 0 1px, transparent 1px 120px),
-    linear-gradient(180deg, #030302 0%, #080604 48%, #030302 100%);
+    linear-gradient(115deg, rgb(var(--gold-glow) / 0.22) 0%, transparent 24%),
+    linear-gradient(245deg, rgb(var(--gold) / 0.13) 0%, transparent 28%),
+    repeating-linear-gradient(90deg, rgb(var(--gold-deep) / 0.04) 0 1px, transparent 1px 120px),
+    linear-gradient(180deg, rgb(var(--base-950)) 0%, rgb(var(--base-900)) 48%, rgb(var(--base-950)) 100%);
   background-attachment: fixed;
   min-height: 100vh;
   position: relative;
@@ -39,8 +80,8 @@ body::before {
   z-index: 0;
   opacity: 0.46;
   background-image:
-    linear-gradient(115deg, transparent 8%, rgba(255, 230, 166, 0.11) 9%, transparent 10%),
-    linear-gradient(115deg, transparent 72%, rgba(201, 151, 63, 0.08) 73%, transparent 74%);
+    linear-gradient(115deg, transparent 8%, rgb(var(--gold-glow) / 0.16) 9%, transparent 10%),
+    linear-gradient(115deg, transparent 72%, rgb(var(--gold) / 0.11) 73%, transparent 74%);
   mask-image: linear-gradient(to bottom, black 0%, transparent 78%);
 }
 
@@ -53,6 +94,15 @@ body::after {
   opacity: 0.24;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 220 220' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)' opacity='.34'/%3E%3C/svg%3E");
   mix-blend-mode: soft-light;
+}
+
+.light .text-white,
+.light .text-slate-100 {
+  color: rgb(var(--warm-100));
+}
+
+.light .placeholder\:text-slate-500::placeholder {
+  color: rgb(120 105 95 / 0.72);
 }
 
 /* ------------------------------------------------------------------ */
@@ -83,8 +133,8 @@ body::after {
     padding: 1px;
     background: linear-gradient(
       135deg,
-      rgba(255, 230, 166, 0.48),
-      rgba(201, 151, 63, 0.18),
+      rgb(var(--gold-glow) / 0.36),
+      rgb(var(--gold) / 0.2),
       transparent 60%
     );
     -webkit-mask:
@@ -108,8 +158,8 @@ body::after {
     background: conic-gradient(
       from var(--border-angle, 0deg),
       transparent 40%,
-      rgba(255, 230, 166, 0.62) 50%,
-      rgba(201, 151, 63, 0.42) 55%,
+      rgb(var(--gold-glow) / 0.48) 50%,
+      rgb(var(--gold) / 0.34) 55%,
       transparent 60%
     );
     -webkit-mask:
@@ -133,17 +183,17 @@ body::after {
   /* Gradient text accent */
   .text-gradient {
     @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(135deg, #fff7dd, #f5d58a 42%, #b8842c);
+    background-image: linear-gradient(135deg, rgb(var(--warm-100)), rgb(var(--gold-soft)) 46%, rgb(var(--accent)));
   }
 
   .text-gradient-gold {
     @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(135deg, #fff7dd, #ffe6a6 42%, #c9973f);
+    background-image: linear-gradient(135deg, rgb(var(--warm-100)), rgb(var(--gold-soft)) 48%, rgb(var(--gold)));
   }
 
   /* Glow text */
   .glow-text {
-    text-shadow: 0 0 14px rgba(245, 213, 138, 0.34), 0 0 36px rgba(201, 151, 63, 0.14);
+    text-shadow: 0 0 14px rgb(var(--gold-soft) / 0.24), 0 0 36px rgb(var(--gold) / 0.12);
   }
 
   /* Focus ring used across inputs / buttons */
@@ -163,9 +213,9 @@ body::after {
     background: linear-gradient(
       105deg,
       transparent 40%,
-      rgba(255, 242, 191, 0.18) 45%,
+      rgb(var(--gold-glow) / 0.16) 45%,
       rgba(255, 255, 255, 0.34) 50%,
-      rgba(255, 230, 166, 0.18) 55%,
+      rgb(var(--gold-soft) / 0.12) 55%,
       transparent 60%
     );
     transform: translateX(-100%) skewX(-15deg);
@@ -190,14 +240,14 @@ body::after {
     position: absolute;
     inset: 0;
     background-image:
-      radial-gradient(1px 1px at 10% 20%, rgba(255, 242, 191, 0.34), transparent),
-      radial-gradient(1px 1px at 30% 70%, rgba(255, 230, 166, 0.3), transparent),
-      radial-gradient(1px 1px at 55% 15%, rgba(245, 213, 138, 0.26), transparent),
-      radial-gradient(1px 1px at 70% 55%, rgba(201, 151, 63, 0.25), transparent),
-      radial-gradient(1px 1px at 85% 35%, rgba(255, 242, 191, 0.32), transparent),
-      radial-gradient(1px 1px at 20% 85%, rgba(201, 151, 63, 0.2), transparent),
-      radial-gradient(1.5px 1.5px at 45% 45%, rgba(245, 213, 138, 0.28), transparent),
-      radial-gradient(1px 1px at 90% 80%, rgba(255, 230, 166, 0.24), transparent);
+      radial-gradient(1px 1px at 10% 20%, rgb(var(--gold-glow) / 0.28), transparent),
+      radial-gradient(1px 1px at 30% 70%, rgb(var(--gold-soft) / 0.24), transparent),
+      radial-gradient(1px 1px at 55% 15%, rgb(var(--gold) / 0.2), transparent),
+      radial-gradient(1px 1px at 70% 55%, rgb(var(--accent) / 0.18), transparent),
+      radial-gradient(1px 1px at 85% 35%, rgb(var(--gold-glow) / 0.24), transparent),
+      radial-gradient(1px 1px at 20% 85%, rgb(var(--gold) / 0.16), transparent),
+      radial-gradient(1.5px 1.5px at 45% 45%, rgb(var(--gold-soft) / 0.22), transparent),
+      radial-gradient(1px 1px at 90% 80%, rgb(var(--gold-soft) / 0.2), transparent);
     pointer-events: none;
     animation: particle-twinkle 4s ease-in-out infinite alternate;
     z-index: 0;
@@ -236,8 +286,8 @@ body::after {
   background-image: linear-gradient(
     90deg,
     transparent,
-    rgba(255, 230, 166, 0.05),
-    rgba(201, 151, 63, 0.05),
+    rgb(var(--gold-soft) / 0.05),
+    rgb(var(--gold) / 0.05),
     transparent
   );
 }
