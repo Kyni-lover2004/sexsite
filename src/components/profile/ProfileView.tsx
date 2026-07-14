@@ -74,6 +74,8 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
     display_name: profile.display_name ?? "",
     status: profile.status ?? "",
     bio: profile.bio ?? "",
+    country: profile.country ?? "",
+    region: profile.region ?? "",
     city: profile.city ?? "",
     birth_date: profile.birth_date ?? "",
     gender: profile.gender ?? "prefer_not_to_say",
@@ -83,17 +85,9 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
 
   const online = isOnline(profile.last_seen);
 
-  const allCities = useMemo(() => {
-    const cities: string[] = [];
-    getCountries().forEach((country) => {
-      getRegions(country).forEach((region) => {
-        getCities(country, region).forEach((city) => {
-          if (!cities.includes(city)) cities.push(city);
-        });
-      });
-    });
-    return cities.sort();
-  }, []);
+  const countries = useMemo(() => getCountries(), []);
+  const regions = useMemo(() => getRegions(form.country), [form.country]);
+  const cities = useMemo(() => getCities(form.country, form.region), [form.country, form.region]);
 
   useEffect(() => {
     setAvailable(profile.available_for_chat);
@@ -312,6 +306,8 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
       display_name: form.display_name || null,
       status: form.status || null,
       bio: form.bio || null,
+      country: form.country || null,
+      region: form.region || null,
       city: form.city || null,
       birth_date: form.birth_date || null,
       gender: form.gender,
@@ -470,21 +466,63 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div>
                       <label className="mb-1.5 block text-xs font-medium text-slate-400">
-                        Город
+                        <MapPin size={12} className="mr-1 inline" />
+                        Локация
                       </label>
-                      <Input
-                        value={form.city}
-                        onChange={(e) =>
-                          setForm({ ...form, city: e.target.value })
-                        }
-                        placeholder="Начните вводить город"
-                        list="all-cities"
-                      />
-                      <datalist id="all-cities">
-                        {allCities.map((city) => (
-                          <option key={city} value={city} />
-                        ))}
-                      </datalist>
+                      <div className="flex flex-wrap gap-2">
+                        <select
+                          value={form.country}
+                          onChange={(e) =>
+                            setForm({ ...form, country: e.target.value, region: "", city: "" })
+                          }
+                          className="h-10 rounded-xl border border-gold/15 bg-base-800/60 px-3 text-sm text-slate-100 transition-all duration-300 focus:border-gold/50 focus:outline-none focus:ring-2 focus:ring-gold/15"
+                        >
+                          <option value="">Страна</option>
+                          {countries.map((c) => (
+                            <option key={c} value={c}>{c}</option>
+                          ))}
+                        </select>
+                        {form.country && (
+                          <select
+                            value={form.region}
+                            onChange={(e) =>
+                              setForm({ ...form, region: e.target.value, city: "" })
+                            }
+                            className="h-10 rounded-xl border border-gold/15 bg-base-800/60 px-3 text-sm text-slate-100 transition-all duration-300 focus:border-gold/50 focus:outline-none focus:ring-2 focus:ring-gold/15"
+                          >
+                            <option value="">Регион</option>
+                            {regions.map((r) => (
+                              <option key={r} value={r}>{r}</option>
+                            ))}
+                          </select>
+                        )}
+                        {form.region && (
+                          <select
+                            value={form.city}
+                            onChange={(e) =>
+                              setForm({ ...form, city: e.target.value })
+                            }
+                            className="h-10 rounded-xl border border-gold/15 bg-base-800/60 px-3 text-sm text-slate-100 transition-all duration-300 focus:border-gold/50 focus:outline-none focus:ring-2 focus:ring-gold/15"
+                          >
+                            <option value="">Город</option>
+                            {cities.map((c) => (
+                              <option key={c} value={c}>{c}</option>
+                            ))}
+                          </select>
+                        )}
+                        {(form.country || form.region || form.city) && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setForm({ ...form, country: "", region: "", city: "" })
+                            }
+                            className="flex items-center gap-1 rounded-xl border border-gold/15 bg-base-800/60 px-3 text-xs text-slate-400 hover:text-white transition-all"
+                          >
+                            <X size={12} />
+                            Сбросить
+                          </button>
+                        )}
+                      </div>
                     </div>
                     <div>
                       <label className="mb-1.5 block text-xs font-medium text-slate-400">

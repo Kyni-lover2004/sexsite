@@ -48,7 +48,9 @@ create table if not exists public.profiles (
 
 alter table public.profiles
   add column if not exists dating_goal text,
-  add column if not exists banned_until timestamptz;
+  add column if not exists banned_until timestamptz,
+  add column if not exists country text,
+  add column if not exists region text;
 
 -- Derived age helper (kept out of the table to avoid stale data)
 create or replace function public.profile_age(bd date)
@@ -58,6 +60,8 @@ returns int language sql immutable as $$
 $$;
 
 create index if not exists profiles_city_idx      on public.profiles (city);
+create index if not exists profiles_country_idx   on public.profiles (country);
+create index if not exists profiles_region_idx    on public.profiles (region);
 create index if not exists profiles_gender_idx    on public.profiles (gender);
 create index if not exists profiles_dating_goal_idx on public.profiles (dating_goal);
 create index if not exists profiles_interests_idx on public.profiles using gin (interests);

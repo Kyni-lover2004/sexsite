@@ -29,6 +29,8 @@ export interface Database {
           bio: string | null;
           interests: string[];
           dating_goal: string | null;
+          country: string | null;
+          region: string | null;
           city: string | null;
           birth_date: string | null;
           gender: Gender;
@@ -46,6 +48,8 @@ export interface Database {
           bio?: string | null;
           interests?: string[];
           dating_goal?: string | null;
+          country?: string | null;
+          region?: string | null;
           city?: string | null;
           birth_date?: string | null;
           gender?: Gender;
