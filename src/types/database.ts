@@ -13,7 +13,7 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[];
 
-type Gender = "male" | "female" | "other" | "prefer_not_to_say";
+type Gender = "male" | "female" | "couple_mf" | "other" | "prefer_not_to_say";
 type TopicStatus = "active" | "archived";
 
 export interface Database {
