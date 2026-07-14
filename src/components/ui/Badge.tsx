@@ -37,11 +37,13 @@ export function Tag({
   active = false,
   onClick,
   className,
+  showHash = true,
 }: {
   label: string;
   active?: boolean;
   onClick?: () => void;
   className?: string;
+  showHash?: boolean;
 }) {
   const Comp = onClick ? "button" : "span";
   return (
@@ -57,7 +59,7 @@ export function Tag({
         className
       )}
     >
-      <span className="truncate">#{label}</span>
+      <span className="truncate">{showHash ? "#" : ""}{label}</span>
     </Comp>
   );
 }

@@ -320,7 +320,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
 
     const profileUpdate: Record<string, unknown> = {
       username: newUsername,
-      display_name: form.display_name.trim().slice(0, 10) || null,
+      display_name: form.display_name.replace(/[^А-Яа-яЁё]/g, "").slice(0, 10) || null,
       status: form.status || null,
       bio: form.bio || null,
       country: form.country || null,
@@ -491,44 +491,50 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
 
             <div className="min-w-0 flex-1 pt-0.5 sm:pt-1">
               {editing ? (
-                <div className="space-y-3">
-                  <div>
-                    <label className="mb-1.5 block text-xs font-medium text-slate-400">
-                      Username
+                <div className="flex flex-col gap-3">
+                  <div className="order-1">
+                    <label className="mb-1.5 block text-xs font-bold text-slate-400">
+                      Никнейм профиля
                     </label>
                     <Input
                       value={form.username}
                       onChange={(e) =>
                         setForm({ ...form, username: e.target.value })
                       }
-                      placeholder="username"
+                      placeholder="Как в Telegram, например boy_kowboy"
                     />
                     {usernameError && (
                       <p className="mt-1 text-xs text-red-400">{usernameError}</p>
                     )}
                   </div>
-                  <Input
-                    value={form.display_name}
-                    onChange={(e) =>
-                      setForm({ ...form, display_name: e.target.value })
-                    }
-                    maxLength={10}
-                    placeholder="Имя"
-                  />
-                  <Input
-                    value={form.status}
-                    onChange={(e) =>
-                      setForm({ ...form, status: e.target.value })
-                    }
-                    placeholder="Статус: что сейчас хочется?"
-                  />
-                  <Textarea
-                    value={form.bio}
-                    onChange={(e) => setForm({ ...form, bio: e.target.value })}
-                    placeholder="О себе"
-                    rows={3}
-                  />
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div className="order-2">
+                    <label className="mb-1.5 block text-xs font-bold text-slate-400">
+                      Имя
+                    </label>
+                    <Input
+                      value={form.display_name}
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          display_name: e.target.value.replace(/[^А-Яа-яЁё]/g, "").slice(0, 10),
+                        })
+                      }
+                      maxLength={10}
+                      placeholder="Только русские буквы, до 10 символов"
+                    />
+                  </div>
+                  <div className="order-7 border-t border-gold/10 pt-3">
+                    <label className="mb-1.5 block text-xs font-bold uppercase tracking-[0.12em] text-gold-soft/80">
+                      О себе
+                    </label>
+                    <Textarea
+                      value={form.bio}
+                      onChange={(e) => setForm({ ...form, bio: e.target.value })}
+                      placeholder="Расскажите о себе"
+                      rows={3}
+                    />
+                  </div>
+                  <div className="order-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div>
                       <label className="mb-1.5 block text-xs font-medium text-slate-400">
                         <MapPin size={12} className="mr-1 inline" />
@@ -640,8 +646,8 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                       })()}
                     </div>
                   </div>
-                  <div>
-                    <label className="mb-1.5 block text-xs font-medium text-slate-400">
+                  <div className="order-4">
+                    <label className="mb-1.5 block text-xs font-bold text-slate-400">
                       Пол
                     </label>
                     <select
@@ -659,7 +665,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                       <option value="prefer_not_to_say">Не указывать</option>
                     </select>
                   </div>
-                  <div>
+                  <div className="order-8">
                     <label className="mb-1.5 block text-xs font-medium text-slate-400">
                       Зачем хотите познакомиться
                     </label>
@@ -678,9 +684,9 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                       ))}
                     </select>
                   </div>
-                  <div className="border-t border-gold/10 pt-3">
-                    <p className="mb-2 text-xs font-semibold text-gold-soft/80 uppercase tracking-[0.12em]">
-                      Кого ищем и где
+                  <div className="order-9 border-t border-gold/10 pt-3">
+                    <p className="mb-2 text-xs font-bold text-gold-soft/80 uppercase tracking-[0.12em]">
+                      Кого хотелось бы найти и где
                     </p>
                     <div className="space-y-3">
                       <div>
@@ -692,6 +698,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                             <Tag
                               key={opt.value}
                               label={opt.label}
+                              showHash={false}
                               active={form.looking_for.includes(opt.value)}
                               onClick={() => toggleLookingFor(opt.value)}
                             />
@@ -722,6 +729,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                             <Tag
                               key={opt.value}
                               label={opt.label}
+                              showHash={false}
                               active={form.meeting_place.includes(opt.value)}
                               onClick={() => toggleMeetingPlace(opt.value)}
                             />
@@ -746,8 +754,8 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                     </div>
                   </div>
 
-                  <div className="border-t border-gold/10 pt-3">
-                    <p className="mb-2 text-xs font-semibold text-gold-soft/80 uppercase tracking-[0.12em]">
+                  <div className="order-5 border-t border-gold/10 pt-3">
+                    <p className="mb-2 text-xs font-bold text-gold-soft/80 uppercase tracking-[0.12em]">
                       Внешность и личные данные
                     </p>
                     <div className="grid grid-cols-2 gap-3">
@@ -810,9 +818,9 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                     </div>
                   </div>
 
-                  <div className="border-t border-gold/10 pt-3">
-                    <p className="mb-2 text-xs font-semibold text-gold-soft/80 uppercase tracking-[0.12em]">
-                      Ориентация и предпочтения в сексе
+                  <div className="order-6 border-t border-gold/10 pt-3">
+                    <p className="mb-2 text-xs font-bold text-gold-soft/80 uppercase tracking-[0.12em]">
+                      Ориентация
                     </p>
                     <div>
                       <label className="mb-1.5 block text-xs font-medium text-slate-400">
@@ -823,6 +831,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                           <Tag
                             key={opt.value}
                             label={opt.label}
+                            showHash={false}
                             active={form.orientation_roles.includes(opt.value)}
                             onClick={() => toggleOrientationRole(opt.value)}
                           />
@@ -831,9 +840,9 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                     </div>
                   </div>
 
-                  <div>
-                    <label className="mb-2 block text-xs font-medium text-slate-400">
-                      Интересы по разделам
+                  <div className="order-10 border-t border-gold/10 pt-3">
+                    <label className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-gold-soft/80">
+                      Интересы
                     </label>
                     <div className="space-y-3 rounded-xl border border-gold/10 bg-base-900/40 p-3">
                       {INTEREST_SECTIONS.map((section) => (
@@ -863,7 +872,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                       className="mt-3"
                     />
                   </div>
-                  <div className="grid grid-cols-1 gap-2 min-[360px]:grid-cols-2 sm:flex">
+                  <div className="order-11 grid grid-cols-1 gap-2 min-[360px]:grid-cols-2 sm:flex">
                     <Button
                       size="sm"
                       onClick={handleSave}
@@ -1058,7 +1067,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                         <div className="flex flex-wrap gap-1.5">
                           {profile.looking_for.map((v) => {
                             const label = LOOKING_FOR_OPTIONS.find((o) => o.value === v)?.label ?? v;
-                            return <Tag key={v} label={label} />;
+                            return <Tag key={v} label={label} showHash={false} />;
                           })}
                         </div>
                       )}
@@ -1069,7 +1078,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                         <div className="flex flex-wrap gap-1.5">
                           {profile.meeting_place.map((v) => {
                             const label = MEETING_PLACE_OPTIONS.find((o) => o.value === v)?.label ?? v;
-                            return <Tag key={v} label={label} />;
+                            return <Tag key={v} label={label} showHash={false} />;
                           })}
                         </div>
                       )}
@@ -1104,7 +1113,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                       <div className="flex flex-wrap gap-1.5">
                         {profile.orientation_roles.map((v) => {
                           const label = ORIENTATION_ROLES.find((o) => o.value === v)?.label ?? v;
-                          return <Tag key={v} label={label} />;
+                          return <Tag key={v} label={label} showHash={false} />;
                         })}
                       </div>
                     </div>
