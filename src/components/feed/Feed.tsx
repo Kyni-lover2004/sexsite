@@ -47,14 +47,34 @@ export function Feed({ initialTopics, currentUserId }: FeedProps) {
       .eq("status", "active")
       .order(order.column, { ascending: order.ascending })
       .limit(50)
-      .then(({ data }: { data: any }) => {
+      .then(async ({ data }: { data: any }) => {
         if (!active) return;
         const rows = (data as TopicWithAuthor[] | null) ?? [];
+
+        let likedTopicIds = new Set<string>();
+        if (currentUserId && rows.length > 0) {
+          const { data: reactions } = await supa
+            .from("reactions")
+            .select("topic_id")
+            .eq("user_id", currentUserId)
+            .eq("emoji", "👍")
+            .in("topic_id", rows.map((r) => r.id));
+
+          if (reactions) {
+            likedTopicIds = new Set(reactions.map((r: any) => r.topic_id));
+          }
+        }
+
+        const mapped = rows.map((t) => ({
+          ...t,
+          liked_by_me: likedTopicIds.has(t.id),
+        }));
+
         // "Popular" uses a time-decayed score computed client-side.
         const sorted =
           tab === "popular"
-            ? [...rows].sort((a, b) => scoreTopic(b) - scoreTopic(a))
-            : rows;
+            ? [...mapped].sort((a, b) => scoreTopic(b) - scoreTopic(a))
+            : mapped;
         setTopics(sorted);
         setLoading(false);
       });

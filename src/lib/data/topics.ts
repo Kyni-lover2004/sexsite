@@ -8,7 +8,8 @@ import type { TopicWithAuthor } from "@/lib/types";
  */
 export async function getTopics(
   tab: "new" | "popular",
-  search?: string
+  search?: string,
+  currentUserId?: string | null
 ): Promise<TopicWithAuthor[]> {
   const supa = createClient() as any;
 
@@ -44,8 +45,28 @@ export async function getTopics(
     return [];
   }
 
-  return (data ?? []).map((t: any) => {
+  const topicsList = data ?? [];
+  let likedTopicIds = new Set<string>();
+
+  if (currentUserId && topicsList.length > 0) {
+    const { data: reactions } = await supa
+      .from("reactions")
+      .select("topic_id")
+      .eq("user_id", currentUserId)
+      .eq("emoji", "👍")
+      .in("topic_id", topicsList.map((t: any) => t.id));
+
+    if (reactions) {
+      likedTopicIds = new Set(reactions.map((r: any) => r.topic_id));
+    }
+  }
+
+  return topicsList.map((t: any) => {
     const author = Array.isArray(t.author) ? t.author[0] ?? null : t.author;
-    return { ...t, author } as TopicWithAuthor;
+    return {
+      ...t,
+      author,
+      liked_by_me: likedTopicIds.has(t.id),
+    } as TopicWithAuthor;
   });
 }

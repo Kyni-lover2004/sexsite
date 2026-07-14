@@ -10,7 +10,7 @@ export default async function HomePage() {
   const supabase = createClient();
   const { data: auth } = await supabase.auth.getUser();
   const isLoggedIn = !!auth.user;
-  const initialTopics = isLoggedIn ? await getTopics("new") : [];
+  const initialTopics = isLoggedIn ? await getTopics("new", undefined, auth.user?.id) : [];
 
   return (
     <AppShell>
