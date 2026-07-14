@@ -85,10 +85,10 @@ export async function getOrCreateConversation(
 
   if (existing) return existing.id;
 
-  // 2. Since it's a NEW conversation, check if initiator (userA) has premium
+  // 2. Since it's a NEW conversation, check if initiator (userA) has premium or is an admin
   const { data: profile } = await supa
     .from("profiles")
-    .select("premium_until")
+    .select("premium_until, role")
     .eq("id", userA)
     .single();
 
@@ -96,7 +96,9 @@ export async function getOrCreateConversation(
     profile?.premium_until &&
     new Date(profile.premium_until) > new Date();
 
-  if (!isPremium) {
+  const isBypassed = isPremium || profile?.role === "admin";
+
+  if (!isBypassed) {
     // Count conversations initiated by userA today (UTC)
     const startOfToday = new Date();
     startOfToday.setUTCHours(0, 0, 0, 0);

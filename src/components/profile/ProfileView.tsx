@@ -17,6 +17,8 @@ import {
   Trash2,
   ImagePlus,
   HeartHandshake,
+  Shield,
+  Crown,
 } from "lucide-react";
 import Link from "next/link";
 import { Avatar } from "@/components/ui/Avatar";
@@ -538,10 +540,22 @@ export function ProfileView({ profile, photos, isOwn }: ProfileViewProps) {
                 </div>
               ) : (
                 <>
-                  <div className="flex items-start justify-between">
+                   <div className="flex items-start justify-between">
                     <div>
-                      <h1 className="font-display text-xl font-bold text-gradient">
+                      <h1 className="flex flex-wrap items-center gap-2 font-display text-xl font-bold text-gradient">
                         {profile.display_name ?? profile.username}
+                        {profile.role === "admin" && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-red-500/10 border border-red-500/20 px-2 py-0.5 text-[10px] font-semibold text-red-400 shadow-[0_0_12px_rgba(239,68,68,0.15)]">
+                            <Shield size={10} className="fill-current" />
+                            Админ
+                          </span>
+                        )}
+                        {profile.premium_until && new Date(profile.premium_until) > new Date() && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 text-[10px] font-semibold text-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.15)]">
+                            <Crown size={10} className="fill-current" />
+                            PRO
+                          </span>
+                        )}
                       </h1>
                       <p className="text-sm text-slate-500">
                         @{profile.username}
