@@ -450,8 +450,8 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
 
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
         <GlassCard premium className="relative overflow-hidden p-4 sm:p-6">
-          <div className="absolute inset-x-0 top-0 h-[8.5rem] bg-gradient-to-br from-gold/20 via-accent-deep/10 to-gold/10 sm:h-[9.5rem]" />
-          <div className="absolute inset-x-0 top-[8.5rem] h-px bg-gradient-to-r from-transparent via-gold/30 to-transparent sm:top-[9.5rem]" />
+          <div className="absolute inset-x-0 top-0 h-[9.125rem] bg-gradient-to-br from-gold/20 via-accent-deep/10 to-gold/10 sm:h-[10.125rem]" />
+          <div className="absolute inset-x-0 top-[9.125rem] h-px bg-gradient-to-r from-transparent via-gold/30 to-transparent sm:top-[10.125rem]" />
 
           <div className="relative flex flex-col gap-3 pt-5 sm:flex-row sm:items-start sm:gap-4 sm:pt-7">
             <div className="relative group w-fit shrink-0">
