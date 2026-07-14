@@ -30,7 +30,6 @@ export interface ButtonProps
   size?: Size;
 }
 
-/** Animated button with micro-interaction on tap (Framer Motion). */
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = "primary", size = "md", ...props }, ref) => (
     <motion.button
@@ -39,7 +38,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       whileHover={{ y: -2 }}
       transition={{ type: "spring", stiffness: 400, damping: 25 }}
       className={cn(
-        "inline-flex touch-manipulation select-none items-center justify-center gap-2 font-medium",
+        "inline-flex max-w-full touch-manipulation select-none items-center justify-center gap-2 text-center font-medium leading-tight",
         "transition-all duration-300 focus-visible:outline-none focus-visible:ring-2",
         "focus-visible:ring-gold/60 disabled:opacity-50 disabled:pointer-events-none",
         variants[variant],

@@ -453,8 +453,8 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
           <div className="absolute inset-x-0 top-0 h-[6.5rem] bg-gradient-to-br from-gold/20 via-accent-deep/10 to-gold/10 sm:h-[7.5rem]" />
           <div className="absolute inset-x-0 top-[6.5rem] h-px bg-gradient-to-r from-transparent via-gold/30 to-transparent sm:top-[7.5rem]" />
 
-          <div className="relative flex items-start gap-3 pt-5 sm:gap-4 sm:pt-7">
-            <div className="relative group">
+          <div className="relative flex flex-col gap-3 pt-5 sm:flex-row sm:items-start sm:gap-4 sm:pt-7">
+            <div className="relative group w-fit shrink-0">
               <Avatar
                 src={profile.avatar_url}
                 name={profile.display_name ?? profile.username}
@@ -533,13 +533,13 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                         <MapPin size={12} className="mr-1 inline" />
                         Локация
                       </label>
-                      <div className="flex flex-wrap gap-2">
+                      <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-2">
                         <select
                           value={form.country}
                           onChange={(e) =>
                             setForm({ ...form, country: e.target.value, region: "", city: "" })
                           }
-                          className="h-10 rounded-xl border border-gold/15 bg-base-800/60 px-3 text-sm text-slate-100 transition-all duration-300 focus:border-gold/50 focus:outline-none focus:ring-2 focus:ring-gold/15"
+                          className="h-10 w-full min-w-0 rounded-xl border border-gold/15 bg-base-800/60 px-3 text-sm text-slate-100 transition-all duration-300 focus:border-gold/50 focus:outline-none focus:ring-2 focus:ring-gold/15"
                         >
                           <option value="">Страна</option>
                           {countries.map((c) => (
@@ -552,7 +552,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                             onChange={(e) =>
                               setForm({ ...form, region: e.target.value, city: "" })
                             }
-                            className="h-10 rounded-xl border border-gold/15 bg-base-800/60 px-3 text-sm text-slate-100 transition-all duration-300 focus:border-gold/50 focus:outline-none focus:ring-2 focus:ring-gold/15"
+                            className="h-10 w-full min-w-0 rounded-xl border border-gold/15 bg-base-800/60 px-3 text-sm text-slate-100 transition-all duration-300 focus:border-gold/50 focus:outline-none focus:ring-2 focus:ring-gold/15"
                           >
                             <option value="">Регион</option>
                             {regions.map((r) => (
@@ -566,7 +566,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                             onChange={(e) =>
                               setForm({ ...form, city: e.target.value })
                             }
-                            className="h-10 rounded-xl border border-gold/15 bg-base-800/60 px-3 text-sm text-slate-100 transition-all duration-300 focus:border-gold/50 focus:outline-none focus:ring-2 focus:ring-gold/15"
+                            className="h-10 w-full min-w-0 rounded-xl border border-gold/15 bg-base-800/60 px-3 text-sm text-slate-100 transition-all duration-300 focus:border-gold/50 focus:outline-none focus:ring-2 focus:ring-gold/15"
                           >
                             <option value="">Город</option>
                             {cities.map((c) => (
@@ -580,7 +580,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                             onClick={() =>
                               setForm({ ...form, country: "", region: "", city: "" })
                             }
-                            className="flex items-center gap-1 rounded-xl border border-gold/15 bg-base-800/60 px-3 text-xs text-slate-400 hover:text-white transition-all"
+                            className="flex h-10 items-center justify-center gap-1 rounded-xl border border-gold/15 bg-base-800/60 px-3 text-xs text-slate-400 transition-all hover:text-white min-[420px]:justify-start"
                           >
                             <X size={12} />
                             Сбросить
@@ -592,14 +592,14 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                       <label className="mb-1.5 block text-xs font-medium text-slate-400">
                         Дата рождения
                       </label>
-                      <div className="flex gap-1.5">
+                      <div className="grid grid-cols-3 gap-1.5">
                         <select
                           value={form.birth_date ? form.birth_date.split("-")[0] ?? "" : ""}
                           onChange={(e) => {
                             const parts = form.birth_date ? form.birth_date.split("-") : ["", "", ""];
                             setBirthDateFromComponents(e.target.value, parts[1] || "", parts[2] || "");
                           }}
-                          className="h-10 flex-1 rounded-xl border border-gold/15 bg-base-800/60 px-3 text-sm text-slate-100 transition-all duration-300 focus:border-gold/50 focus:outline-none focus:ring-2 focus:ring-gold/15"
+                          className="h-10 min-w-0 rounded-xl border border-gold/15 bg-base-800/60 px-2 text-sm text-slate-100 transition-all duration-300 focus:border-gold/50 focus:outline-none focus:ring-2 focus:ring-gold/15 sm:px-3"
                         >
                           <option value="">Год</option>
                           {Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - i).map((y) => (
@@ -612,7 +612,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                             const parts = form.birth_date ? form.birth_date.split("-") : ["", "", ""];
                             setBirthDateFromComponents(parts[0] || "", e.target.value, parts[2] || "");
                           }}
-                          className="h-10 flex-1 rounded-xl border border-gold/15 bg-base-800/60 px-3 text-sm text-slate-100 transition-all duration-300 focus:border-gold/50 focus:outline-none focus:ring-2 focus:ring-gold/15"
+                          className="h-10 min-w-0 rounded-xl border border-gold/15 bg-base-800/60 px-2 text-sm text-slate-100 transition-all duration-300 focus:border-gold/50 focus:outline-none focus:ring-2 focus:ring-gold/15 sm:px-3"
                         >
                           <option value="">Месяц</option>
                           {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
@@ -625,7 +625,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                             const parts = form.birth_date ? form.birth_date.split("-") : ["", "", ""];
                             setBirthDateFromComponents(parts[0] || "", parts[1] || "", e.target.value);
                           }}
-                          className="h-10 flex-1 rounded-xl border border-gold/15 bg-base-800/60 px-3 text-sm text-slate-100 transition-all duration-300 focus:border-gold/50 focus:outline-none focus:ring-2 focus:ring-gold/15"
+                          className="h-10 min-w-0 rounded-xl border border-gold/15 bg-base-800/60 px-2 text-sm text-slate-100 transition-all duration-300 focus:border-gold/50 focus:outline-none focus:ring-2 focus:ring-gold/15 sm:px-3"
                         >
                           <option value="">День</option>
                           {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
@@ -862,7 +862,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                       className="mt-3"
                     />
                   </div>
-                  <div className="flex gap-2">
+                  <div className="grid grid-cols-1 gap-2 min-[360px]:grid-cols-2 sm:flex">
                     <Button
                       size="sm"
                       onClick={handleSave}
@@ -890,7 +890,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                 <>
                    <div className="flex min-w-0 items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <h1 className="flex flex-wrap items-center gap-1.5 font-display text-lg font-bold leading-tight text-gradient sm:gap-2 sm:text-xl">
+                      <h1 className="flex min-w-0 flex-wrap items-center gap-1.5 break-words font-display text-lg font-bold leading-tight text-gradient sm:gap-2 sm:text-xl">
                         {profile.display_name ?? profile.username}
                         {profile.role === "admin" && (
                           <span className="inline-flex items-center gap-1 rounded-full bg-red-500/10 border border-red-500/20 px-2 py-0.5 text-[10px] font-semibold text-red-400 shadow-[0_0_12px_rgba(239,68,68,0.15)]">
@@ -922,7 +922,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                   </div>
 
                   {profile.status && (
-                    <p className="mt-2 text-sm text-gold-soft">
+                    <p className="mt-2 break-words text-sm text-gold-soft">
                       {profile.status}
                     </p>
                   )}
@@ -973,7 +973,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                       {isOwn ? (
                         <button
                           onClick={toggleAvailable}
-                          className={`inline-flex min-h-11 max-w-full touch-manipulation items-center gap-2 rounded-full px-3.5 py-2 text-left text-xs font-medium shadow-inner-glow transition-all sm:min-h-0 sm:py-1.5 ${
+                          className={`inline-flex min-h-11 w-full max-w-full touch-manipulation items-center justify-center gap-2 rounded-full px-3.5 py-2 text-center text-xs font-medium shadow-inner-glow transition-all min-[420px]:w-auto min-[420px]:text-left sm:min-h-0 sm:py-1.5 ${
                             available
                               ? "border border-emerald-500/25 bg-emerald-500/10 text-emerald-600 hover:border-emerald-500/40 dark:text-emerald-400"
                               : "border border-gold/25 bg-base-900/65 text-warm-200 hover:border-gold/45 hover:bg-gold/10 hover:text-warm-100"
@@ -1138,8 +1138,8 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
       </motion.div>
 
       <GlassCard className="p-5">
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <div>
+        <div className="mb-4 flex flex-col gap-3 min-[420px]:flex-row min-[420px]:items-center min-[420px]:justify-between">
+          <div className="min-w-0">
             <h2 className="font-display text-lg font-semibold text-warm-100">
               Фото профиля
             </h2>
@@ -1160,6 +1160,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
               <Button
                 type="button"
                 size="sm"
+                className="w-full min-[420px]:w-auto"
                 onClick={() => photoRef.current?.click()}
                 disabled={uploadingPhoto}
               >

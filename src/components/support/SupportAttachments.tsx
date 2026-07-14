@@ -27,7 +27,7 @@ export function AttachmentPicker({
       />
       <label
         htmlFor={inputId}
-        className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-lg border border-gold/25 bg-base-900/60 px-3 text-xs font-medium text-gold-soft transition-colors hover:bg-gold/10"
+        className="inline-flex h-9 max-w-full cursor-pointer items-center gap-2 rounded-lg border border-gold/25 bg-base-900/60 px-3 text-xs font-medium text-gold-soft transition-colors hover:bg-gold/10"
       >
         <ImagePlus size={14} />
         Прикрепить фото
@@ -37,9 +37,9 @@ export function AttachmentPicker({
           {files.map((file, index) => (
             <span
               key={`${file.name}-${index}`}
-              className="inline-flex items-center gap-1 rounded-full border border-gold/15 bg-gold/10 px-2 py-1 text-[11px] text-gold-soft"
+              className="inline-flex max-w-full items-center gap-1 rounded-full border border-gold/15 bg-gold/10 px-2 py-1 text-[11px] text-gold-soft"
             >
-              {file.name}
+              <span className="truncate">{file.name}</span>
               <button
                 type="button"
                 onClick={() => onChange(files.filter((_, i) => i !== index))}

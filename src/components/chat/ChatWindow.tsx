@@ -357,11 +357,11 @@ export function ChatWindow({
   }, [currentUserId, supa]);
 
   return (
-    <div className="flex h-full flex-1 flex-col min-h-0 p-4 md:p-6 md:pb-4">
-      <div className="mb-3 flex items-center gap-3">
+    <div className="flex h-full min-h-0 flex-1 flex-col p-3 pb-4 sm:p-4 md:p-6 md:pb-4">
+      <div className="mb-3 flex min-w-0 items-center gap-2 sm:gap-3">
         <Link
           href="/chat"
-          className="flex items-center gap-1 text-sm text-slate-400 hover:text-white transition-colors md:hidden"
+          className="flex shrink-0 items-center gap-1 text-sm text-slate-400 transition-colors hover:text-white md:hidden"
         >
           <ArrowLeft size={16} />
         </Link>
@@ -387,17 +387,17 @@ export function ChatWindow({
           </p>
         </div>
         <span
-          className="chat-lavender flex items-center gap-1.5 rounded-full border border-gold/20 bg-gold/5 px-2.5 py-1 text-[10px] text-gold-soft shadow-[0_0_12px_rgb(var(--gold-glow)/0.08)]"
+          className="chat-lavender flex shrink-0 items-center gap-1.5 rounded-full border border-gold/20 bg-gold/5 px-2 py-1 text-[10px] text-gold-soft shadow-[0_0_12px_rgb(var(--gold-glow)/0.08)] sm:px-2.5"
           title="Защищено сквозным шифрованием"
         >
           <Shield size={11} />
-          E2EE
+          <span className="hidden min-[360px]:inline">E2EE</span>
         </span>
       </div>
 
       <div
         ref={scrollRef}
-        className="particle-field flex-1 space-y-3 overflow-y-auto rounded-2xl border border-gold/10 bg-base-800/25 p-4"
+        className="particle-field flex-1 space-y-3 overflow-y-auto rounded-2xl border border-gold/10 bg-base-800/25 p-3 sm:p-4"
       >
         {loading ? (
           <div className="flex items-center justify-center py-12">
@@ -440,7 +440,7 @@ export function ChatWindow({
                 className={`flex ${isMine ? "justify-end" : "justify-start"}`}
               >
                 <div
-                  className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm ${
+                  className={`max-w-[88%] rounded-2xl px-3 py-2.5 text-sm sm:max-w-[80%] sm:px-4 ${
                     isMine
                       ? "border border-gold/25 bg-accent-gradient text-white shadow-glow-accent dark:[text-shadow:0_1px_2px_rgb(0_0_0/0.35)]"
                       : "bg-base-900/70 text-slate-200 border border-gold/10"
@@ -487,7 +487,7 @@ export function ChatWindow({
       )}
 
       {peerKey && (
-        <form onSubmit={handleSend} className="mt-3 flex gap-2">
+        <form onSubmit={handleSend} className="mt-3 flex min-w-0 gap-2">
           <input
             ref={fileRef}
             type="file"
@@ -509,7 +509,7 @@ export function ChatWindow({
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder="Сообщение…"
-            className="flex-1"
+            className="min-w-0 flex-1"
             maxLength={5000}
           />
           <Button

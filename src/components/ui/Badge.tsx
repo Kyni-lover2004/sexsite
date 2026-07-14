@@ -9,7 +9,6 @@ const tones: Record<BadgeTone, string> = {
   neutral: "bg-base-900/55 text-slate-300 border-gold/10 hover:border-gold/25",
 };
 
-/** Small count / status badge. */
 export function Badge({
   children,
   tone = "neutral",
@@ -22,7 +21,7 @@ export function Badge({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-full border px-2 py-0.5",
+        "inline-flex max-w-full items-center gap-1 rounded-full border px-2 py-0.5",
         "text-xs font-medium transition-all duration-200",
         tones[tone],
         className
@@ -33,7 +32,6 @@ export function Badge({
   );
 }
 
-/** Interactive tag chip (used for interests / topic tags). */
 export function Tag({
   label,
   active = false,
@@ -51,7 +49,7 @@ export function Tag({
       type={onClick ? "button" : undefined}
       onClick={onClick}
       className={cn(
-        "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium transition-all duration-200",
+        "inline-flex max-w-full items-center rounded-full border px-2.5 py-1 text-xs font-medium transition-all duration-200",
         active
           ? "border-gold/45 bg-gold/15 text-gold-soft shadow-[0_0_14px_rgb(var(--gold-glow)/0.14)]"
           : "border-gold/10 bg-base-900/50 text-slate-400",
@@ -59,7 +57,7 @@ export function Tag({
         className
       )}
     >
-      #{label}
+      <span className="truncate">#{label}</span>
     </Comp>
   );
 }

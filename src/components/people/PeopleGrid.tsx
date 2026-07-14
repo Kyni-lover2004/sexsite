@@ -147,7 +147,7 @@ export function PeopleGrid({ currentUserId }: { currentUserId: string | null }) 
       </div>
 
       <div className="mb-4 flex gap-2">
-        <div className="relative flex-1">
+        <div className="relative min-w-0 flex-1">
           <Search
             size={18}
             className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
@@ -176,13 +176,13 @@ export function PeopleGrid({ currentUserId }: { currentUserId: string | null }) 
           className="mb-4 overflow-hidden"
         >
           <GlassCard className="space-y-4 p-4">
-            <div className="flex flex-wrap items-end gap-3">
-              <div>
+            <div className="grid grid-cols-2 items-end gap-3 sm:flex sm:flex-wrap">
+              <div className="col-span-2 sm:col-span-1">
                 <label className="mb-1 block text-xs text-slate-500">Я ищу</label>
                 <select
                   value={filters.gender}
                   onChange={(e) => setFilters({ ...filters, gender: e.target.value })}
-                  className="h-9 rounded-lg border border-gold/15 bg-base-800 px-2 text-sm text-white transition-colors focus:border-gold/50"
+                  className="h-9 w-full min-w-0 rounded-lg border border-gold/15 bg-base-800 px-2 text-sm text-white transition-colors focus:border-gold/50"
                 >
                   <option value="">Всех</option>
                   {GENDER_OPTIONS.map((g) => (
@@ -212,7 +212,7 @@ export function PeopleGrid({ currentUserId }: { currentUserId: string | null }) 
                   min={0}
                 />
               </div>
-              <div className="flex flex-col gap-2">
+              <div className="col-span-2 flex flex-col gap-2 sm:col-span-1">
                 <label className="flex items-center gap-2 text-sm text-slate-300">
                   <input
                     type="checkbox"
@@ -243,13 +243,13 @@ export function PeopleGrid({ currentUserId }: { currentUserId: string | null }) 
                 <MapPin size={12} className="mr-1 inline" />
                 Локация
               </label>
-              <div className="flex flex-wrap gap-2">
+              <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-2">
                 <select
                   value={filters.country}
                   onChange={(e) =>
                     setFilters({ ...filters, country: e.target.value, region: "", city: "" })
                   }
-                  className="h-9 rounded-lg border border-gold/15 bg-base-800 px-2 text-sm text-white transition-colors focus:border-gold/50"
+                  className="h-9 w-full min-w-0 rounded-lg border border-gold/15 bg-base-800 px-2 text-sm text-white transition-colors focus:border-gold/50"
                 >
                   <option value="">Страна</option>
                   {countries.map((c) => (
@@ -262,7 +262,7 @@ export function PeopleGrid({ currentUserId }: { currentUserId: string | null }) 
                     onChange={(e) =>
                       setFilters({ ...filters, region: e.target.value, city: "" })
                     }
-                    className="h-9 rounded-lg border border-gold/15 bg-base-800 px-2 text-sm text-white transition-colors focus:border-gold/50"
+                    className="h-9 w-full min-w-0 rounded-lg border border-gold/15 bg-base-800 px-2 text-sm text-white transition-colors focus:border-gold/50"
                   >
                     <option value="">Регион</option>
                     {regions.map((r) => (
@@ -276,7 +276,7 @@ export function PeopleGrid({ currentUserId }: { currentUserId: string | null }) 
                     onChange={(e) =>
                       setFilters({ ...filters, city: e.target.value })
                     }
-                    className="h-9 rounded-lg border border-gold/15 bg-base-800 px-2 text-sm text-white transition-colors focus:border-gold/50"
+                    className="h-9 w-full min-w-0 rounded-lg border border-gold/15 bg-base-800 px-2 text-sm text-white transition-colors focus:border-gold/50"
                   >
                     <option value="">Город</option>
                     {cities.map((c) => (
@@ -289,7 +289,7 @@ export function PeopleGrid({ currentUserId }: { currentUserId: string | null }) 
                     onClick={() =>
                       setFilters({ ...filters, country: "", region: "", city: "" })
                     }
-                    className="flex items-center gap-1 rounded-lg border border-gold/15 bg-base-800 px-2 text-xs text-slate-400 hover:text-white transition-colors"
+                    className="flex h-9 items-center justify-center gap-1 rounded-lg border border-gold/15 bg-base-800 px-2 text-xs text-slate-400 transition-colors hover:text-white min-[420px]:justify-start"
                   >
                     <X size={12} />
                     Сбросить
@@ -388,7 +388,7 @@ export function PeopleGrid({ currentUserId }: { currentUserId: string | null }) 
                   />
                   <div className="min-w-0 flex-1">
                     <Link href={`/profile/${user.id}`}>
-                      <p className="flex items-center gap-1.5 font-medium text-white transition-colors hover:text-gradient">
+                      <p className="flex min-w-0 flex-wrap items-center gap-1.5 break-words font-medium text-white transition-colors hover:text-gradient">
                         {user.display_name ?? user.username}
                         {hasPremium(user) && (
                           <Crown
@@ -406,9 +406,9 @@ export function PeopleGrid({ currentUserId }: { currentUserId: string | null }) 
                       </p>
                     )}
                     {getDatingGoalLabel(user.dating_goal) && (
-                      <span className="mt-2 inline-flex items-center gap-1 rounded-full border border-gold/20 bg-gold/10 px-2 py-0.5 text-[11px] text-gold-soft">
+                        <span className="mt-2 inline-flex max-w-full items-center gap-1 rounded-full border border-gold/20 bg-gold/10 px-2 py-0.5 text-[11px] text-gold-soft">
                         <HeartHandshake size={11} />
-                        {getDatingGoalLabel(user.dating_goal)}
+                          <span className="truncate">{getDatingGoalLabel(user.dating_goal)}</span>
                       </span>
                     )}
                     <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-500">
@@ -443,8 +443,8 @@ export function PeopleGrid({ currentUserId }: { currentUserId: string | null }) 
 
                 {currentUserId && (
                   <div className="relative mt-3 flex justify-end">
-                    <Link href={`/chat/${user.id}`}>
-                      <Button variant="outline" size="sm">
+                    <Link href={`/chat/${user.id}`} className="w-full min-[420px]:w-auto">
+                      <Button variant="outline" size="sm" className="w-full min-[420px]:w-auto">
                         <MessageCircle size={14} />
                         Написать
                       </Button>

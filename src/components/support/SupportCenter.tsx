@@ -176,7 +176,7 @@ export function SupportCenter({ currentUserId, tickets }: SupportCenterProps) {
 
       <GlassCard className="p-5">
         <form onSubmit={createTicket} className="space-y-3">
-          <div className="flex items-center gap-2 text-sm font-semibold text-warm-100">
+          <div className="flex min-w-0 items-center gap-2 text-sm font-semibold text-warm-100">
             <Headphones size={16} className="text-gold-soft" />
             Новое обращение
           </div>
@@ -229,10 +229,10 @@ export function SupportCenter({ currentUserId, tickets }: SupportCenterProps) {
           </GlassCard>
         ) : (
           tickets.map((ticket) => (
-            <GlassCard key={ticket.id} className="p-5">
+            <GlassCard key={ticket.id} className="p-4 sm:p-5">
               <div className="mb-4 flex flex-wrap items-start justify-between gap-2">
-                <div>
-                  <h2 className="font-display text-lg font-semibold text-warm-100">
+                <div className="min-w-0">
+                  <h2 className="break-words font-display text-lg font-semibold text-warm-100">
                     {ticket.subject}
                   </h2>
                   <p className="text-xs text-slate-500">
@@ -258,7 +258,7 @@ export function SupportCenter({ currentUserId, tickets }: SupportCenterProps) {
                         : "border-white/10 bg-base-900/50 text-slate-200"
                     }`}
                   >
-                    <p className="whitespace-pre-wrap text-sm">{message.body}</p>
+                    <p className="whitespace-pre-wrap break-words text-sm">{message.body}</p>
                     {message.attachments?.length > 0 && (
                       <AttachmentGallery attachments={message.attachments} />
                     )}
@@ -272,7 +272,7 @@ export function SupportCenter({ currentUserId, tickets }: SupportCenterProps) {
 
               {ticket.status !== "closed" && (
                 <div className="mt-4 space-y-2">
-                  <div className="flex gap-2">
+                  <div className="flex min-w-0 gap-2">
                     <Input
                       value={replyDrafts[ticket.id] ?? ""}
                       onChange={(e) =>
@@ -282,6 +282,7 @@ export function SupportCenter({ currentUserId, tickets }: SupportCenterProps) {
                         }))
                       }
                       placeholder="Дополнить обращение"
+                      className="min-w-0"
                     />
                     <Button
                       type="button"

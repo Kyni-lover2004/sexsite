@@ -4,13 +4,12 @@ import { cn } from "@/lib/utils";
 export interface InputProps
   extends React.InputHTMLAttributes<HTMLInputElement> {}
 
-/** Glassy text input with a restrained gold focus glow. */
 export const Input = forwardRef<HTMLInputElement, InputProps>(
   ({ className, ...props }, ref) => (
     <input
       ref={ref}
       className={cn(
-        "h-10 w-full rounded-xl border border-gold/15 bg-base-900/60 px-3.5",
+        "h-10 w-full min-w-0 rounded-xl border border-gold/15 bg-base-900/60 px-3.5",
         "text-sm text-slate-100 placeholder:text-slate-500",
         "backdrop-blur transition-all duration-300",
         "focus:border-gold/50 focus:outline-none focus:ring-2 focus:ring-gold/15",
@@ -31,7 +30,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
     <textarea
       ref={ref}
       className={cn(
-        "w-full rounded-xl border border-gold/15 bg-base-900/60 px-3.5 py-2.5",
+        "w-full min-w-0 rounded-xl border border-gold/15 bg-base-900/60 px-3.5 py-2.5",
         "text-sm text-slate-100 placeholder:text-slate-500 backdrop-blur",
         "transition-all duration-300 resize-none",
         "focus:border-gold/50 focus:outline-none focus:ring-2 focus:ring-gold/15",

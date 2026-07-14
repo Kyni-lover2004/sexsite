@@ -347,11 +347,11 @@ export function AdminPanel({
         animate={{ opacity: 1, y: 0 }}
         className="mb-6"
       >
-        <div className="flex items-center gap-3">
-          <div className="grid h-10 w-10 place-items-center rounded-xl bg-accent-gradient shadow-glow-accent">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-accent-gradient shadow-glow-accent">
             <Shield size={20} className="text-white" />
           </div>
-          <div>
+          <div className="min-w-0">
             <h1 className="font-display text-2xl font-bold text-gradient">
               Админ-панель
             </h1>
@@ -415,31 +415,33 @@ export function AdminPanel({
               >
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
                   <div className="flex min-w-0 flex-1 items-center gap-3">
-                    <Avatar
-                      src={user.avatar_url}
-                      name={user.display_name ?? user.username}
-                      size="md"
-                    />
+                    <div className="shrink-0">
+                      <Avatar
+                        src={user.avatar_url}
+                        name={user.display_name ?? user.username}
+                        size="md"
+                      />
+                    </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <p className="truncate font-medium text-white">
+                        <p className="min-w-0 max-w-full truncate font-medium text-white">
                           {user.display_name ?? user.username}
                         </p>
                         {user.role === "admin" && <Badge icon={Shield} label="ADMIN" />}
                         {isPremiumActive(user) && <Badge icon={Crown} label="PRO" />}
                         {user.is_banned && (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-red-500/15 px-2 py-0.5 text-[10px] font-semibold text-red-300">
+                          <span className="inline-flex max-w-full items-center gap-1 rounded-full bg-red-500/15 px-2 py-0.5 text-[10px] font-semibold text-red-300">
                             <Ban size={10} />
-                            БАН до {formatDate(user.banned_until)}
+                            <span className="truncate">БАН до {formatDate(user.banned_until)}</span>
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-slate-500">
+                      <p className="break-words text-xs text-slate-500">
                         @{user.username} · {user.city ?? "город не указан"} ·{" "}
                         {timeAgo(user.created_at)}
                       </p>
                       {user.ban_reason && user.is_banned && (
-                        <p className="mt-1 text-xs text-red-300">
+                        <p className="mt-1 break-words text-xs text-red-300">
                           Причина: {user.ban_reason}
                         </p>
                       )}
@@ -452,11 +454,12 @@ export function AdminPanel({
                   </div>
 
                   {user.id !== currentUserId && (
-                    <div className="flex flex-wrap gap-2 lg:justify-end">
+                    <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-2 lg:flex lg:flex-wrap lg:justify-end">
                       {user.role === "admin" ? (
                         <Button
                           variant="outline"
                           size="sm"
+                          className="w-full lg:w-auto"
                           onClick={() => setRole(user.id, "user")}
                           disabled={actionLoading === user.id}
                         >
@@ -466,6 +469,7 @@ export function AdminPanel({
                         <Button
                           variant="outline"
                           size="sm"
+                          className="w-full lg:w-auto"
                           onClick={() => setRole(user.id, "admin")}
                           disabled={actionLoading === user.id}
                         >
@@ -476,6 +480,7 @@ export function AdminPanel({
                         <Button
                           variant="primary"
                           size="sm"
+                          className="w-full lg:w-auto"
                           onClick={() => unbanUser(user.id)}
                           disabled={actionLoading === user.id}
                         >
@@ -486,6 +491,7 @@ export function AdminPanel({
                         <Button
                           variant="danger"
                           size="sm"
+                          className="w-full lg:w-auto"
                           onClick={() => setBanUserId(banUserId === user.id ? null : user.id)}
                           disabled={actionLoading === user.id}
                         >
@@ -496,6 +502,7 @@ export function AdminPanel({
                       <Button
                         variant="gold"
                         size="sm"
+                        className="w-full lg:w-auto"
                         onClick={() =>
                           setPremiumUserId(premiumUserId === user.id ? null : user.id)
                         }
@@ -508,6 +515,7 @@ export function AdminPanel({
                         <Button
                           variant="outline"
                           size="sm"
+                          className="w-full lg:w-auto"
                           onClick={() => revokePremium(user.id)}
                           disabled={actionLoading === user.id}
                         >
@@ -517,7 +525,7 @@ export function AdminPanel({
                       <Button
                         variant="outline"
                         size="sm"
-                        className="border-red-500/20 text-red-400 hover:bg-red-500/10"
+                        className="w-full border-red-500/20 text-red-400 hover:bg-red-500/10 lg:w-auto"
                         onClick={() => deleteUser(user.id)}
                         disabled={actionLoading === user.id}
                       >
@@ -536,7 +544,7 @@ export function AdminPanel({
                       rows={2}
                       placeholder="Причина блокировки"
                     />
-                    <div className="mt-2 flex flex-wrap gap-2">
+                    <div className="mt-2 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
                       {BAN_DURATIONS.map((duration) => (
                         <Button
                           key={duration.value}
@@ -557,7 +565,7 @@ export function AdminPanel({
                     <p className="mb-2 text-xs text-gold-soft/80">
                       Срок добавляется к текущей активной подписке, если она уже есть.
                     </p>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
                       {PREMIUM_DURATIONS.map((duration) => (
                         <Button
                           key={duration.value}
@@ -587,9 +595,9 @@ export function AdminPanel({
           >
             {filteredTopics.map((topic) => (
               <GlassCard key={topic.id} className="p-4">
-                <div className="flex items-start gap-3">
+                <div className="flex flex-col gap-3 min-[420px]:flex-row min-[420px]:items-start">
                   <div className="min-w-0 flex-1">
-                    <p className="font-medium text-white">{topic.title}</p>
+                    <p className="break-words font-medium text-white">{topic.title}</p>
                     <p className="mt-1 line-clamp-2 text-xs text-slate-400">
                       {topic.body}
                     </p>
@@ -602,7 +610,7 @@ export function AdminPanel({
                     </div>
                   </div>
                   {confirmDelete === topic.id ? (
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className="flex items-center gap-1 text-xs text-red-400">
                         <AlertTriangle size={12} />
                         Удалить?
@@ -653,9 +661,9 @@ export function AdminPanel({
             ) : (
               filteredTickets.map((ticket) => (
                 <GlassCard key={ticket.id} className="p-5">
-                  <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <h2 className="font-display text-lg font-semibold text-warm-100">
+                  <div className="mb-4 flex flex-col items-stretch gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0">
+                      <h2 className="break-words font-display text-lg font-semibold text-warm-100">
                         {ticket.subject}
                       </h2>
                       <p className="text-xs text-slate-500">
@@ -663,7 +671,7 @@ export function AdminPanel({
                         {timeAgo(ticket.updated_at)}
                       </p>
                     </div>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="grid grid-cols-1 gap-2 min-[360px]:grid-cols-3 sm:flex sm:flex-wrap sm:justify-end">
                       <Button
                         variant={ticket.status === "open" ? "primary" : "outline"}
                         size="sm"
@@ -701,7 +709,7 @@ export function AdminPanel({
                             : "border-white/10 bg-base-900/50 text-slate-200"
                         }`}
                       >
-                        <p className="whitespace-pre-wrap text-sm">{message.body}</p>
+                        <p className="whitespace-pre-wrap break-words text-sm">{message.body}</p>
                         {message.attachments?.length > 0 && (
                           <AttachmentGallery attachments={message.attachments} />
                         )}
@@ -714,7 +722,7 @@ export function AdminPanel({
                   </div>
 
                   <div className="mt-4 space-y-2">
-                    <div className="flex gap-2">
+                    <div className="flex min-w-0 gap-2">
                       <Input
                         value={replyDrafts[ticket.id] ?? ""}
                         onChange={(e) =>
@@ -724,6 +732,7 @@ export function AdminPanel({
                           }))
                         }
                         placeholder="Ответить пользователю"
+                        className="min-w-0"
                       />
                       <Button
                         type="button"
@@ -800,7 +809,7 @@ function TabButton({
     <button
       type="button"
       onClick={onClick}
-      className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all ${
+      className={`flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition-all sm:flex-none sm:px-4 ${
         active
           ? "bg-accent-gradient text-white shadow-glow-accent"
           : "bg-base-800/50 text-slate-400 hover:text-white"
