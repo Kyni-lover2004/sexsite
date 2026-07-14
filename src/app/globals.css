@@ -63,9 +63,6 @@ body {
   min-height: 100vh;
   min-height: -webkit-fill-available;
   background-image:
-    linear-gradient(115deg, rgb(var(--gold-glow) / 0.22) 0%, transparent 24%),
-    linear-gradient(245deg, rgb(var(--gold) / 0.13) 0%, transparent 28%),
-    repeating-linear-gradient(90deg, rgb(var(--gold-deep) / 0.04) 0 1px, transparent 1px 120px),
     linear-gradient(180deg, rgb(var(--base-950)) 0%, rgb(var(--base-900)) 48%, rgb(var(--base-950)) 100%);
   background-attachment: fixed;
   min-height: 100vh;
