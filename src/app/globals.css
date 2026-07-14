@@ -78,11 +78,10 @@ body::before {
   inset: 0;
   pointer-events: none;
   z-index: 0;
-  opacity: 0.46;
+  opacity: 0.35;
   background-image:
-    linear-gradient(115deg, transparent 8%, rgb(var(--gold-glow) / 0.16) 9%, transparent 10%),
-    linear-gradient(115deg, transparent 72%, rgb(var(--gold) / 0.11) 73%, transparent 74%);
-  mask-image: linear-gradient(to bottom, black 0%, transparent 78%);
+    radial-gradient(circle at 20% 20%, rgb(var(--gold-glow) / 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgb(var(--gold) / 0.1) 0%, transparent 60%);
 }
 
 body::after {
