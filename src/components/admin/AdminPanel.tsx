@@ -267,7 +267,7 @@ export function AdminPanel({ currentUserId, users, topics }: AdminPanelProps) {
                           {user.display_name ?? user.username}
                         </p>
                         {user.role === "admin" && (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-400">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-gold/15 px-2 py-0.5 text-[10px] font-semibold text-gold-soft">
                             <Crown size={10} />
                             ADMIN
                           </span>
@@ -280,8 +280,8 @@ export function AdminPanel({ currentUserId, users, topics }: AdminPanelProps) {
                         )}
                         {user.premium_until &&
                           new Date(user.premium_until) > new Date() && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-gradient-gold">
-                              <Crown size={10} className="text-amber-400" />
+                            <span className="inline-flex items-center gap-1 rounded-full bg-gold/15 px-2 py-0.5 text-[10px] font-semibold text-gradient-gold">
+                              <Crown size={10} className="text-gold-soft" />
                               PRO
                             </span>
                           )}

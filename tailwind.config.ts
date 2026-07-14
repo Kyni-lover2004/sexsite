@@ -19,14 +19,14 @@ const config: Config = {
           600: "rgb(var(--base-600) / <alpha-value>)",
           500: "rgb(var(--base-500) / <alpha-value>)",
         },
-        // Muted luxury metal accent
+        // Theme-driven accent: olive in light mode, carmine red in dark mode
         accent: {
           DEFAULT: "rgb(var(--accent) / <alpha-value>)",
           soft: "rgb(var(--accent-soft) / <alpha-value>)",
           deep: "rgb(var(--accent-deep) / <alpha-value>)",
           muted: "rgb(var(--accent-muted) / <alpha-value>)",
         },
-        // Champagne / platinum gold secondary accent
+        // Legacy `gold` token follows the active theme accent palette
         gold: {
           DEFAULT: "rgb(var(--gold) / <alpha-value>)",
           soft: "rgb(var(--gold-soft) / <alpha-value>)",

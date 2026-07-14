@@ -902,7 +902,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                           </span>
                         )}
                         {profile.premium_until && new Date(profile.premium_until) > new Date() && (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 text-[10px] font-semibold text-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.15)]">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-gold/10 border border-gold/20 px-2 py-0.5 text-[10px] font-semibold text-gold-soft shadow-glow-gold">
                             <Crown size={10} className="fill-current" />
                             PRO
                           </span>

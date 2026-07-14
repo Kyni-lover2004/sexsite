@@ -95,13 +95,13 @@ export function PremiumView({ isPremium }: PremiumViewProps) {
           animate={{ opacity: 1, y: 0 }}
           className="mb-6"
         >
-          <GlassCard className="border-amber-500/30 bg-amber-950/10 p-4 shadow-[0_0_24px_rgba(245,158,11,0.08)]">
+          <GlassCard className="border-gold/30 bg-gold/10 p-4 shadow-glow-gold">
             <div className="flex gap-3">
-              <div className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-xl bg-amber-500/10 text-amber-400">
+              <div className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-xl bg-gold/10 text-gold-soft">
                 <AlertTriangle size={20} />
               </div>
               <div>
-                <p className="font-semibold text-amber-400 text-sm">
+                <p className="font-semibold text-gold-soft text-sm">
                   Достигнут лимит контактов
                 </p>
                 <p className="mt-0.5 text-xs text-slate-400 leading-relaxed">
@@ -119,13 +119,13 @@ export function PremiumView({ isPremium }: PremiumViewProps) {
           animate={{ opacity: 1, y: 0 }}
           className="mb-6"
         >
-          <GlassCard className="border-amber-500/30 bg-amber-950/10 p-4 shadow-[0_0_24px_rgba(245,158,11,0.08)]">
+          <GlassCard className="border-gold/30 bg-gold/10 p-4 shadow-glow-gold">
             <div className="flex gap-3">
-              <div className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-xl bg-amber-500/10 text-amber-400">
+              <div className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-xl bg-gold/10 text-gold-soft">
                 <AlertTriangle size={20} />
               </div>
               <div>
-                <p className="font-semibold text-amber-400 text-sm">
+                <p className="font-semibold text-gold-soft text-sm">
                   Достигнут лимит просмотра фото
                 </p>
                 <p className="mt-0.5 text-xs text-slate-400 leading-relaxed">
@@ -167,9 +167,9 @@ export function PremiumView({ isPremium }: PremiumViewProps) {
           className="mb-6"
         >
           <GlassCard premium className="flex items-center gap-3 p-4">
-            <CheckCircle2 size={20} className="text-amber-400" />
+            <CheckCircle2 size={20} className="text-gold-soft" />
             <div>
-              <p className="font-medium text-amber-400">Премиум активен</p>
+              <p className="font-medium text-gold-soft">Премиум активен</p>
               <p className="text-xs text-slate-500">
                 Спасибо за поддержку проекта!
               </p>
@@ -188,8 +188,8 @@ export function PremiumView({ isPremium }: PremiumViewProps) {
             transition={{ delay: 0.05 * i }}
           >
             <GlassCard interactive className="flex items-start gap-3 p-4 h-full">
-              <div className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-lg bg-amber-500/10">
-                <feature.icon size={18} className="text-amber-400" />
+              <div className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-lg bg-gold/10">
+                <feature.icon size={18} className="text-gold-soft" />
               </div>
               <div>
                 <p className="font-medium text-white">{feature.title}</p>
@@ -218,7 +218,7 @@ export function PremiumView({ isPremium }: PremiumViewProps) {
               premium={plan.popular}
               interactive
               className={`relative p-5 text-center ${
-                plan.popular ? "ring-1 ring-amber-500/30" : ""
+                plan.popular ? "ring-1 ring-gold/30" : ""
               }`}
             >
               {plan.popular && (

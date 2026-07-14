@@ -7,45 +7,45 @@
   --font-display: "Space Grotesk", system-ui, sans-serif;
   color-scheme: light;
 
-  --base-950: 253 251 248;
-  --base-900: 248 244 239;
-  --base-800: 241 235 228;
-  --base-700: 225 214 205;
-  --base-600: 194 176 164;
-  --base-500: 144 119 105;
+  --base-950: 255 255 255;
+  --base-900: 250 250 248;
+  --base-800: 244 245 240;
+  --base-700: 226 229 216;
+  --base-600: 190 197 169;
+  --base-500: 125 135 98;
 
-  --accent: 174 119 105;
-  --accent-soft: 122 83 75;
-  --accent-deep: 104 67 58;
-  --accent-muted: 152 116 103;
-  --gold: 190 142 125;
-  --gold-soft: 128 83 74;
-  --gold-deep: 112 72 62;
-  --gold-glow: 237 212 202;
-  --warm-100: 35 29 27;
-  --warm-200: 78 62 56;
+  --accent: 104 116 62;
+  --accent-soft: 83 96 47;
+  --accent-deep: 57 68 32;
+  --accent-muted: 117 126 87;
+  --gold: 101 113 60;
+  --gold-soft: 76 89 42;
+  --gold-deep: 50 61 27;
+  --gold-glow: 205 213 178;
+  --warm-100: 28 31 22;
+  --warm-200: 62 69 48;
 }
 
 .dark {
   color-scheme: dark;
 
   --base-950: 4 4 4;
-  --base-900: 9 8 7;
-  --base-800: 15 13 10;
-  --base-700: 25 21 16;
-  --base-600: 38 31 23;
-  --base-500: 54 45 33;
+  --base-900: 7 7 7;
+  --base-800: 13 13 13;
+  --base-700: 25 22 23;
+  --base-600: 42 34 36;
+  --base-500: 68 48 53;
 
-  --accent: 168 137 97;
-  --accent-soft: 222 206 175;
-  --accent-deep: 105 83 55;
-  --accent-muted: 90 74 53;
-  --gold: 185 160 118;
-  --gold-soft: 232 220 194;
-  --gold-deep: 118 93 59;
-  --gold-glow: 244 236 216;
-  --warm-100: 245 239 224;
-  --warm-200: 212 198 165;
+  --accent: 225 29 72;
+  --accent-soft: 251 73 112;
+  --accent-deep: 159 18 57;
+  --accent-muted: 190 48 78;
+  --gold: 220 38 72;
+  --gold-soft: 255 91 123;
+  --gold-deep: 136 13 48;
+  --gold-glow: 255 64 105;
+  --warm-100: 255 241 244;
+  --warm-200: 244 191 202;
 }
 
 * {
