@@ -18,7 +18,6 @@ export default async function ConversationPage({ params }: Props) {
 
   const userId = auth.user.id;
 
-  // Try to find conversation by id directly
   const { data: convRow, error: convError } = await supabase
     .from("conversations")
     .select("*")
@@ -31,7 +30,6 @@ export default async function ConversationPage({ params }: Props) {
 
   const conversation = convRow as Database["public"]["Tables"]["conversations"]["Row"] | null;
 
-  // If not found, treat params.id as the other user's ID
   if (!conversation) {
     let targetConvId: string | null = null;
     let limitReached = false;
@@ -57,7 +55,6 @@ export default async function ConversationPage({ params }: Props) {
     notFound();
   }
 
-  // Verify current user is a participant
   const isParticipant =
     conversation.user_a === userId || conversation.user_b === userId;
   if (!isParticipant) {

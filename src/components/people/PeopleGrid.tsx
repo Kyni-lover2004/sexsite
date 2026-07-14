@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
   Search,
@@ -31,11 +31,12 @@ import { getCountries, getRegions, getCities } from "@/lib/data/locations";
 import type { Profile } from "@/lib/types";
 
 export function PeopleGrid({ currentUserId }: { currentUserId: string | null }) {
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   const supa = supabase as any;
   const [users, setUsers] = useState<(Profile & { available_for_chat: boolean })[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
+  const deferredQuery = useDeferredValue(query);
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
     gender: "",
@@ -66,16 +67,15 @@ export function PeopleGrid({ currentUserId }: { currentUserId: string | null }) 
       });
 
     return () => { active = false; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUserId]);
+  }, [currentUserId, supa]);
 
   const countries = useMemo(() => getCountries(), []);
   const regions = useMemo(() => getRegions(filters.country), [filters.country]);
   const cities = useMemo(() => getCities(filters.country, filters.region), [filters.country, filters.region]);
 
   const filtered = users.filter((u) => {
-    if (query) {
-      const q = query.toLowerCase();
+    if (deferredQuery) {
+      const q = deferredQuery.toLowerCase();
       const matchesName =
         u.display_name?.toLowerCase().includes(q) ||
         u.username.toLowerCase().includes(q) ||
@@ -176,7 +176,6 @@ export function PeopleGrid({ currentUserId }: { currentUserId: string | null }) 
           className="mb-4 overflow-hidden"
         >
           <GlassCard className="space-y-4 p-4">
-            {/* Row 1: Gender + Age */}
             <div className="flex flex-wrap items-end gap-3">
               <div>
                 <label className="mb-1 block text-xs text-slate-500">Я ищу</label>
@@ -239,7 +238,6 @@ export function PeopleGrid({ currentUserId }: { currentUserId: string | null }) 
               </div>
             </div>
 
-            {/* Row 2: Cascading Location */}
             <div>
               <label className="mb-1 block text-xs text-slate-500">
                 <MapPin size={12} className="mr-1 inline" />
@@ -300,7 +298,6 @@ export function PeopleGrid({ currentUserId }: { currentUserId: string | null }) 
               </div>
             </div>
 
-            {/* Row 3: Dating Goals */}
             <div>
               <label className="mb-1 block text-xs text-slate-500">
                 <HeartHandshake size={12} className="mr-1 inline" />
@@ -323,7 +320,6 @@ export function PeopleGrid({ currentUserId }: { currentUserId: string | null }) 
               </div>
             </div>
 
-            {/* Row 4: Sexual Interests */}
             <div>
               <label className="mb-1 block text-xs text-slate-500">
                 Интересы

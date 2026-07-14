@@ -88,7 +88,6 @@ export function PremiumView({ isPremium }: PremiumViewProps) {
 
   return (
     <div>
-      {/* Limit Warning */}
       {showLimitWarning && (
         <motion.div
           initial={{ opacity: 0, y: -10 }}
@@ -137,7 +136,6 @@ export function PremiumView({ isPremium }: PremiumViewProps) {
           </GlassCard>
         </motion.div>
       )}
-      {/* Hero */}
       <motion.div
         initial={{ opacity: 0, y: -16 }}
         animate={{ opacity: 1, y: 0 }}
@@ -159,7 +157,6 @@ export function PremiumView({ isPremium }: PremiumViewProps) {
         </p>
       </motion.div>
 
-      {/* Current status */}
       {isPremium && (
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
@@ -178,7 +175,6 @@ export function PremiumView({ isPremium }: PremiumViewProps) {
         </motion.div>
       )}
 
-      {/* Features grid */}
       <div className="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-2">
         {FEATURES.map((feature, i) => (
           <motion.div
@@ -202,7 +198,6 @@ export function PremiumView({ isPremium }: PremiumViewProps) {
         ))}
       </div>
 
-      {/* Pricing cards */}
       <h2 className="mb-4 font-display text-lg font-bold text-white">
         Выберите план
       </h2>
@@ -257,7 +252,6 @@ export function PremiumView({ isPremium }: PremiumViewProps) {
         ))}
       </div>
 
-      {/* Info */}
       <motion.p
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}

@@ -65,7 +65,6 @@ export function PhotoLightbox({
           className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90 backdrop-blur-md"
           onClick={onClose}
         >
-          {/* Close button */}
           <button
             onClick={onClose}
             className="absolute right-4 top-4 z-10 grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
@@ -73,14 +72,12 @@ export function PhotoLightbox({
             <X size={20} />
           </button>
 
-          {/* Counter */}
           {photos.length > 1 && (
             <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 rounded-full bg-white/10 px-3 py-1 text-sm text-white/80">
               {index + 1} / {photos.length}
             </div>
           )}
 
-          {/* Navigation */}
           {photos.length > 1 && (
             <>
               <button
@@ -98,7 +95,6 @@ export function PhotoLightbox({
             </>
           )}
 
-          {/* Image */}
           <motion.div
             key={index}
             initial={{ scale: 0.9, opacity: 0 }}
@@ -108,7 +104,6 @@ export function PhotoLightbox({
             className="relative max-h-[85vh] max-w-[90vw]"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={current.url}
               alt={current.caption ?? "Фото"}

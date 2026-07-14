@@ -23,10 +23,6 @@ interface ConversationWithProfile {
   } | null;
 }
 
-/**
- * Fetch all conversations for the current user, joining the other participant
- * and the most recent message for a preview.
- */
 export async function getConversations(
   userId: string
 ): Promise<ConversationWithProfile[]> {
@@ -68,7 +64,6 @@ export async function getConversations(
   return enriched;
 }
 
-/** Fetch or create a conversation between two users. Returns its id. */
 export async function getOrCreateConversation(
   userA: string,
   userB: string
@@ -76,7 +71,6 @@ export async function getOrCreateConversation(
   const supa = createClient() as any;
   const [a, b] = userA < userB ? [userA, userB] : [userB, userA];
 
-  // 1. Check if conversation already exists
   const { data: existing } = await supa
     .from("conversations")
     .select("id")
@@ -86,7 +80,6 @@ export async function getOrCreateConversation(
 
   if (existing) return existing.id;
 
-  // 2. Since it's a NEW conversation, check if initiator (userA) has premium or is an admin
   const { data: profile } = await supa
     .from("profiles")
     .select("premium_until, role")
@@ -100,7 +93,6 @@ export async function getOrCreateConversation(
   const isBypassed = isPremium || profile?.role === "admin";
 
   if (!isBypassed) {
-    // Count conversations initiated by userA today (UTC)
     const startOfToday = new Date();
     startOfToday.setUTCHours(0, 0, 0, 0);
     const isoStart = startOfToday.toISOString();
@@ -118,7 +110,6 @@ export async function getOrCreateConversation(
     }
   }
 
-  // 3. Create the new conversation with initiator_id
   const { data, error: insertError } = await supa
     .from("conversations")
     .insert({ user_a: a, user_b: b, initiator_id: userA })

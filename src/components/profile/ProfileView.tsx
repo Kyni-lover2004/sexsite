@@ -677,7 +677,6 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                       ))}
                     </select>
                   </div>
-                  {/* ── Block 1: Preferences for meetings ── */}
                   <div className="border-t border-gold/10 pt-3">
                     <p className="mb-2 text-xs font-semibold text-gold-soft/80 uppercase tracking-[0.12em]">
                       Кого ищем и где
@@ -746,7 +745,6 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                     </div>
                   </div>
 
-                  {/* ── Block 2: Appearance & personal data ── */}
                   <div className="border-t border-gold/10 pt-3">
                     <p className="mb-2 text-xs font-semibold text-gold-soft/80 uppercase tracking-[0.12em]">
                       Внешность и личные данные
@@ -811,7 +809,6 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                     </div>
                   </div>
 
-                  {/* ── Block 3: Orientation & sex preferences ── */}
                   <div className="border-t border-gold/10 pt-3">
                     <p className="mb-2 text-xs font-semibold text-gold-soft/80 uppercase tracking-[0.12em]">
                       Ориентация и предпочтения в сексе
@@ -1059,7 +1056,6 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                     </div>
                   )}
 
-                  {/* ── View mode: Block 1 ── */}
                   {(profile.looking_for?.length > 0 ||
                     profile.age_preference ||
                     profile.meeting_place?.length > 0 ||
@@ -1093,7 +1089,6 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                     </div>
                   )}
 
-                  {/* ── View mode: Block 2 ── */}
                   {(profile.height ||
                     profile.weight ||
                     profile.smoking_attitude ||
@@ -1111,7 +1106,6 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                     </div>
                   )}
 
-                  {/* ── View mode: Block 3 ── */}
                   {profile.orientation_roles?.length > 0 && (
                     <div className="mt-4 space-y-2">
                       <p className="text-[11px] uppercase tracking-[0.14em] text-gold-soft/60">
@@ -1236,7 +1230,6 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                       }}
                       className="absolute inset-0"
                     >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={photo.url}
                         alt={photo.caption ?? "Фото профиля"}

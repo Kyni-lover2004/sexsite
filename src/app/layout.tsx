@@ -3,6 +3,7 @@ import { Inter, Space_Grotesk } from "next/font/google";
 import { createClient, supabaseConfigured } from "@/lib/supabase/server";
 import { SetupGuide } from "@/components/SetupGuide";
 import { BannedScreen } from "@/components/auth/BannedScreen";
+import { PresenceTracker } from "@/components/auth/PresenceTracker";
 import "./globals.css";
 
 const inter = Inter({
@@ -46,14 +47,11 @@ const themeScript = `
 })();
 `;
 
-import { PresenceTracker } from "@/components/auth/PresenceTracker";
-
 export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  // Показываем гайд по настройке, если Supabase не подключён
   if (!supabaseConfigured) {
     return (
       <html lang="ru" className={`${inter.variable} ${spaceGrotesk.variable} dark`} suppressHydrationWarning>

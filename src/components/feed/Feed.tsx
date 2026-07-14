@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useDeferredValue, useEffect, useMemo, useState, useTransition } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Crown, Flame, PenLine, Search, Sparkles } from "lucide-react";
 import Link from "next/link";
@@ -16,20 +16,16 @@ interface FeedProps {
   currentUserId: string | null;
 }
 
-/**
- * Discussion feed: "New" / "Popular" tabs, live search, optimistic likes.
- * Initial data is server-rendered; interactions happen client-side.
- */
 export function Feed({ initialTopics, currentUserId }: FeedProps) {
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   const supa = supabase as any;
   const [topics, setTopics] = useState<TopicWithAuthor[]>(initialTopics);
   const [tab, setTab] = useState<FeedTab>("new");
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
+  const deferredQuery = useDeferredValue(query);
   const [, startTransition] = useTransition();
 
-  // Re-fetch when the tab changes (server does the base ordering).
   useEffect(() => {
     let active = true;
     setLoading(true);
@@ -70,7 +66,6 @@ export function Feed({ initialTopics, currentUserId }: FeedProps) {
           liked_by_me: likedTopicIds.has(t.id),
         }));
 
-        // "Popular" uses a time-decayed score computed client-side.
         const sorted =
           tab === "popular"
             ? [...mapped].sort((a, b) => scoreTopic(b) - scoreTopic(a))
@@ -82,18 +77,17 @@ export function Feed({ initialTopics, currentUserId }: FeedProps) {
     return () => {
       active = false;
     };
-  }, [tab]);
+  }, [currentUserId, supa, tab]);
 
-  // Live search filters the already-loaded list (title + tags).
   const visible = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = deferredQuery.trim().toLowerCase();
     if (!q) return topics;
     return topics.filter(
       (t) =>
         t.title.toLowerCase().includes(q) ||
         t.tags.some((tag) => tag.toLowerCase().includes(q))
     );
-  }, [topics, query]);
+  }, [topics, deferredQuery]);
 
   async function handleLike(id: string) {
     if (!currentUserId) return;
@@ -101,7 +95,6 @@ export function Feed({ initialTopics, currentUserId }: FeedProps) {
     if (!target) return;
     const liked = target.liked_by_me;
 
-    // Optimistic update
     startTransition(() =>
       setTopics((prev) =>
         prev.map((t) =>
@@ -130,7 +123,6 @@ export function Feed({ initialTopics, currentUserId }: FeedProps) {
 
   return (
     <div className="mx-auto w-full max-w-3xl">
-      {/* Header */}
       <div className="relative mb-7 overflow-hidden rounded-2xl border border-gold/15 bg-base-900/60 p-5 shadow-glass backdrop-blur-2xl md:p-7">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-soft/45 to-transparent" />
         <div className="relative flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
@@ -164,7 +156,6 @@ export function Feed({ initialTopics, currentUserId }: FeedProps) {
         </div>
       </div>
 
-      {/* Search */}
       <div className="relative mb-4">
         <Search
           size={18}
@@ -178,7 +169,6 @@ export function Feed({ initialTopics, currentUserId }: FeedProps) {
         />
       </div>
 
-      {/* Tabs */}
       <div className="mb-6 flex gap-1 rounded-xl border border-gold/15 bg-base-900/60 p-1 shadow-inner-glow">
         <TabButton
           active={tab === "new"}
@@ -194,7 +184,6 @@ export function Feed({ initialTopics, currentUserId }: FeedProps) {
         />
       </div>
 
-      {/* List */}
       {loading ? (
         <div className="space-y-4">
           {Array.from({ length: 4 }).map((_, i) => (

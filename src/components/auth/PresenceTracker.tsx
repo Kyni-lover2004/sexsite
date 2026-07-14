@@ -1,23 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 
-/**
- * Global presence tracker component.
- * Periodically updates the current user's `last_seen` timestamp in the database
- * while they are active on the site, and checks if the user is banned.
- */
 export function PresenceTracker() {
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   const [isBanned, setIsBanned] = useState(false);
   const [bannedUntil, setBannedUntil] = useState<string | null>(null);
 
   useEffect(() => {
     let lastUpdated = 0;
-    const UPDATE_INTERVAL = 30000; // Check and update every 30 seconds
+    const UPDATE_INTERVAL = 30000;
 
     async function checkBanAndPresence() {
       const {
@@ -28,7 +23,6 @@ export function PresenceTracker() {
         return;
       }
 
-      // 1. Fetch ban status
       const { data: profile } = await (supabase as any)
         .from("profiles")
         .select("is_banned, banned_until")
@@ -43,11 +37,10 @@ export function PresenceTracker() {
         setBannedUntil(profile.banned_until);
 
         if (isBannedActive) {
-          return; // Skip presence update if banned
+          return;
         }
       }
 
-      // 2. Throttle presence updates
       const now = Date.now();
       if (now - lastUpdated < 45000) return;
 
@@ -58,13 +51,10 @@ export function PresenceTracker() {
         .eq("id", user.id);
     }
 
-    // Run check on initial load
     checkBanAndPresence();
 
-    // Check periodically
     const interval = setInterval(checkBanAndPresence, UPDATE_INTERVAL);
 
-    // Check on user activity
     const handleActivity = () => {
       if (document.visibilityState === "visible") {
         checkBanAndPresence();

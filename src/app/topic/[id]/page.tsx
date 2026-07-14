@@ -25,7 +25,6 @@ export default async function TopicPage({ params }: Props) {
 
   const comments = await getComments(params.id);
 
-  // Increment view count (fire-and-forget)
   (supabase as any).rpc("increment_view_count", { topic_id: params.id }).then();
 
   const author = Array.isArray(topic.author) ? topic.author[0] ?? null : topic.author;

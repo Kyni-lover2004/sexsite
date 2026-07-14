@@ -30,7 +30,6 @@ export function Avatar({
 
   return (
     <div className={cn("relative shrink-0", className)}>
-      {/* Gradient ring container */}
       <div
         className={cn(
           "rounded-full p-[2px]",
@@ -46,7 +45,6 @@ export function Avatar({
           )}
         >
           {src ? (
-            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={src}
               alt={name ?? "avatar"}
@@ -60,7 +58,6 @@ export function Avatar({
         </div>
       </div>
 
-      {/* Online indicator with pulse ring */}
       {showPresence && (
         <span className="absolute bottom-0 right-0">
           <span

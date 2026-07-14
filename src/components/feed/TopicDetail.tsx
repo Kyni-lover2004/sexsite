@@ -83,7 +83,6 @@ export function TopicDetail({
         animate={{ opacity: 1, y: 0 }}
       >
         <GlassCard premium className="relative overflow-hidden p-6">
-          {/* Gradient accent line on the left */}
           <div className="absolute inset-y-0 left-0 w-[2px] bg-gradient-to-b from-accent via-accent-deep to-gold/60" />
 
           <div className="flex items-start justify-between">
@@ -197,7 +196,6 @@ export function TopicDetail({
                           className="max-h-96 w-full object-contain"
                         />
                       ) : (
-                        // eslint-disable-next-line @next/next/no-img-element
                         <img
                           src={m.url}
                           alt=""

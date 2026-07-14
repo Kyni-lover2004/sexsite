@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import {
   ArrowLeft,
@@ -9,7 +9,7 @@ import {
   Loader2,
   AlertTriangle,
   Shield,
-  Image,
+  Image as ImageIcon,
   Crown,
 } from "lucide-react";
 import Link from "next/link";
@@ -49,10 +49,11 @@ export function ChatWindow({
   otherUserId,
   otherUser,
 }: ChatWindowProps) {
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   const supa = supabase as any;
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const objectUrlsRef = useRef<Set<string>>(new Set());
   const [messages, setMessages] = useState<
     (Message & { plaintext?: string; imageUrl?: string })[]
   >([]);
@@ -65,15 +66,12 @@ export function ChatWindow({
   const otherUserPremium =
     !!otherUser.premium_until && new Date(otherUser.premium_until) > new Date();
 
-  // Initialize keys and fetch messages
   useEffect(() => {
     let active = true;
 
     async function init() {
-      // Ensure we have our own key pair
       await ensureKeyPair();
 
-      // Fetch peer's public key
       const { data: keyData } = await supa
         .from("encryption_keys")
         .select("public_key")
@@ -87,7 +85,6 @@ export function ChatWindow({
         setDecryptError(true);
       }
 
-      // Fetch messages
       const { data: msgs } = await supa
         .from("messages")
         .select("*")
@@ -118,9 +115,8 @@ export function ChatWindow({
 
     init();
     return () => { active = false; };
-  }, [conversationId, otherUserId, supabase]);
+  }, [conversationId, otherUserId, supa]);
 
-  // Realtime subscription for new messages
   useEffect(() => {
     const channel = supabase
       .channel(`messages:${conversationId}`)
@@ -160,7 +156,6 @@ export function ChatWindow({
     return () => { supabase.removeChannel(channel); };
   }, [conversationId, currentUserId, peerKey, supabase]);
 
-  // Auto-scroll
   useEffect(() => {
     scrollRef.current?.scrollTo({
       top: scrollRef.current.scrollHeight,
@@ -168,16 +163,14 @@ export function ChatWindow({
     });
   }, [messages]);
 
-  // Cleanup object URLs on unmount
   useEffect(() => {
+    const objectUrls = objectUrlsRef.current;
     return () => {
-      messages.forEach((msg) => {
-        if (msg.imageUrl) URL.revokeObjectURL(msg.imageUrl);
-      });
+      objectUrls.forEach((url) => URL.revokeObjectURL(url));
+      objectUrls.clear();
     };
   }, []);
 
-  // Download & decrypt image messages
   useEffect(() => {
     if (!peerKey) return;
 
@@ -202,6 +195,7 @@ export function ChatWindow({
               type: meta.mime_type ?? "image/jpeg",
             });
             const url = URL.createObjectURL(blob);
+            objectUrlsRef.current.add(url);
 
             setMessages((prev) =>
               prev.map((m) =>
@@ -267,6 +261,7 @@ export function ChatWindow({
       }
 
       previewUrl = URL.createObjectURL(file);
+      objectUrlsRef.current.add(previewUrl);
       const fileData = await file.arrayBuffer();
       const encrypted = await encryptFile(fileData, peerKey);
 
@@ -320,7 +315,10 @@ export function ChatWindow({
       }
     } catch (err: any) {
       console.error("Image send error:", err);
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+        objectUrlsRef.current.delete(previewUrl);
+      }
       setSendError(
         err?.message?.includes("bucket") || err?.message?.includes("mime")
           ? "Фото не отправилось: обновите Supabase bucket chat-images из supabase/schema.sql."
@@ -339,7 +337,6 @@ export function ChatWindow({
     return btoa(bin);
   }
 
-  // Publish our public key to the server if not already there
   useEffect(() => {
     async function publishKey() {
       const { publicKeyJwk } = await ensureKeyPair();
@@ -357,11 +354,10 @@ export function ChatWindow({
       }
     }
     publishKey();
-  }, [currentUserId, supabase]);
+  }, [currentUserId, supa]);
 
   return (
     <div className="flex h-full flex-1 flex-col min-h-0 p-4 md:p-6 md:pb-4">
-      {/* Header */}
       <div className="mb-3 flex items-center gap-3">
         <Link
           href="/chat"
@@ -399,7 +395,6 @@ export function ChatWindow({
         </span>
       </div>
 
-      {/* Messages */}
       <div
         ref={scrollRef}
         className="particle-field flex-1 space-y-3 overflow-y-auto rounded-2xl border border-gold/10 bg-base-800/25 p-4"
@@ -454,10 +449,9 @@ export function ChatWindow({
                   {isImage ? (
                     <div className="mb-1">
                       {msg.imageUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
                         <img
-                          src={msg.imageUrl}
                           alt=""
+                          src={msg.imageUrl}
                           className="max-h-72 w-auto max-w-full rounded-lg object-contain"
                         />
                       ) : (
@@ -486,14 +480,12 @@ export function ChatWindow({
         )}
       </div>
 
-      {/* Error */}
       {sendError && (
         <p className="mt-2 rounded-lg bg-red-500/10 border border-red-500/20 px-3 py-2 text-xs text-red-400">
           {sendError}
         </p>
       )}
 
-      {/* Input */}
       {peerKey && (
         <form onSubmit={handleSend} className="mt-3 flex gap-2">
           <input
@@ -511,7 +503,7 @@ export function ChatWindow({
             disabled={sending}
             title="Отправить фото"
           >
-            <Image size={16} />
+            <ImageIcon size={16} />
           </Button>
           <Input
             value={text}

@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { ArrowLeft, Send, AlertCircle, Sparkles, Image, X, Loader2 } from "lucide-react";
+import { ArrowLeft, Send, AlertCircle, Sparkles, Image as ImageIcon, X, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Input, Textarea } from "@/components/ui/Input";
@@ -53,7 +53,6 @@ export function CreateTopicForm() {
 
     const supa = supabase as any;
 
-    // Upload media
     const uploadedMedia: TopicMedia[] = [];
     for (const item of media) {
       try {
@@ -83,14 +82,12 @@ export function CreateTopicForm() {
       }
     }
 
-    // Archive any existing active topic
     await supa
       .from("topics")
       .update({ status: "archived" })
       .eq("author_id", user.id)
       .eq("status", "active");
 
-    // Create the new topic
     const tagsList = tags
       .split(",")
       .map((t) => t.trim())
@@ -115,7 +112,6 @@ export function CreateTopicForm() {
       return;
     }
 
-    // Cleanup previews
     media.forEach((m) => URL.revokeObjectURL(m.preview));
 
     if (data) {
@@ -201,7 +197,6 @@ export function CreateTopicForm() {
                     {item.file.type.startsWith("video/") ? (
                       <video src={item.preview} className="h-full w-full object-cover" />
                     ) : (
-                      // eslint-disable-next-line @next/next/no-img-element
                       <img src={item.preview} alt="" className="h-full w-full object-cover" />
                     )}
                     <button
@@ -218,7 +213,7 @@ export function CreateTopicForm() {
                   onClick={() => fileRef.current?.click()}
                   className="flex h-20 w-20 items-center justify-center rounded-lg border border-dashed border-gold/20 text-slate-500 transition-colors hover:border-gold/50 hover:text-gold-soft"
                 >
-                  <Image size={20} />
+                  <ImageIcon size={20} />
                 </button>
               </div>
             </div>

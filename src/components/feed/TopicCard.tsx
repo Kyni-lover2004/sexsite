@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { Crown, Eye, Heart, Image, MessageCircle } from "lucide-react";
+import { Crown, Eye, Heart, Image as ImageIcon, MessageCircle } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { Tag } from "@/components/ui/Badge";
 import { GlassCard } from "@/components/ui/GlassCard";
@@ -76,7 +76,7 @@ export function TopicCard({ topic, index, onLike }: TopicCardProps) {
 
         {topic.media && topic.media.length > 0 && (
           <div className="relative mt-3 flex items-center gap-1.5 text-xs text-slate-500">
-            <Image size={14} />
+            <ImageIcon size={14} />
             {topic.media.length} {topic.media.length === 1 ? "вложение" : "вложения"}
           </div>
         )}

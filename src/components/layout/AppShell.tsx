@@ -22,9 +22,6 @@ const NAV: NavItem[] = [
   { href: "/premium", label: "Премиум", icon: Crown },
 ];
 
-/**
- * Responsive app shell for the premium black-gold interface.
- */
 export function AppShell({
   children,
   noPadding = false,
@@ -41,9 +38,7 @@ export function AppShell({
     <div className="relative min-h-svh overflow-hidden">
       <div className="pointer-events-none fixed inset-x-0 top-0 z-0 h-40 border-b border-gold/10 bg-[linear-gradient(180deg,rgb(var(--gold-glow)/0.12),transparent)]" />
 
-      {/* Desktop sidebar */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-gold/10 bg-base-950/98 px-4 py-6 shadow-[18px_0_60px_rgba(0,0,0,0.34)] md:flex">
-        {/* Logo */}
         <Link href="/" className="group mb-9 flex items-center gap-3 px-2">
           <motion.span
             whileHover={{ scale: 1.1, rotate: 5 }}
@@ -62,7 +57,6 @@ export function AppShell({
           </span>
         </Link>
 
-        {/* Gradient divider */}
         <div className="mx-3 mb-4 h-px bg-gradient-to-r from-transparent via-gold/35 to-transparent" />
 
         <nav className="flex flex-1 flex-col gap-1">
@@ -108,10 +102,9 @@ export function AppShell({
         </div>
       </aside>
 
-      {/* Main content */}
       <main className={cn(
         "relative z-10 flex flex-col md:pl-64 min-w-0",
-        noPadding ? "h-svh pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0" : "pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-0"
+        noPadding ? "h-svh pb-[calc(4.75rem+env(safe-area-inset-bottom))] md:pb-0" : "pb-[calc(6.5rem+env(safe-area-inset-bottom))] md:pb-0"
       )}>
         {noPadding ? (
           <div className="w-full flex-1 flex flex-col min-h-0">
@@ -124,13 +117,12 @@ export function AppShell({
         )}
       </main>
 
-      {/* Mobile bottom nav */}
       <div className="fixed right-4 top-[calc(1rem+env(safe-area-inset-top))] z-30 md:hidden">
         <ThemeToggle />
       </div>
 
-      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-gold/15 bg-base-950/98 pb-[env(safe-area-inset-bottom)] shadow-[0_-10px_30px_rgba(0,0,0,0.32)] md:hidden">
-        <div className="mx-auto flex max-w-md items-stretch justify-around">
+      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-gold/15 bg-base-950/98 px-1 pb-[calc(0.35rem+env(safe-area-inset-bottom))] shadow-[0_-10px_30px_rgba(0,0,0,0.32)] md:hidden">
+        <div className="mx-auto grid max-w-lg grid-cols-6 items-stretch">
           {NAV.map((item) => {
             const active = isActive(item.href);
             return (
@@ -138,7 +130,7 @@ export function AppShell({
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "relative flex min-h-14 flex-1 touch-manipulation flex-col items-center justify-center gap-1 px-1 py-2 text-[11px] font-medium transition-all duration-200",
+                  "relative flex min-h-[3.75rem] min-w-0 touch-manipulation flex-col items-center justify-center gap-1 overflow-hidden px-0.5 pt-2 text-[10px] font-medium leading-none transition-all duration-200",
                   active ? "text-gold-soft" : "text-slate-500"
                 )}
               >
@@ -151,11 +143,13 @@ export function AppShell({
                 )}
                 <item.icon
                   className={cn(
-                    "h-5 w-5",
+                    "h-5 w-5 shrink-0",
                     active && "drop-shadow-[0_0_8px_rgb(var(--gold-glow)/0.42)]"
                   )}
                 />
-                {item.label}
+                <span className="block max-w-full truncate text-center">
+                  {item.label}
+                </span>
               </Link>
             );
           })}
