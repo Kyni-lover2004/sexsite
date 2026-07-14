@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
   Search,
@@ -10,6 +10,7 @@ import {
   MessageCircle,
   CheckCircle2,
   HeartHandshake,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 import { Avatar } from "@/components/ui/Avatar";
@@ -19,8 +20,13 @@ import { Input } from "@/components/ui/Input";
 import { Tag } from "@/components/ui/Badge";
 import { ageFromBirthDate, isOnline } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
-import { RUSSIAN_CITIES } from "@/lib/data/russianCities";
-import { DATING_GOALS, getDatingGoalLabel } from "@/lib/data/profileOptions";
+import {
+  GENDER_OPTIONS,
+  DATING_GOALS,
+  SEXUAL_INTERESTS,
+  getDatingGoalLabel,
+} from "@/lib/data/profileOptions";
+import { getCountries, getRegions, getCities } from "@/lib/data/locations";
 import type { Profile } from "@/lib/types";
 
 export function PeopleGrid({ currentUserId }: { currentUserId: string | null }) {
@@ -32,9 +38,11 @@ export function PeopleGrid({ currentUserId }: { currentUserId: string | null }) 
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
     gender: "",
+    country: "",
+    region: "",
     city: "",
-    interest: "",
-    datingGoal: "",
+    interests: [] as string[],
+    datingGoals: [] as string[],
     minAge: "",
     maxAge: "",
     onlineOnly: false,
@@ -59,6 +67,10 @@ export function PeopleGrid({ currentUserId }: { currentUserId: string | null }) 
     return () => { active = false; };
   }, [currentUserId]);
 
+  const countries = useMemo(() => getCountries(), []);
+  const regions = useMemo(() => getRegions(filters.country), [filters.country]);
+  const cities = useMemo(() => getCities(filters.country, filters.region), [filters.country, filters.region]);
+
   const filtered = users.filter((u) => {
     if (query) {
       const q = query.toLowerCase();
@@ -72,14 +84,17 @@ export function PeopleGrid({ currentUserId }: { currentUserId: string | null }) 
       if (!matchesName) return false;
     }
     if (filters.gender && u.gender !== filters.gender) return false;
-    if (filters.city && !u.city?.toLowerCase().includes(filters.city.toLowerCase()))
-      return false;
-    if (filters.datingGoal && u.dating_goal !== filters.datingGoal) return false;
+    if (filters.city && u.city?.toLowerCase() !== filters.city.toLowerCase()) return false;
     if (
-      filters.interest &&
-      !u.interests.some((interest) =>
-        interest.toLowerCase().includes(filters.interest.toLowerCase())
+      filters.interests.length > 0 &&
+      !filters.interests.some((interest) =>
+        u.interests.some((ui) => ui.toLowerCase().includes(interest.toLowerCase()))
       )
+    )
+      return false;
+    if (
+      filters.datingGoals.length > 0 &&
+      !filters.datingGoals.includes(u.dating_goal ?? "")
     )
       return false;
     if (filters.onlineOnly && !isOnline(u.last_seen)) return false;
@@ -91,6 +106,24 @@ export function PeopleGrid({ currentUserId }: { currentUserId: string | null }) 
 
     return true;
   });
+
+  function toggleInterestFilter(value: string) {
+    setFilters((prev) => ({
+      ...prev,
+      interests: prev.interests.includes(value)
+        ? prev.interests.filter((i) => i !== value)
+        : [...prev.interests, value],
+    }));
+  }
+
+  function toggleDatingGoalFilter(value: string) {
+    setFilters((prev) => ({
+      ...prev,
+      datingGoals: prev.datingGoals.includes(value)
+        ? prev.datingGoals.filter((g) => g !== value)
+        : [...prev.datingGoals, value],
+    }));
+  }
 
   return (
     <div>
@@ -136,111 +169,174 @@ export function PeopleGrid({ currentUserId }: { currentUserId: string | null }) 
           animate={{ opacity: 1, height: "auto" }}
           className="mb-4 overflow-hidden"
         >
-          <GlassCard className="flex flex-wrap items-end gap-3 p-4">
-            <div>
-              <label className="mb-1 block text-xs text-slate-500">Я ищу</label>
-              <select
-                value={filters.gender}
-                onChange={(e) => setFilters({ ...filters, gender: e.target.value })}
-                className="h-9 rounded-lg border border-gold/15 bg-base-800 px-2 text-sm text-white transition-colors focus:border-gold/50"
-              >
-                <option value="">Всех</option>
-                <option value="female">Девушку</option>
-                <option value="male">Мужчину</option>
-              </select>
+          <GlassCard className="space-y-4 p-4">
+            {/* Row 1: Gender + Age */}
+            <div className="flex flex-wrap items-end gap-3">
+              <div>
+                <label className="mb-1 block text-xs text-slate-500">Я ищу</label>
+                <select
+                  value={filters.gender}
+                  onChange={(e) => setFilters({ ...filters, gender: e.target.value })}
+                  className="h-9 rounded-lg border border-gold/15 bg-base-800 px-2 text-sm text-white transition-colors focus:border-gold/50"
+                >
+                  <option value="">Всех</option>
+                  {GENDER_OPTIONS.map((g) => (
+                    <option key={g.value} value={g.value}>
+                      {g.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs text-slate-500">Возраст от</label>
+                <Input
+                  type="number"
+                  value={filters.minAge}
+                  onChange={(e) => setFilters({ ...filters, minAge: e.target.value })}
+                  className="h-9 w-20"
+                  min={0}
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs text-slate-500">до</label>
+                <Input
+                  type="number"
+                  value={filters.maxAge}
+                  onChange={(e) => setFilters({ ...filters, maxAge: e.target.value })}
+                  className="h-9 w-20"
+                  min={0}
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="flex items-center gap-2 text-sm text-slate-300">
+                  <input
+                    type="checkbox"
+                    checked={filters.onlineOnly}
+                    onChange={(e) =>
+                      setFilters({ ...filters, onlineOnly: e.target.checked })
+                    }
+                    className="rounded border-white/20 bg-base-800 accent-accent"
+                  />
+                  Только онлайн
+                </label>
+                <label className="flex items-center gap-2 text-sm text-emerald-400">
+                  <input
+                    type="checkbox"
+                    checked={filters.availableOnly}
+                    onChange={(e) =>
+                      setFilters({ ...filters, availableOnly: e.target.checked })
+                    }
+                    className="rounded border-white/20 bg-base-800 accent-emerald-500"
+                  />
+                  Готовы пообщаться
+                </label>
+              </div>
             </div>
-            <div>
-              <label className="mb-1 block text-xs text-slate-500">Город</label>
-              <Input
-                value={filters.city}
-                onChange={(e) => setFilters({ ...filters, city: e.target.value })}
-                placeholder="Любой"
-                className="h-9 w-36"
-                list="people-russian-cities"
-              />
-              <datalist id="people-russian-cities">
-                {RUSSIAN_CITIES.map((city) => (
-                  <option key={city} value={city} />
-                ))}
-              </datalist>
-            </div>
+
+            {/* Row 2: Cascading Location */}
             <div>
               <label className="mb-1 block text-xs text-slate-500">
-                Интерес
+                <MapPin size={12} className="mr-1 inline" />
+                Локация
               </label>
-              <Input
-                value={filters.interest}
-                onChange={(e) =>
-                  setFilters({ ...filters, interest: e.target.value })
-                }
-                placeholder="кино"
-                className="h-9 w-28"
-              />
+              <div className="flex flex-wrap gap-2">
+                <select
+                  value={filters.country}
+                  onChange={(e) =>
+                    setFilters({ ...filters, country: e.target.value, region: "", city: "" })
+                  }
+                  className="h-9 rounded-lg border border-gold/15 bg-base-800 px-2 text-sm text-white transition-colors focus:border-gold/50"
+                >
+                  <option value="">Страна</option>
+                  {countries.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+                {filters.country && (
+                  <select
+                    value={filters.region}
+                    onChange={(e) =>
+                      setFilters({ ...filters, region: e.target.value, city: "" })
+                    }
+                    className="h-9 rounded-lg border border-gold/15 bg-base-800 px-2 text-sm text-white transition-colors focus:border-gold/50"
+                  >
+                    <option value="">Регион</option>
+                    {regions.map((r) => (
+                      <option key={r} value={r}>{r}</option>
+                    ))}
+                  </select>
+                )}
+                {filters.region && (
+                  <select
+                    value={filters.city}
+                    onChange={(e) =>
+                      setFilters({ ...filters, city: e.target.value })
+                    }
+                    className="h-9 rounded-lg border border-gold/15 bg-base-800 px-2 text-sm text-white transition-colors focus:border-gold/50"
+                  >
+                    <option value="">Город</option>
+                    {cities.map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                )}
+                {(filters.country || filters.region || filters.city) && (
+                  <button
+                    onClick={() =>
+                      setFilters({ ...filters, country: "", region: "", city: "" })
+                    }
+                    className="flex items-center gap-1 rounded-lg border border-gold/15 bg-base-800 px-2 text-xs text-slate-400 hover:text-white transition-colors"
+                  >
+                    <X size={12} />
+                    Сбросить
+                  </button>
+                )}
+              </div>
             </div>
+
+            {/* Row 3: Dating Goals */}
             <div>
               <label className="mb-1 block text-xs text-slate-500">
-                Цель
+                <HeartHandshake size={12} className="mr-1 inline" />
+                Цель знакомства
               </label>
-              <select
-                value={filters.datingGoal}
-                onChange={(e) =>
-                  setFilters({ ...filters, datingGoal: e.target.value })
-                }
-                className="h-9 rounded-lg border border-gold/15 bg-base-800 px-2 text-sm text-white transition-colors focus:border-gold/50"
-              >
-                <option value="">Любая</option>
+              <div className="flex flex-wrap gap-1.5">
                 {DATING_GOALS.map((goal) => (
-                  <option key={goal.value} value={goal.value}>
+                  <button
+                    key={goal.value}
+                    onClick={() => toggleDatingGoalFilter(goal.value)}
+                    className={`rounded-full border px-2.5 py-1 text-[11px] font-medium transition-all ${
+                      filters.datingGoals.includes(goal.value)
+                        ? "border-gold/40 bg-gold/20 text-gold-soft"
+                        : "border-gold/10 bg-base-800/60 text-slate-400 hover:border-gold/25 hover:text-slate-300"
+                    }`}
+                  >
                     {goal.label}
-                  </option>
+                  </button>
                 ))}
-              </select>
+              </div>
             </div>
+
+            {/* Row 4: Sexual Interests */}
             <div>
               <label className="mb-1 block text-xs text-slate-500">
-                Возраст от
+                Интересы
               </label>
-              <Input
-                type="number"
-                value={filters.minAge}
-                onChange={(e) => setFilters({ ...filters, minAge: e.target.value })}
-                className="h-9 w-20"
-                min={0}
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs text-slate-500">до</label>
-              <Input
-                type="number"
-                value={filters.maxAge}
-                onChange={(e) => setFilters({ ...filters, maxAge: e.target.value })}
-                className="h-9 w-20"
-                min={0}
-              />
-            </div>
-            <div className="flex flex-col gap-2">
-              <label className="flex items-center gap-2 text-sm text-slate-300">
-                <input
-                  type="checkbox"
-                  checked={filters.onlineOnly}
-                  onChange={(e) =>
-                    setFilters({ ...filters, onlineOnly: e.target.checked })
-                  }
-                  className="rounded border-white/20 bg-base-800 accent-accent"
-                />
-                Только онлайн
-              </label>
-              <label className="flex items-center gap-2 text-sm text-emerald-400">
-                <input
-                  type="checkbox"
-                  checked={filters.availableOnly}
-                  onChange={(e) =>
-                    setFilters({ ...filters, availableOnly: e.target.checked })
-                  }
-                  className="rounded border-white/20 bg-base-800 accent-emerald-500"
-                />
-                Готовы пообщаться
-              </label>
+              <div className="flex flex-wrap gap-1.5">
+                {SEXUAL_INTERESTS.map((interest) => (
+                  <button
+                    key={interest.value}
+                    onClick={() => toggleInterestFilter(interest.value)}
+                    className={`rounded-full border px-2.5 py-1 text-[11px] font-medium transition-all ${
+                      filters.interests.includes(interest.value)
+                        ? "border-accent/40 bg-accent/20 text-accent-light"
+                        : "border-gold/10 bg-base-800/60 text-slate-400 hover:border-gold/25 hover:text-slate-300"
+                    }`}
+                  >
+                    {interest.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </GlassCard>
         </motion.div>

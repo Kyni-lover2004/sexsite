@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
@@ -31,9 +31,10 @@ import { PhotoLightbox } from "@/components/ui/PhotoLightbox";
 import { usePhotoViewLimit } from "@/hooks/usePhotoViewLimit";
 import { ageFromBirthDate, isOnline, timeAgo } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
-import { RUSSIAN_CITIES } from "@/lib/data/russianCities";
+import { getCountries, getRegions, getCities } from "@/lib/data/locations";
 import {
   DATING_GOALS,
+  GENDER_OPTIONS,
   INTEREST_SECTIONS,
   getDatingGoalLabel,
 } from "@/lib/data/profileOptions";
@@ -81,6 +82,18 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
   });
 
   const online = isOnline(profile.last_seen);
+
+  const allCities = useMemo(() => {
+    const cities: string[] = [];
+    getCountries().forEach((country) => {
+      getRegions(country).forEach((region) => {
+        getCities(country, region).forEach((city) => {
+          if (!cities.includes(city)) cities.push(city);
+        });
+      });
+    });
+    return cities.sort();
+  }, []);
 
   useEffect(() => {
     setAvailable(profile.available_for_chat);
@@ -465,10 +478,10 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                           setForm({ ...form, city: e.target.value })
                         }
                         placeholder="Начните вводить город"
-                        list="russian-cities"
+                        list="all-cities"
                       />
-                      <datalist id="russian-cities">
-                        {RUSSIAN_CITIES.map((city) => (
+                      <datalist id="all-cities">
+                        {allCities.map((city) => (
                           <option key={city} value={city} />
                         ))}
                       </datalist>
@@ -497,8 +510,11 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                       }
                       className="h-10 w-full rounded-xl border border-gold/15 bg-base-800/60 px-3.5 text-sm text-slate-100 transition-all duration-300 focus:border-gold/50 focus:outline-none focus:ring-2 focus:ring-gold/15"
                     >
-                      <option value="male">Мужской</option>
-                      <option value="female">Женский</option>
+                      {GENDER_OPTIONS.map((g) => (
+                        <option key={g.value} value={g.value}>
+                          {g.label}
+                        </option>
+                      ))}
                       <option value="prefer_not_to_say">Не указывать</option>
                     </select>
                   </div>
@@ -631,7 +647,13 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                   <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
                     {profile.gender && profile.gender !== "prefer_not_to_say" && (
                       <span className="flex items-center gap-1">
-                        {profile.gender === "male" ? "👨 Мужчина" : "👩 Женщина"}
+                        {profile.gender === "male"
+                          ? "👨 Мужчина"
+                          : profile.gender === "female"
+                          ? "👩 Женщина"
+                          : profile.gender === "couple_mf"
+                          ? "👫 Пара МЖ"
+                          : profile.gender}
                       </span>
                     )}
                     {profile.city && (
