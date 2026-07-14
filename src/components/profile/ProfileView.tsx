@@ -449,11 +449,11 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
       />
 
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
-        <GlassCard premium className="relative overflow-hidden p-6">
-          <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-br from-gold/20 via-accent-deep/10 to-gold/10" />
-          <div className="absolute inset-x-0 top-24 h-px bg-gradient-to-r from-transparent via-gold/30 to-transparent" />
+        <GlassCard premium className="relative overflow-hidden p-4 sm:p-6">
+          <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-br from-gold/20 via-accent-deep/10 to-gold/10 sm:h-28" />
+          <div className="absolute inset-x-0 top-24 h-px bg-gradient-to-r from-transparent via-gold/30 to-transparent sm:top-28" />
 
-          <div className="relative flex items-start gap-4 pt-6">
+          <div className="relative flex items-start gap-3 pt-5 sm:gap-4 sm:pt-7">
             <div className="relative group">
               <Avatar
                 src={profile.avatar_url}
@@ -489,7 +489,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
               )}
             </div>
 
-            <div className="min-w-0 flex-1">
+            <div className="min-w-0 flex-1 pt-0.5 sm:pt-1">
               {editing ? (
                 <div className="space-y-3">
                   <div>
@@ -891,9 +891,9 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                 </div>
               ) : (
                 <>
-                   <div className="flex items-start justify-between">
-                    <div>
-                      <h1 className="flex flex-wrap items-center gap-2 font-display text-xl font-bold text-gradient">
+                   <div className="flex min-w-0 items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <h1 className="flex flex-wrap items-center gap-1.5 font-display text-lg font-bold leading-tight text-gradient sm:gap-2 sm:text-xl">
                         {profile.display_name ?? profile.username}
                         {profile.role === "admin" && (
                           <span className="inline-flex items-center gap-1 rounded-full bg-red-500/10 border border-red-500/20 px-2 py-0.5 text-[10px] font-semibold text-red-400 shadow-[0_0_12px_rgba(239,68,68,0.15)]">
@@ -908,7 +908,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                           </span>
                         )}
                       </h1>
-                      <p className="text-sm text-slate-500">
+                      <p className="mt-1 truncate text-sm text-slate-500">
                         @{profile.username}
                       </p>
                     </div>
@@ -916,6 +916,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                       <Button
                         variant="ghost"
                         size="icon"
+                        className="-mr-1 -mt-1 shrink-0"
                         onClick={() => setEditing(true)}
                       >
                         <Pencil size={16} />
@@ -929,18 +930,14 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                     </p>
                   )}
 
-                  {profile.bio && (
-                    <p className="mt-2 text-sm text-slate-400">{profile.bio}</p>
-                  )}
-
                   {datingGoalLabel && (
-                    <div className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-gold/20 bg-gold/10 px-3 py-1 text-xs font-medium text-gold-soft">
+                    <div className="mt-3 inline-flex max-w-full items-center gap-1.5 rounded-full border border-gold/20 bg-gold/10 px-3 py-1.5 text-xs font-medium text-gold-soft">
                       <HeartHandshake size={14} />
                       {datingGoalLabel}
                     </div>
                   )}
 
-                  <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
+                  <div className="mt-3 flex flex-wrap gap-x-3 gap-y-2 text-xs text-slate-500 sm:gap-x-4">
                     {profile.gender && profile.gender !== "prefer_not_to_say" && (
                       <span className="flex items-center gap-1">
                         {profile.gender === "male"
@@ -975,11 +972,11 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                   </div>
 
                   {(available || isOwn) && (
-                    <div className="mt-3">
+                    <div className="mt-4">
                       {isOwn ? (
                         <button
                           onClick={toggleAvailable}
-                          className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium shadow-inner-glow transition-all ${
+                          className={`inline-flex min-h-11 max-w-full touch-manipulation items-center gap-2 rounded-full px-3.5 py-2 text-left text-xs font-medium shadow-inner-glow transition-all sm:min-h-0 sm:py-1.5 ${
                             available
                               ? "border border-emerald-500/25 bg-emerald-500/10 text-emerald-600 hover:border-emerald-500/40 dark:text-emerald-400"
                               : "border border-gold/25 bg-base-900/65 text-warm-200 hover:border-gold/45 hover:bg-gold/10 hover:text-warm-100"
@@ -998,7 +995,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                           )}
                         </button>
                       ) : available ? (
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-medium text-emerald-400 border border-emerald-500/30">
+                        <span className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/15 px-3.5 py-2 text-xs font-medium text-emerald-600 dark:text-emerald-400 sm:min-h-0 sm:py-1.5">
                           <CheckCircle2 size={14} />
                           Готов(а) пообщаться
                         </span>
@@ -1006,8 +1003,20 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                     </div>
                   )}
 
+                  <section className="mt-4 rounded-xl border border-gold/10 bg-base-900/45 p-3.5 shadow-inner-glow sm:p-4">
+                    <h2 className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-gold-soft/75">
+                      О себе
+                    </h2>
+                    <p className="whitespace-pre-wrap break-words text-sm leading-6 text-slate-400 dark:text-slate-300">
+                      {profile.bio?.trim() ||
+                        (isOwn
+                          ? "Расскажите немного о себе — это поможет другим участникам лучше вас узнать."
+                          : "Пользователь пока ничего о себе не рассказал.")}
+                    </p>
+                  </section>
+
                   {profile.interests.length > 0 && (
-                    <div className="mt-3 space-y-3">
+                    <div className="mt-4 space-y-3">
                       {INTEREST_SECTIONS.map((section) => {
                         const sectionTags = profile.interests.filter((i) =>
                           (section.items as unknown as string[]).includes(i)
