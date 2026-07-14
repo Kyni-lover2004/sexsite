@@ -194,7 +194,9 @@ export function ChatWindow({
               peerKey
             );
 
-            const blob = new Blob([decrypted], { type: "image/jpeg" });
+            const blob = new Blob([decrypted], {
+              type: meta.mime_type ?? "image/jpeg",
+            });
             const url = URL.createObjectURL(blob);
 
             setMessages((prev) =>
@@ -252,8 +254,15 @@ export function ChatWindow({
     const file = e.target.files?.[0];
     if (!file || !peerKey) return;
     setSending(true);
+    setSendError("");
+    let previewUrl: string | null = null;
 
     try {
+      if (!file.type.startsWith("image/")) {
+        throw new Error("Можно отправлять только изображения.");
+      }
+
+      previewUrl = URL.createObjectURL(file);
       const fileData = await file.arrayBuffer();
       const encrypted = await encryptFile(fileData, peerKey);
 
@@ -271,7 +280,11 @@ export function ChatWindow({
       if (uploadError) throw uploadError;
 
       const fileIv = bufToB64(encrypted.iv.buffer);
-      const metaPayload = JSON.stringify({ storage_path: storagePath, file_iv: fileIv });
+      const metaPayload = JSON.stringify({
+        storage_path: storagePath,
+        file_iv: fileIv,
+        mime_type: file.type,
+      });
       const encryptedMeta = await encryptMessage(metaPayload, peerKey);
 
       const { data, error } = await (supabase as any)
@@ -281,7 +294,12 @@ export function ChatWindow({
           sender_id: currentUserId,
           ciphertext: encryptedMeta.ciphertext,
           iv: encryptedMeta.iv,
-          metadata: { type: "image", storage_path: storagePath, file_iv: fileIv },
+          metadata: {
+            type: "image",
+            storage_path: storagePath,
+            file_iv: fileIv,
+            mime_type: file.type,
+          },
         })
         .select()
         .single();
@@ -289,15 +307,21 @@ export function ChatWindow({
       if (!error && data) {
         setMessages((prev) => [
           ...prev,
-          { ...data, plaintext: metaPayload },
+          { ...data, plaintext: metaPayload, imageUrl: previewUrl ?? undefined },
         ]);
+        previewUrl = null;
         setSendError("");
       } else if (error) {
-        setSendError("Не удалось отправить фото");
+        throw error;
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Image send error:", err);
-      setSendError("Ошибка отправки фото. Проверьте, создан ли бакет chat-images в Supabase.");
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      setSendError(
+        err?.message?.includes("bucket") || err?.message?.includes("mime")
+          ? "Фото не отправилось: обновите Supabase bucket chat-images из supabase/schema.sql."
+          : `Ошибка отправки фото: ${err?.message ?? "проверьте логику Storage и сообщений."}`
+      );
     }
 
     setSending(false);

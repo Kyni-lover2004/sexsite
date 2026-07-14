@@ -424,8 +424,12 @@ values ('avatars', 'avatars', true, 5242880, array['image/png', 'image/jpeg', 'i
 on conflict (id) do nothing;
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-values ('chat-images', 'chat-images', true, 10485760, array['image/png', 'image/jpeg', 'image/webp', 'image/gif'])
+values ('chat-images', 'chat-images', true, 10485760, array['application/octet-stream', 'image/png', 'image/jpeg', 'image/webp', 'image/gif'])
 on conflict (id) do nothing;
+
+update storage.buckets
+set allowed_mime_types = array['application/octet-stream', 'image/png', 'image/jpeg', 'image/webp', 'image/gif']
+where id = 'chat-images';
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values ('topic-media', 'topic-media', true, 20971520, array['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'video/mp4', 'video/webm', 'video/quicktime'])
@@ -434,6 +438,10 @@ on conflict (id) do nothing;
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values ('profile-photos', 'profile-photos', true, 10485760, array['image/png', 'image/jpeg', 'image/webp', 'image/gif'])
 on conflict (id) do nothing;
+
+update storage.buckets
+set allowed_mime_types = array['image/png', 'image/jpeg', 'image/webp', 'image/gif']
+where id = 'profile-photos';
 
 -- Storage RLS: avatars — authenticated users can read/upload
 drop policy if exists "Avatar read" on storage.objects;

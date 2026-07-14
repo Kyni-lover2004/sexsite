@@ -120,6 +120,7 @@ export interface ImageMessageMetadata {
   type: "image";
   storage_path: string;
   file_iv: string;
+  mime_type?: string;
 }
 
 export type MessageMetadata = ImageMessageMetadata;

@@ -51,6 +51,8 @@ export function ProfileView({ profile, photos, isOwn }: ProfileViewProps) {
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [usernameError, setUsernameError] = useState("");
   const [saveError, setSaveError] = useState("");
+  const [photoError, setPhotoError] = useState("");
+  const [localPhotos, setLocalPhotos] = useState(photos);
   const [available, setAvailable] = useState(profile.available_for_chat);
   const [form, setForm] = useState({
     username: profile.username,
@@ -69,6 +71,10 @@ export function ProfileView({ profile, photos, isOwn }: ProfileViewProps) {
   useEffect(() => {
     setAvailable(profile.available_for_chat);
   }, [profile.available_for_chat]);
+
+  useEffect(() => {
+    setLocalPhotos(photos);
+  }, [photos]);
 
   async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -108,18 +114,24 @@ export function ProfileView({ profile, photos, isOwn }: ProfileViewProps) {
     const files = Array.from(e.target.files ?? []);
     if (files.length === 0) return;
     setUploadingPhoto(true);
+    setPhotoError("");
 
     const {
       data: { user },
     } = await supabase.auth.getUser();
 
     if (!user || user.id !== profile.id) {
+      setPhotoError("Нужно войти в свой аккаунт, чтобы добавлять фото.");
       setUploadingPhoto(false);
       return;
     }
 
     for (const file of files) {
       try {
+        if (!file.type.startsWith("image/")) {
+          throw new Error("Можно загружать только изображения.");
+        }
+
         const ext = file.name.split(".").pop() ?? "jpg";
         const path = `${profile.id}/${Date.now()}-${Math.random()
           .toString(36)
@@ -135,34 +147,69 @@ export function ProfileView({ profile, photos, isOwn }: ProfileViewProps) {
           .from("profile-photos")
           .getPublicUrl(path);
 
-        await (supabase as any).from("profile_photos").insert({
-          user_id: profile.id,
-          url: urlData.publicUrl,
-          storage_path: path,
-          sort_order: photos.length,
-        });
-      } catch (err) {
+        const { data: insertedPhoto, error: insertError } = await (supabase as any)
+          .from("profile_photos")
+          .insert({
+            user_id: profile.id,
+            url: urlData.publicUrl,
+            storage_path: path,
+            sort_order: localPhotos.length,
+          })
+          .select("*")
+          .single();
+
+        if (insertError) {
+          await (supabase as any).storage.from("profile-photos").remove([path]);
+          throw insertError;
+        }
+
+        setLocalPhotos((prev) => [
+          (insertedPhoto ?? {
+            id: path,
+            user_id: profile.id,
+            url: urlData.publicUrl,
+            storage_path: path,
+            caption: null,
+            sort_order: prev.length,
+            created_at: new Date().toISOString(),
+          }) as ProfilePhoto,
+          ...prev,
+        ]);
+      } catch (err: any) {
         console.error("Profile photo upload error:", err);
+        setPhotoError(
+          err?.message?.includes("profile_photos") ||
+            err?.message?.includes("relation") ||
+            err?.message?.includes("bucket")
+            ? "В Supabase еще не применена таблица profile_photos или bucket profile-photos. Примените обновленный supabase/schema.sql."
+            : `Не удалось добавить фото: ${err?.message ?? "неизвестная ошибка"}`
+        );
       }
     }
 
     if (photoRef.current) photoRef.current.value = "";
     setUploadingPhoto(false);
-    router.refresh();
   }
 
   async function deleteProfilePhoto(photo: ProfilePhoto) {
-    await (supabase as any)
+    setPhotoError("");
+    setLocalPhotos((prev) => prev.filter((item) => item.id !== photo.id));
+
+    const { error: deleteError } = await (supabase as any)
       .from("profile_photos")
       .delete()
       .eq("id", photo.id)
       .eq("user_id", profile.id);
 
-    await (supabase as any).storage
+    const { error: storageError } = await (supabase as any).storage
       .from("profile-photos")
       .remove([photo.storage_path]);
 
-    router.refresh();
+    if (deleteError || storageError) {
+      console.error("Profile photo delete error:", deleteError ?? storageError);
+      setPhotoError("Не удалось удалить фото. Обновите страницу и попробуйте снова.");
+      router.refresh();
+    }
   }
 
   async function toggleAvailable() {
@@ -647,7 +694,13 @@ export function ProfileView({ profile, photos, isOwn }: ProfileViewProps) {
           )}
         </div>
 
-        {photos.length === 0 ? (
+        {photoError && (
+          <p className="mb-4 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+            {photoError}
+          </p>
+        )}
+
+        {localPhotos.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-gold/15 bg-base-900/30 p-8 text-center">
             <p className="text-sm text-slate-400">
               {isOwn
@@ -657,7 +710,7 @@ export function ProfileView({ profile, photos, isOwn }: ProfileViewProps) {
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {photos.map((photo) => (
+            {localPhotos.map((photo) => (
               <div
                 key={photo.id}
                 className="group relative aspect-[4/5] overflow-hidden rounded-xl border border-gold/10 bg-base-900"
