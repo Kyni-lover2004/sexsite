@@ -29,6 +29,15 @@ export interface Profile {
   is_banned: boolean;
   banned_until: string | null;
   premium_until: string | null;
+  looking_for: string[];
+  age_preference: string | null;
+  meeting_place: string[];
+  mobility: string | null;
+  height: number | null;
+  weight: number | null;
+  smoking_attitude: string | null;
+  drinking_attitude: string | null;
+  orientation_roles: string[];
   created_at: string;
   updated_at: string;
 }

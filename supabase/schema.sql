@@ -52,6 +52,17 @@ alter table public.profiles
   add column if not exists country text,
   add column if not exists region text;
 
+alter table public.profiles
+  add column if not exists looking_for text[] default '{}',
+  add column if not exists age_preference text,
+  add column if not exists meeting_place text[] default '{}',
+  add column if not exists mobility text,
+  add column if not exists height integer,
+  add column if not exists weight integer,
+  add column if not exists smoking_attitude text,
+  add column if not exists drinking_attitude text,
+  add column if not exists orientation_roles text[] default '{}';
+
 -- Derived age helper (kept out of the table to avoid stale data)
 create or replace function public.profile_age(bd date)
 returns int language sql immutable as $$

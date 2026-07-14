@@ -36,7 +36,15 @@ import {
   DATING_GOALS,
   GENDER_OPTIONS,
   INTEREST_SECTIONS,
+  LOOKING_FOR_OPTIONS,
+  AGE_PREFERENCE_OPTIONS,
+  MEETING_PLACE_OPTIONS,
+  MOBILITY_OPTIONS,
+  SMOKING_ATTITUDE_OPTIONS,
+  DRINKING_ATTITUDE_OPTIONS,
+  ORIENTATION_ROLES,
   getDatingGoalLabel,
+  getLabel,
 } from "@/lib/data/profileOptions";
 import type { Profile, ProfilePhoto } from "@/lib/types";
 
@@ -81,6 +89,15 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
     gender: profile.gender ?? "prefer_not_to_say",
     dating_goal: profile.dating_goal ?? "",
     interests: profile.interests.join(", "),
+    looking_for: profile.looking_for ?? [],
+    age_preference: profile.age_preference ?? "",
+    meeting_place: profile.meeting_place ?? [],
+    mobility: profile.mobility ?? "",
+    height: profile.height ?? "",
+    weight: profile.weight ?? "",
+    smoking_attitude: profile.smoking_attitude ?? "",
+    drinking_attitude: profile.drinking_attitude ?? "",
+    orientation_roles: profile.orientation_roles ?? [],
   });
 
   const online = isOnline(profile.last_seen);
@@ -301,7 +318,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
       .map((s) => s.trim())
       .filter(Boolean);
 
-    const profileUpdate = {
+    const profileUpdate: Record<string, unknown> = {
       username: newUsername,
       display_name: form.display_name || null,
       status: form.status || null,
@@ -313,6 +330,15 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
       gender: form.gender,
       dating_goal: form.dating_goal || null,
       interests,
+      looking_for: form.looking_for,
+      age_preference: form.age_preference || null,
+      meeting_place: form.meeting_place,
+      mobility: form.mobility || null,
+      height: form.height ? Number(form.height) : null,
+      weight: form.weight ? Number(form.weight) : null,
+      smoking_attitude: form.smoking_attitude || null,
+      drinking_attitude: form.drinking_attitude || null,
+      orientation_roles: form.orientation_roles,
     };
 
     const { error: updateError } = await supa
@@ -322,8 +348,8 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
 
     if (updateError) {
       console.error("Profile save error:", updateError);
-      if (updateError.message?.includes("dating_goal")) {
-        const { dating_goal: _datingGoal, ...fallbackUpdate } = profileUpdate;
+      if (updateError.message?.includes("dating_goal") || updateError.message?.includes("looking_for")) {
+        const { dating_goal: _d, looking_for: _l, age_preference: _a, meeting_place: _m, mobility: _mo, height: _h, weight: _w, smoking_attitude: _s, drinking_attitude: _dr, orientation_roles: _or, ...fallbackUpdate } = profileUpdate;
         const { error: fallbackError } = await supa
           .from("profiles")
           .update(fallbackUpdate)
@@ -331,7 +357,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
 
         if (!fallbackError) {
           setSaveError(
-            "Основные поля и интересы сохранены. Поле цели знакомства появится после применения обновленного supabase/schema.sql."
+            "Основные поля сохранены. Часть новых полей появится после применения обновлённого supabase/schema.sql."
           );
           setSaving(false);
           router.refresh();
@@ -355,6 +381,10 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
 
   const age = ageFromBirthDate(profile.birth_date);
   const datingGoalLabel = getDatingGoalLabel(profile.dating_goal);
+  const agePrefLabel = getLabel(AGE_PREFERENCE_OPTIONS, profile.age_preference);
+  const mobilityLabel = getLabel(MOBILITY_OPTIONS, profile.mobility);
+  const smokingLabel = getLabel(SMOKING_ATTITUDE_OPTIONS, profile.smoking_attitude);
+  const drinkingLabel = getLabel(DRINKING_ATTITUDE_OPTIONS, profile.drinking_attitude);
   const selectedInterests = form.interests
     .split(",")
     .map((item) => item.trim())
@@ -366,6 +396,40 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
       ? selectedInterests.filter((item) => item !== interest)
       : [...selectedInterests, interest];
     setForm({ ...form, interests: next.join(", ") });
+  }
+
+  function toggleLookingFor(value: string) {
+    const exists = form.looking_for.includes(value);
+    const next = exists
+      ? form.looking_for.filter((v) => v !== value)
+      : [...form.looking_for, value];
+    setForm({ ...form, looking_for: next });
+  }
+
+  function toggleMeetingPlace(value: string) {
+    const exists = form.meeting_place.includes(value);
+    const next = exists
+      ? form.meeting_place.filter((v) => v !== value)
+      : [...form.meeting_place, value];
+    setForm({ ...form, meeting_place: next });
+  }
+
+  function toggleOrientationRole(value: string) {
+    const exists = form.orientation_roles.includes(value);
+    const next = exists
+      ? form.orientation_roles.filter((v) => v !== value)
+      : [...form.orientation_roles, value];
+    setForm({ ...form, orientation_roles: next });
+  }
+
+  function setBirthDateFromComponents(year: string, month: string, day: string) {
+    if (year && month && day) {
+      const paddedMonth = month.padStart(2, "0");
+      const paddedDay = day.padStart(2, "0");
+      setForm({ ...form, birth_date: `${year}-${paddedMonth}-${paddedDay}` });
+    } else {
+      setForm({ ...form, birth_date: "" });
+    }
   }
 
   return (
@@ -528,13 +592,51 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                       <label className="mb-1.5 block text-xs font-medium text-slate-400">
                         Дата рождения
                       </label>
-                      <Input
-                        type="date"
-                        value={form.birth_date}
-                        onChange={(e) =>
-                          setForm({ ...form, birth_date: e.target.value })
-                        }
-                      />
+                      <div className="flex gap-1.5">
+                        <select
+                          value={form.birth_date ? form.birth_date.split("-")[0] ?? "" : ""}
+                          onChange={(e) => {
+                            const parts = form.birth_date ? form.birth_date.split("-") : ["", "", ""];
+                            setBirthDateFromComponents(e.target.value, parts[1] || "", parts[2] || "");
+                          }}
+                          className="h-10 flex-1 rounded-xl border border-gold/15 bg-base-800/60 px-3 text-sm text-slate-100 transition-all duration-300 focus:border-gold/50 focus:outline-none focus:ring-2 focus:ring-gold/15"
+                        >
+                          <option value="">Год</option>
+                          {Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - i).map((y) => (
+                            <option key={y} value={y}>{y}</option>
+                          ))}
+                        </select>
+                        <select
+                          value={form.birth_date ? form.birth_date.split("-")[1] ?? "" : ""}
+                          onChange={(e) => {
+                            const parts = form.birth_date ? form.birth_date.split("-") : ["", "", ""];
+                            setBirthDateFromComponents(parts[0] || "", e.target.value, parts[2] || "");
+                          }}
+                          className="h-10 flex-1 rounded-xl border border-gold/15 bg-base-800/60 px-3 text-sm text-slate-100 transition-all duration-300 focus:border-gold/50 focus:outline-none focus:ring-2 focus:ring-gold/15"
+                        >
+                          <option value="">Месяц</option>
+                          {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                            <option key={m} value={m}>{m}</option>
+                          ))}
+                        </select>
+                        <select
+                          value={form.birth_date ? form.birth_date.split("-")[2] ?? "" : ""}
+                          onChange={(e) => {
+                            const parts = form.birth_date ? form.birth_date.split("-") : ["", "", ""];
+                            setBirthDateFromComponents(parts[0] || "", parts[1] || "", e.target.value);
+                          }}
+                          className="h-10 flex-1 rounded-xl border border-gold/15 bg-base-800/60 px-3 text-sm text-slate-100 transition-all duration-300 focus:border-gold/50 focus:outline-none focus:ring-2 focus:ring-gold/15"
+                        >
+                          <option value="">День</option>
+                          {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
+                            <option key={d} value={d}>{d}</option>
+                          ))}
+                        </select>
+                      </div>
+                      {(() => {
+                        const a = ageFromBirthDate(form.birth_date || null);
+                        return a ? <p className="mt-1 text-xs text-slate-500">{a} лет</p> : null;
+                      })()}
                     </div>
                   </div>
                   <div>
@@ -575,6 +677,162 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                       ))}
                     </select>
                   </div>
+                  {/* ── Block 1: Preferences for meetings ── */}
+                  <div className="border-t border-gold/10 pt-3">
+                    <p className="mb-2 text-xs font-semibold text-gold-soft/80 uppercase tracking-[0.12em]">
+                      Кого ищем и где
+                    </p>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="mb-1.5 block text-xs font-medium text-slate-400">
+                          С кем хотите познакомиться?
+                        </label>
+                        <div className="flex flex-wrap gap-1.5">
+                          {LOOKING_FOR_OPTIONS.map((opt) => (
+                            <Tag
+                              key={opt.value}
+                              label={opt.label}
+                              active={form.looking_for.includes(opt.value)}
+                              onClick={() => toggleLookingFor(opt.value)}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <label className="mb-1.5 block text-xs font-medium text-slate-400">
+                          Возраст тех, с кем Вы хотите познакомиться
+                        </label>
+                        <select
+                          value={form.age_preference}
+                          onChange={(e) => setForm({ ...form, age_preference: e.target.value })}
+                          className="h-10 w-full rounded-xl border border-gold/15 bg-base-800/60 px-3.5 text-sm text-slate-100 transition-all duration-300 focus:border-gold/50 focus:outline-none focus:ring-2 focus:ring-gold/15"
+                        >
+                          <option value="">Не указано</option>
+                          {AGE_PREFERENCE_OPTIONS.map((opt) => (
+                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="mb-1.5 block text-xs font-medium text-slate-400">
+                          Предпочтительное место для встречи
+                        </label>
+                        <div className="flex flex-wrap gap-1.5">
+                          {MEETING_PLACE_OPTIONS.map((opt) => (
+                            <Tag
+                              key={opt.value}
+                              label={opt.label}
+                              active={form.meeting_place.includes(opt.value)}
+                              onClick={() => toggleMeetingPlace(opt.value)}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <label className="mb-1.5 block text-xs font-medium text-slate-400">
+                          Степень вашей мобильности
+                        </label>
+                        <select
+                          value={form.mobility}
+                          onChange={(e) => setForm({ ...form, mobility: e.target.value })}
+                          className="h-10 w-full rounded-xl border border-gold/15 bg-base-800/60 px-3.5 text-sm text-slate-100 transition-all duration-300 focus:border-gold/50 focus:outline-none focus:ring-2 focus:ring-gold/15"
+                        >
+                          <option value="">Не указано</option>
+                          {MOBILITY_OPTIONS.map((opt) => (
+                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── Block 2: Appearance & personal data ── */}
+                  <div className="border-t border-gold/10 pt-3">
+                    <p className="mb-2 text-xs font-semibold text-gold-soft/80 uppercase tracking-[0.12em]">
+                      Внешность и личные данные
+                    </p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="mb-1.5 block text-xs font-medium text-slate-400">
+                          Рост (см)
+                        </label>
+                        <Input
+                          type="number"
+                          min={100}
+                          max={250}
+                          value={form.height}
+                          onChange={(e) => setForm({ ...form, height: e.target.value })}
+                          placeholder="170"
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1.5 block text-xs font-medium text-slate-400">
+                          Вес (кг)
+                        </label>
+                        <Input
+                          type="number"
+                          min={30}
+                          max={300}
+                          value={form.weight}
+                          onChange={(e) => setForm({ ...form, weight: e.target.value })}
+                          placeholder="65"
+                        />
+                      </div>
+                    </div>
+                    <div className="mt-3">
+                      <label className="mb-1.5 block text-xs font-medium text-slate-400">
+                        Отношение к курению во время встречи
+                      </label>
+                      <select
+                        value={form.smoking_attitude}
+                        onChange={(e) => setForm({ ...form, smoking_attitude: e.target.value })}
+                        className="h-10 w-full rounded-xl border border-gold/15 bg-base-800/60 px-3.5 text-sm text-slate-100 transition-all duration-300 focus:border-gold/50 focus:outline-none focus:ring-2 focus:ring-gold/15"
+                      >
+                        <option value="">Не указано</option>
+                        {SMOKING_ATTITUDE_OPTIONS.map((opt) => (
+                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="mt-3">
+                      <label className="mb-1.5 block text-xs font-medium text-slate-400">
+                        Отношение к спиртному во время встречи
+                      </label>
+                      <select
+                        value={form.drinking_attitude}
+                        onChange={(e) => setForm({ ...form, drinking_attitude: e.target.value })}
+                        className="h-10 w-full rounded-xl border border-gold/15 bg-base-800/60 px-3.5 text-sm text-slate-100 transition-all duration-300 focus:border-gold/50 focus:outline-none focus:ring-2 focus:ring-gold/15"
+                      >
+                        <option value="">Не указано</option>
+                        {DRINKING_ATTITUDE_OPTIONS.map((opt) => (
+                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* ── Block 3: Orientation & sex preferences ── */}
+                  <div className="border-t border-gold/10 pt-3">
+                    <p className="mb-2 text-xs font-semibold text-gold-soft/80 uppercase tracking-[0.12em]">
+                      Ориентация и предпочтения в сексе
+                    </p>
+                    <div>
+                      <label className="mb-1.5 block text-xs font-medium text-slate-400">
+                        Ориентация и роль
+                      </label>
+                      <div className="flex flex-wrap gap-1.5">
+                        {ORIENTATION_ROLES.map((opt) => (
+                          <Tag
+                            key={opt.value}
+                            label={opt.label}
+                            active={form.orientation_roles.includes(opt.value)}
+                            onClick={() => toggleOrientationRole(opt.value)}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
                   <div>
                     <label className="mb-2 block text-xs font-medium text-slate-400">
                       Интересы по разделам
@@ -789,6 +1047,73 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                           </div>
                         );
                       })()}
+                    </div>
+                  )}
+
+                  {/* ── View mode: Block 1 ── */}
+                  {(profile.looking_for?.length > 0 ||
+                    profile.age_preference ||
+                    profile.meeting_place?.length > 0 ||
+                    profile.mobility) && (
+                    <div className="mt-4 space-y-2">
+                      <p className="text-[11px] uppercase tracking-[0.14em] text-gold-soft/60">
+                        Кого ищем и где
+                      </p>
+                      {profile.looking_for?.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5">
+                          {profile.looking_for.map((v) => {
+                            const label = LOOKING_FOR_OPTIONS.find((o) => o.value === v)?.label ?? v;
+                            return <Tag key={v} label={label} />;
+                          })}
+                        </div>
+                      )}
+                      {agePrefLabel && (
+                        <p className="text-xs text-slate-400">{agePrefLabel}</p>
+                      )}
+                      {profile.meeting_place?.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5">
+                          {profile.meeting_place.map((v) => {
+                            const label = MEETING_PLACE_OPTIONS.find((o) => o.value === v)?.label ?? v;
+                            return <Tag key={v} label={label} />;
+                          })}
+                        </div>
+                      )}
+                      {mobilityLabel && (
+                        <p className="text-xs text-slate-400">{mobilityLabel}</p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* ── View mode: Block 2 ── */}
+                  {(profile.height ||
+                    profile.weight ||
+                    profile.smoking_attitude ||
+                    profile.drinking_attitude) && (
+                    <div className="mt-4 space-y-2">
+                      <p className="text-[11px] uppercase tracking-[0.14em] text-gold-soft/60">
+                        Внешность и личные данные
+                      </p>
+                      <div className="flex flex-wrap gap-3 text-xs text-slate-400">
+                        {profile.height && <span>Рост: {profile.height} см</span>}
+                        {profile.weight && <span>Вес: {profile.weight} кг</span>}
+                      </div>
+                      {smokingLabel && <p className="text-xs text-slate-400">{smokingLabel}</p>}
+                      {drinkingLabel && <p className="text-xs text-slate-400">{drinkingLabel}</p>}
+                    </div>
+                  )}
+
+                  {/* ── View mode: Block 3 ── */}
+                  {profile.orientation_roles?.length > 0 && (
+                    <div className="mt-4 space-y-2">
+                      <p className="text-[11px] uppercase tracking-[0.14em] text-gold-soft/60">
+                        Ориентация и предпочтения в сексе
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {profile.orientation_roles.map((v) => {
+                          const label = ORIENTATION_ROLES.find((o) => o.value === v)?.label ?? v;
+                          return <Tag key={v} label={label} />;
+                        })}
+                      </div>
                     </div>
                   )}
 
