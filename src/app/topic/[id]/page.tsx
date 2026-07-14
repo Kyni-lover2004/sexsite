@@ -15,7 +15,7 @@ export default async function TopicPage({ params }: Props) {
   const { data: raw } = await supabase
     .from("topics")
     .select(
-      `*, author:profiles!topics_author_id_fkey(id,username,display_name,avatar_url,last_seen)`
+      `*, author:profiles!topics_author_id_fkey(id,username,display_name,avatar_url,last_seen,premium_until)`
     )
     .eq("id", params.id)
     .single();

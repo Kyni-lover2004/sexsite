@@ -42,7 +42,7 @@ export function CommentSection({
         body: text.trim(),
         parent_id: replyTo,
       })
-      .select("*, author:profiles!comments_author_id_fkey(id,username,display_name,avatar_url)")
+      .select("*, author:profiles!comments_author_id_fkey(id,username,display_name,avatar_url,premium_until)")
       .single();
 
     setSending(false);

@@ -38,7 +38,7 @@ export function Feed({ initialTopics, currentUserId }: FeedProps) {
     supa
       .from("topics")
       .select(
-        "*, author:profiles!topics_author_id_fkey(id,username,display_name,avatar_url,last_seen)"
+        "*, author:profiles!topics_author_id_fkey(id,username,display_name,avatar_url,last_seen,premium_until)"
       )
       .eq("status", "active")
       .order(order.column, { ascending: order.ascending })

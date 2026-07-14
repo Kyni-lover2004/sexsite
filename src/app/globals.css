@@ -7,23 +7,23 @@
   --font-display: "Space Grotesk", system-ui, sans-serif;
   color-scheme: light;
 
-  --base-950: 255 255 255;
-  --base-900: 253 252 255;
-  --base-800: 248 247 252;
-  --base-700: 234 230 244;
-  --base-600: 207 198 224;
-  --base-500: 143 126 171;
+  --base-950: 253 251 248;
+  --base-900: 248 244 239;
+  --base-800: 241 235 228;
+  --base-700: 225 214 205;
+  --base-600: 194 176 164;
+  --base-500: 144 119 105;
 
-  --accent: 198 181 232;
-  --accent-soft: 165 145 211;
-  --accent-deep: 128 103 179;
-  --accent-muted: 181 163 218;
-  --gold: 207 190 238;
-  --gold-soft: 174 153 218;
-  --gold-deep: 127 103 177;
-  --gold-glow: 232 224 249;
-  --warm-100: 35 29 46;
-  --warm-200: 74 62 91;
+  --accent: 174 119 105;
+  --accent-soft: 122 83 75;
+  --accent-deep: 104 67 58;
+  --accent-muted: 152 116 103;
+  --gold: 190 142 125;
+  --gold-soft: 128 83 74;
+  --gold-deep: 112 72 62;
+  --gold-glow: 237 212 202;
+  --warm-100: 35 29 27;
+  --warm-200: 78 62 56;
 }
 
 .dark {

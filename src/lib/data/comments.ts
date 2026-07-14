@@ -5,7 +5,7 @@ import type { Comment, Profile } from "@/lib/types";
 export interface CommentWithAuthor extends Comment {
   author: Pick<
     Profile,
-    "id" | "username" | "display_name" | "avatar_url"
+    "id" | "username" | "display_name" | "avatar_url" | "premium_until"
   > | null;
 }
 
@@ -18,7 +18,7 @@ export async function getComments(topicId: string): Promise<CommentWithAuthor[]>
     .select(
       `*,
        author:profiles!comments_author_id_fkey (
-         id, username, display_name, avatar_url
+         id, username, display_name, avatar_url, premium_until
        )`
     )
     .eq("topic_id", topicId)
