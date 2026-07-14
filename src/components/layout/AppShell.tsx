@@ -15,7 +15,7 @@ interface NavItem {
 
 const NAV: NavItem[] = [
   { href: "/", label: "Обсуждения", icon: MessageSquare },
-  { href: "/people", label: "Люди", icon: Users },
+  { href: "/people", label: "Поиск", icon: Users },
   { href: "/chat", label: "Чаты", icon: MessagesSquare },
   { href: "/profile", label: "Профиль", icon: User },
   { href: "/premium", label: "Премиум", icon: Crown },
