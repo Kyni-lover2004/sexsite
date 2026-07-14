@@ -14,7 +14,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         "text-sm text-slate-100 placeholder:text-slate-500",
         "backdrop-blur transition-all duration-300",
         "focus:border-gold/50 focus:outline-none focus:ring-2 focus:ring-gold/15",
-        "focus:shadow-[0_0_24px_rgba(245,213,138,0.1)]",
+        "focus:shadow-[0_0_24px_rgb(var(--gold)/0.12)]",
         className
       )}
       {...props}
@@ -35,7 +35,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
         "text-sm text-slate-100 placeholder:text-slate-500 backdrop-blur",
         "transition-all duration-300 resize-none",
         "focus:border-gold/50 focus:outline-none focus:ring-2 focus:ring-gold/15",
-        "focus:shadow-[0_0_24px_rgba(245,213,138,0.1)]",
+        "focus:shadow-[0_0_24px_rgb(var(--gold)/0.12)]",
         className
       )}
       {...props}

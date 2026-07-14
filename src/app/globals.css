@@ -101,8 +101,32 @@ body::after {
   color: rgb(var(--warm-100));
 }
 
+.light .text-slate-200 {
+  color: rgb(56 44 40 / 0.94);
+}
+
+.light .text-slate-300 {
+  color: rgb(70 55 49 / 0.9);
+}
+
+.light .text-slate-400 {
+  color: rgb(90 72 64 / 0.84);
+}
+
+.light .text-slate-500 {
+  color: rgb(105 86 78 / 0.78);
+}
+
+.light .text-slate-600 {
+  color: rgb(122 102 94 / 0.72);
+}
+
 .light .placeholder\:text-slate-500::placeholder {
-  color: rgb(120 105 95 / 0.72);
+  color: rgb(117 98 90 / 0.7);
+}
+
+.light .border-white\/\[0\.08\] {
+  border-color: rgb(var(--gold) / 0.18);
 }
 
 /* ------------------------------------------------------------------ */

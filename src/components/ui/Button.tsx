@@ -11,9 +11,9 @@ const variants: Record<Variant, string> = {
   primary:
     "border border-gold/30 bg-accent-gradient text-base-950 font-semibold shadow-glow-accent btn-shimmer hover:shadow-glow-accent-lg",
   gold: "border border-gold/40 bg-gold-gradient text-base-950 font-semibold shadow-glow-gold btn-shimmer hover:shadow-glow-gold-lg",
-  ghost: "text-slate-300 hover:bg-gold/[0.06] hover:text-warm-100",
+  ghost: "text-warm-200 hover:bg-gold/[0.08] hover:text-warm-100 dark:text-slate-300",
   outline:
-    "border border-gold/20 bg-base-900/35 text-slate-200 hover:border-gold/45 hover:text-warm-100 hover:shadow-[0_0_24px_rgba(245,213,138,0.1)]",
+    "border border-gold/35 bg-base-900/70 text-warm-200 shadow-inner-glow hover:border-gold/55 hover:bg-gold/10 hover:text-warm-100 hover:shadow-[0_0_24px_rgb(var(--gold)/0.12)] dark:border-gold/20 dark:bg-base-900/35 dark:text-slate-200",
   danger: "bg-red-500/90 text-white hover:bg-red-500",
 };
 
