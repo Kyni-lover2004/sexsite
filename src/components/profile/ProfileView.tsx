@@ -452,12 +452,12 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
         <GlassCard
           className={editing
             ? "relative overflow-hidden p-4 sm:p-6"
-            : "relative overflow-visible border-0 bg-transparent p-4 shadow-none sm:p-6"
+            : "relative overflow-visible border-0 bg-transparent p-4 shadow-none backdrop-blur-none sm:p-6"
           }
         >
           {!editing && (
             <>
-              <div className="absolute inset-x-0 top-0 h-[17rem] rounded-2xl border border-gold/10 bg-gradient-to-br from-gold/20 via-accent-deep/10 to-gold/10 shadow-glass sm:h-[10.125rem]" />
+              <div className="absolute inset-x-0 top-0 h-[17rem] rounded-2xl border border-gold/10 bg-gradient-to-br from-gold/20 via-accent-deep/10 to-gold/10 sm:h-[10.125rem]" />
               <div className="absolute inset-x-4 top-[17rem] h-px bg-gradient-to-r from-transparent via-gold/25 to-transparent sm:inset-x-6 sm:top-[10.125rem]" />
             </>
           )}
@@ -1002,7 +1002,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                     </span>
                   </div>
 
-                  <section className="order-5 mt-3 space-y-2 rounded-2xl border border-gold/10 bg-base-800/45 p-3.5 shadow-glass sm:mt-4 sm:p-5">
+                  <section className="order-5 mt-3 w-full space-y-2 rounded-2xl border border-gold/10 bg-base-800/45 p-3.5 sm:-ml-24 sm:mt-4 sm:w-[calc(100%+6rem)] sm:p-5">
                     <h2 className="text-[11px] font-bold uppercase tracking-[0.14em] text-gold-soft/60">
                       О себе
                     </h2>
@@ -1015,7 +1015,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                   </section>
 
                   {profile.interests.length > 0 && (
-                    <div className="order-7 mt-3 space-y-3 rounded-2xl border border-gold/10 bg-base-800/45 p-3.5 shadow-glass sm:mt-4 sm:p-5">
+                    <div className="order-7 mt-3 w-full space-y-3 rounded-2xl border border-gold/10 bg-base-800/45 p-3.5 sm:-ml-24 sm:mt-4 sm:w-[calc(100%+6rem)] sm:p-5">
                       {INTEREST_SECTIONS.map((section) => {
                         const sectionTags = profile.interests.filter((i) =>
                           (section.items as unknown as string[]).includes(i)
@@ -1062,7 +1062,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                     profile.age_preference ||
                     profile.meeting_place?.length > 0 ||
                     profile.mobility) && (
-                    <div className="order-6 mt-3 space-y-2 rounded-2xl border border-gold/10 bg-base-800/45 p-3.5 shadow-glass sm:mt-4 sm:p-5">
+                    <div className="order-6 mt-3 w-full space-y-2 rounded-2xl border border-gold/10 bg-base-800/45 p-3.5 sm:-ml-24 sm:mt-4 sm:w-[calc(100%+6rem)] sm:p-5">
                       <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-gold-soft/60">
                         Кого хотелось бы найти и где
                       </p>
@@ -1095,7 +1095,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                     profile.weight ||
                     profile.smoking_attitude ||
                     profile.drinking_attitude) && (
-                    <div className="order-3 mt-20 space-y-2 rounded-2xl border border-gold/10 bg-base-800/45 p-3.5 shadow-glass sm:mt-8 sm:p-5">
+                    <div className="order-3 mt-20 w-full space-y-2 rounded-2xl border border-gold/10 bg-base-800/45 p-3.5 sm:-ml-24 sm:mt-8 sm:w-[calc(100%+6rem)] sm:p-5">
                       <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-gold-soft/60">
                         Внешность и личные данные
                       </p>
@@ -1109,7 +1109,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                   )}
 
                   {profile.orientation_roles?.length > 0 && (
-                    <div className="order-4 mt-3 space-y-2 rounded-2xl border border-gold/10 bg-base-800/45 p-3.5 shadow-glass sm:mt-4 sm:p-5">
+                    <div className="order-4 mt-3 w-full space-y-2 rounded-2xl border border-gold/10 bg-base-800/45 p-3.5 sm:-ml-24 sm:mt-4 sm:w-[calc(100%+6rem)] sm:p-5">
                       <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-gold-soft/60">
                         Ориентация
                       </p>
