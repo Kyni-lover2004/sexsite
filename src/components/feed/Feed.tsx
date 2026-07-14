@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Crown, Flame, PenLine, Search, Sparkles, Users } from "lucide-react";
+import { Crown, Flame, PenLine, Search, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { TopicCard } from "./TopicCard";
 import { Button } from "@/components/ui/Button";
@@ -158,10 +158,9 @@ export function Feed({ initialTopics, currentUserId }: FeedProps) {
             </Button>
           </Link>
         </div>
-        <div className="relative mt-6 grid grid-cols-3 gap-2 border-t border-gold/10 pt-4">
+        <div className="relative mt-6 grid grid-cols-2 gap-2 border-t border-gold/10 pt-4">
           <Metric icon={<Sparkles size={14} />} label="Новые" value={topics.length} />
           <Metric icon={<Flame size={14} />} label="Горячие" value={visible.length} />
-          <Metric icon={<Users size={14} />} label="Клуб" value="E2EE" />
         </div>
       </div>
 
