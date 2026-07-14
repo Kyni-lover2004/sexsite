@@ -272,6 +272,13 @@ export function PeopleGrid({ currentUserId }: { currentUserId: string | null }) 
               <GlassCard interactive className="group relative overflow-hidden p-4">
                 <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-accent/[0.03] to-gold/[0.02] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
 
+                {user.available_for_chat && (
+                  <span className="absolute right-4 top-4 flex items-center gap-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 text-[10px] font-medium text-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.15)] animate-pulse">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                    Общаюсь сейчас
+                  </span>
+                )}
+
                 <div className="relative flex items-start gap-3">
                   <Avatar
                     src={user.avatar_url}

@@ -223,6 +223,9 @@ export function ProfileView({ profile, photos, isOwn }: ProfileViewProps) {
     if (error) {
       setAvailable(!next);
       console.error("Available status update error:", error);
+      alert(`Ошибка: ${error.message}\nВозможно, в таблице profiles в Supabase отсутствует колонка available_for_chat.`);
+    } else {
+      router.refresh();
     }
   }
 

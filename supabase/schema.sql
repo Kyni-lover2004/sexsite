@@ -450,24 +450,24 @@ create policy "Avatar read" on storage.objects
 
 drop policy if exists "Avatar write" on storage.objects;
 create policy "Avatar write" on storage.objects
-  for insert with check (bucket_id = 'avatars' and auth.role() = 'authenticated');
+  for insert with check (bucket_id = 'avatars' and auth.uid() is not null);
 
 drop policy if exists "Avatar update" on storage.objects;
 create policy "Avatar update" on storage.objects
-  for update using (bucket_id = 'avatars' and auth.role() = 'authenticated');
+  for update using (bucket_id = 'avatars' and auth.uid() is not null);
 
 drop policy if exists "Avatar delete" on storage.objects;
 create policy "Avatar delete" on storage.objects
-  for delete using (bucket_id = 'avatars' and auth.role() = 'authenticated');
+  for delete using (bucket_id = 'avatars' and auth.uid() is not null);
 
 -- Storage RLS: chat-images — authenticated users can read/upload (files are E2EE-encrypted)
 drop policy if exists "Chat image read" on storage.objects;
 create policy "Chat image read" on storage.objects
-  for select using (bucket_id = 'chat-images' and auth.role() = 'authenticated');
+  for select using (bucket_id = 'chat-images' and auth.uid() is not null);
 
 drop policy if exists "Chat image write" on storage.objects;
 create policy "Chat image write" on storage.objects
-  for insert with check (bucket_id = 'chat-images' and auth.role() = 'authenticated');
+  for insert with check (bucket_id = 'chat-images' and auth.uid() is not null);
 
 -- Storage RLS: topic-media — authenticated can upload, all authenticated can read
 drop policy if exists "Topic media read" on storage.objects;
@@ -476,7 +476,7 @@ create policy "Topic media read" on storage.objects
 
 drop policy if exists "Topic media write" on storage.objects;
 create policy "Topic media write" on storage.objects
-  for insert with check (bucket_id = 'topic-media' and auth.role() = 'authenticated');
+  for insert with check (bucket_id = 'topic-media' and auth.uid() is not null);
 
 -- Storage RLS: profile-photos — authenticated can read/upload/manage.
 drop policy if exists "Profile photo read" on storage.objects;
