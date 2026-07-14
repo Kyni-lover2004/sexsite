@@ -7,7 +7,7 @@ import { PremiumView } from "@/components/premium/PremiumView";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Nebula Premium",
+  title: "Desire Privé Premium",
 };
 
 export default async function PremiumPage() {

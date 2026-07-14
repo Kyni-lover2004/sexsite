@@ -152,7 +152,7 @@ export function PremiumView({ isPremium }: PremiumViewProps) {
           <Crown size={32} className="text-base-950" />
         </motion.div>
         <h1 className="font-display text-3xl font-bold text-gradient-gold">
-          Nebula Premium
+          Desire Privé Premium
         </h1>
         <p className="mt-2 text-sm text-slate-400">
           Разблокируйте все возможности платформы

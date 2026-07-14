@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
-  title: "Новая тема · Nebula",
+  title: "Новая тема · Desire Privé",
 };
 
 export default async function NewTopicPage() {

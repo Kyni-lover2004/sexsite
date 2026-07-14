@@ -18,8 +18,8 @@ const spaceGrotesk = Space_Grotesk({
 
 export const metadata: Metadata = {
   title: {
-    default: "Nebula — обсуждения, знакомства, защищённый чат",
-    template: "%s · Nebula",
+    default: "Desire Privé — обсуждения, знакомства, защищённый чат",
+    template: "%s · Desire Privé",
   },
   description:
     "Современная социальная платформа: форум с обсуждениями, знакомства и мессенджер со сквозным шифрованием.",
@@ -34,7 +34,7 @@ export const viewport: Viewport = {
 const themeScript = `
 (() => {
   try {
-    const stored = localStorage.getItem("nebula-theme");
+    const stored = localStorage.getItem("desire-prive-theme");
     const theme = stored === "light" || stored === "dark"
       ? stored
       : (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");

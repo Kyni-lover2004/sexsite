@@ -53,7 +53,7 @@ export function AppShell({
           </motion.span>
           <span>
             <span className="block font-display text-xl font-bold tracking-tight text-gradient">
-              Nebula
+              Desire Privé
             </span>
             <span className="block text-[10px] uppercase tracking-[0.24em] text-gold-soft/55">
               private club

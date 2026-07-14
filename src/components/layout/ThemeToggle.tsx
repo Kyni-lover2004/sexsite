@@ -17,7 +17,7 @@ export function ThemeToggle({ className }: { className?: string }) {
   const [theme, setTheme] = useState<Theme>("dark");
 
   useEffect(() => {
-    const stored = window.localStorage.getItem("nebula-theme") as Theme | null;
+    const stored = window.localStorage.getItem("desire-prive-theme") as Theme | null;
     const preferred: Theme =
       stored === "light" || stored === "dark"
         ? stored
@@ -32,7 +32,7 @@ export function ThemeToggle({ className }: { className?: string }) {
   function toggleTheme() {
     const next = theme === "dark" ? "light" : "dark";
     setTheme(next);
-    window.localStorage.setItem("nebula-theme", next);
+    window.localStorage.setItem("desire-prive-theme", next);
     applyTheme(next);
   }
 
