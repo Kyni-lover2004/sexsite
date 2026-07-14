@@ -897,8 +897,8 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                   )}
                 </div>
               ) : (
-                <>
-                   <div className="flex min-w-0 items-start justify-between gap-2">
+                <div className="flex flex-col">
+                   <div className="order-1 flex min-w-0 items-start justify-between gap-2">
                     <div className="min-w-0">
                       <h1 className="flex min-w-0 flex-wrap items-center gap-1.5 break-words font-display text-lg font-bold leading-tight text-gradient sm:gap-2 sm:text-xl">
                         {(profile.display_name ?? profile.username).slice(0, 10)}
@@ -952,20 +952,14 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                     )}
                   </div>
 
-                  {profile.status && (
-                    <p className="mt-2 break-words text-sm text-gold-soft">
-                      {profile.status}
-                    </p>
-                  )}
-
                   {datingGoalLabel && (
-                    <div className="mt-3 inline-flex max-w-full items-center gap-1.5 rounded-full border border-gold/20 bg-gold/10 px-3 py-1.5 text-xs font-medium text-gold-soft">
+                    <div className="order-6 mt-3 inline-flex max-w-max items-center gap-1.5 rounded-full border border-gold/20 bg-gold/10 px-3 py-1.5 text-xs font-medium text-gold-soft">
                       <HeartHandshake size={14} />
                       {datingGoalLabel}
                     </div>
                   )}
 
-                  <div className="mt-3 flex flex-wrap gap-x-3 gap-y-2 text-xs text-slate-500 sm:gap-x-4">
+                  <div className="order-2 mt-3 flex flex-wrap gap-x-3 gap-y-2 text-xs text-slate-500 sm:gap-x-4">
                     {profile.gender && profile.gender !== "prefer_not_to_say" && (
                       <span className="flex items-center gap-1">
                         {profile.gender === "male"
@@ -999,8 +993,8 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                     </span>
                   </div>
 
-                  <section className="mt-4 space-y-2">
-                    <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-gold-soft/60">
+                  <section className="order-5 mt-4 space-y-2">
+                    <h2 className="text-[11px] font-bold uppercase tracking-[0.14em] text-gold-soft/60">
                       О себе
                     </h2>
                     <p className="whitespace-pre-wrap break-words text-sm leading-6 text-slate-400 dark:text-slate-300">
@@ -1012,7 +1006,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                   </section>
 
                   {profile.interests.length > 0 && (
-                    <div className="mt-4 space-y-3">
+                    <div className="order-7 mt-4 space-y-3">
                       {INTEREST_SECTIONS.map((section) => {
                         const sectionTags = profile.interests.filter((i) =>
                           (section.items as unknown as string[]).includes(i)
@@ -1020,7 +1014,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                         if (sectionTags.length === 0) return null;
                         return (
                           <div key={section.title}>
-                            <p className="mb-2 text-[11px] uppercase tracking-[0.14em] text-gold-soft/60">
+                            <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.14em] text-gold-soft/60">
                               {section.title}
                             </p>
                             <div className="flex flex-wrap gap-1.5">
@@ -1041,7 +1035,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                         if (customTags.length === 0) return null;
                         return (
                           <div>
-                            <p className="mb-2 text-[11px] uppercase tracking-[0.14em] text-gold-soft/60">
+                            <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.14em] text-gold-soft/60">
                               Свои теги
                             </p>
                             <div className="flex flex-wrap gap-1.5">
@@ -1059,9 +1053,9 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                     profile.age_preference ||
                     profile.meeting_place?.length > 0 ||
                     profile.mobility) && (
-                    <div className="mt-4 space-y-2">
-                      <p className="text-[11px] uppercase tracking-[0.14em] text-gold-soft/60">
-                        Кого ищем и где
+                    <div className="order-6 mt-4 space-y-2">
+                      <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-gold-soft/60">
+                        Кого хотелось бы найти и где
                       </p>
                       {profile.looking_for?.length > 0 && (
                         <div className="flex flex-wrap gap-1.5">
@@ -1092,8 +1086,8 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                     profile.weight ||
                     profile.smoking_attitude ||
                     profile.drinking_attitude) && (
-                    <div className="mt-4 space-y-2">
-                      <p className="text-[11px] uppercase tracking-[0.14em] text-gold-soft/60">
+                    <div className="order-3 mt-4 space-y-2">
+                      <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-gold-soft/60">
                         Внешность и личные данные
                       </p>
                       <div className="flex flex-wrap gap-3 text-xs text-slate-400">
@@ -1106,9 +1100,9 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                   )}
 
                   {profile.orientation_roles?.length > 0 && (
-                    <div className="mt-4 space-y-2">
-                      <p className="text-[11px] uppercase tracking-[0.14em] text-gold-soft/60">
-                        Ориентация и предпочтения в сексе
+                    <div className="order-4 mt-4 space-y-2">
+                      <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-gold-soft/60">
+                        Ориентация
                       </p>
                       <div className="flex flex-wrap gap-1.5">
                         {profile.orientation_roles.map((v) => {
@@ -1120,7 +1114,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                   )}
 
                   {!isOwn && (
-                    <div className="mt-4">
+                    <div className="order-8 mt-4">
                       <Link href={`/chat/${profile.id}`}>
                         <Button size="sm">
                           <MessageCircle size={14} />
@@ -1129,7 +1123,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                       </Link>
                     </div>
                   )}
-                </>
+                </div>
               )}
             </div>
           </div>
