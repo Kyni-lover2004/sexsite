@@ -19,11 +19,15 @@ export default async function ConversationPage({ params }: Props) {
   const userId = auth.user.id;
 
   // Try to find conversation by id directly
-  const { data: convRow } = await supabase
+  const { data: convRow, error: convError } = await supabase
     .from("conversations")
     .select("*")
     .eq("id", params.id)
     .maybeSingle();
+
+  if (convError) {
+    console.error("Error fetching conversation in chat/[id]/page:", convError);
+  }
 
   const conversation = convRow as Database["public"]["Tables"]["conversations"]["Row"] | null;
 
@@ -45,12 +49,15 @@ export default async function ConversationPage({ params }: Props) {
   // Verify current user is a participant
   const isParticipant =
     conversation.user_a === userId || conversation.user_b === userId;
-  if (!isParticipant) notFound();
+  if (!isParticipant) {
+    console.error("Access denied: User is not a participant in this conversation.", { userId, convUserA: conversation.user_a, convUserB: conversation.user_b });
+    notFound();
+  }
 
   const otherUserId =
     conversation.user_a === userId ? conversation.user_b : conversation.user_a;
 
-  const { data: profileRow } = await supabase
+  const { data: profileRow, error: profileError } = await supabase
     .from("profiles")
     .select("id, username, display_name, avatar_url, last_seen")
     .eq("id", otherUserId)
@@ -58,7 +65,10 @@ export default async function ConversationPage({ params }: Props) {
 
   const otherProfile = profileRow as Database["public"]["Tables"]["profiles"]["Row"] | null;
 
-  if (!otherProfile) notFound();
+  if (profileError || !otherProfile) {
+    console.error("Error fetching other participant profile:", { otherUserId, profileError });
+    notFound();
+  }
 
   return (
     <AppShell>
