@@ -434,3 +434,8 @@ body::after {
     opacity: 0.45;
   }
 }
+
+/* Profile pages scroll as a flat surface without moving shadow bands. */
+.profile-no-shadows *:not(:focus-visible) {
+  box-shadow: none !important;
+}

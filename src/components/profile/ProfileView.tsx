@@ -433,7 +433,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
   }
 
   return (
-    <div className="space-y-5">
+    <div className="profile-no-shadows w-full min-w-0 space-y-5 overflow-x-hidden">
       <AvatarCropper
         open={cropperOpen}
         imageSrc={cropperSrc}
@@ -451,7 +451,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
         <GlassCard
           className={editing
-            ? "relative overflow-hidden p-4 sm:p-6"
+            ? "relative overflow-hidden p-4 shadow-none sm:p-6"
             : "relative overflow-visible border-0 bg-transparent p-4 shadow-none backdrop-blur-none sm:p-6"
           }
         >
@@ -961,13 +961,6 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                     )}
                   </div>
 
-                  {datingGoalLabel && (
-                    <div className="order-6 mt-3 inline-flex max-w-max items-center gap-1.5 rounded-full border border-gold/20 bg-gold/10 px-3 py-1.5 text-xs font-medium text-gold-soft">
-                      <HeartHandshake size={14} />
-                      {datingGoalLabel}
-                    </div>
-                  )}
-
                   <div className="order-2 mt-3 flex flex-wrap gap-x-3 gap-y-2 text-xs text-slate-500 sm:gap-x-4">
                     {profile.gender && profile.gender !== "prefer_not_to_say" && (
                       <span className="flex items-center gap-1">
@@ -1002,7 +995,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                     </span>
                   </div>
 
-                  <section className="order-5 mt-3 w-full space-y-2 rounded-2xl border border-gold/10 bg-base-800/45 p-3.5 sm:-ml-24 sm:mt-4 sm:w-[calc(100%+6rem)] sm:p-5">
+                  <section className="order-5 mt-0 w-full space-y-2 border-x border-t border-gold/10 bg-base-800/45 p-3.5 sm:-ml-24 sm:w-[calc(100%+6rem)] sm:p-5">
                     <h2 className="text-[11px] font-bold uppercase tracking-[0.14em] text-gold-soft/60">
                       О себе
                     </h2>
@@ -1015,7 +1008,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                   </section>
 
                   {profile.interests.length > 0 && (
-                    <div className="order-7 mt-3 w-full space-y-3 rounded-2xl border border-gold/10 bg-base-800/45 p-3.5 sm:-ml-24 sm:mt-4 sm:w-[calc(100%+6rem)] sm:p-5">
+                    <div className="order-7 mt-0 w-full space-y-3 rounded-b-2xl border border-t-0 border-gold/10 bg-base-800/45 p-3.5 sm:-ml-24 sm:w-[calc(100%+6rem)] sm:p-5">
                       {INTEREST_SECTIONS.map((section) => {
                         const sectionTags = profile.interests.filter((i) =>
                           (section.items as unknown as string[]).includes(i)
@@ -1058,14 +1051,26 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                     </div>
                   )}
 
-                  {(profile.looking_for?.length > 0 ||
+                  {(datingGoalLabel ||
+                    profile.looking_for?.length > 0 ||
                     profile.age_preference ||
                     profile.meeting_place?.length > 0 ||
                     profile.mobility) && (
-                    <div className="order-6 mt-3 w-full space-y-2 rounded-2xl border border-gold/10 bg-base-800/45 p-3.5 sm:-ml-24 sm:mt-4 sm:w-[calc(100%+6rem)] sm:p-5">
+                    <div className="order-6 mt-0 w-full space-y-2 border-x border-t border-gold/10 bg-base-800/45 p-3.5 sm:-ml-24 sm:w-[calc(100%+6rem)] sm:p-5">
                       <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-gold-soft/60">
                         Кого хотелось бы найти и где
                       </p>
+                      {datingGoalLabel && (
+                        <div className="space-y-1.5 pt-1">
+                          <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-gold-soft/60">
+                            Зачем хотите познакомиться
+                          </p>
+                          <div className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-gold/20 bg-gold/10 px-3 py-1.5 text-xs font-medium text-gold-soft">
+                            <HeartHandshake size={14} />
+                            {datingGoalLabel}
+                          </div>
+                        </div>
+                      )}
                       {profile.looking_for?.length > 0 && (
                         <div className="flex flex-wrap gap-1.5">
                           {profile.looking_for.map((v) => {
@@ -1095,7 +1100,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                     profile.weight ||
                     profile.smoking_attitude ||
                     profile.drinking_attitude) && (
-                    <div className="order-3 mt-20 w-full space-y-2 rounded-2xl border border-gold/10 bg-base-800/45 p-3.5 sm:-ml-24 sm:mt-8 sm:w-[calc(100%+6rem)] sm:p-5">
+                    <div className="order-3 mt-20 w-full space-y-2 rounded-t-2xl border border-gold/10 bg-base-800/45 p-3.5 sm:-ml-24 sm:mt-8 sm:w-[calc(100%+6rem)] sm:p-5">
                       <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-gold-soft/60">
                         Внешность и личные данные
                       </p>
@@ -1109,7 +1114,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                   )}
 
                   {profile.orientation_roles?.length > 0 && (
-                    <div className="order-4 mt-3 w-full space-y-2 rounded-2xl border border-gold/10 bg-base-800/45 p-3.5 sm:-ml-24 sm:mt-4 sm:w-[calc(100%+6rem)] sm:p-5">
+                    <div className="order-4 mt-0 w-full space-y-2 border-x border-t border-gold/10 bg-base-800/45 p-3.5 sm:-ml-24 sm:w-[calc(100%+6rem)] sm:p-5">
                       <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-gold-soft/60">
                         Ориентация
                       </p>
