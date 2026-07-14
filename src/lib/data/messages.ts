@@ -116,11 +116,15 @@ export async function getOrCreateConversation(
   }
 
   // 3. Create the new conversation with initiator_id
-  const { data } = await supa
+  const { data, error: insertError } = await supa
     .from("conversations")
     .insert({ user_a: a, user_b: b, initiator_id: userA })
     .select("id")
     .single();
+
+  if (insertError) {
+    console.error("Error creating conversation in getOrCreateConversation:", insertError);
+  }
 
   return data?.id ?? null;
 }
