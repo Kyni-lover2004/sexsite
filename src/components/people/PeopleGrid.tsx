@@ -121,15 +121,15 @@ export function PeopleGrid({ currentUserId }: { currentUserId: string | null }) 
         >
           <GlassCard className="flex flex-wrap items-end gap-3 p-4">
             <div>
-              <label className="mb-1 block text-xs text-slate-500">Пол</label>
+              <label className="mb-1 block text-xs text-slate-500">Я ищу</label>
               <select
                 value={filters.gender}
                 onChange={(e) => setFilters({ ...filters, gender: e.target.value })}
                 className="h-9 rounded-lg border border-white/[0.08] bg-base-800 px-2 text-sm text-white transition-colors focus:border-accent/50"
               >
-                <option value="">Любой</option>
-                <option value="male">Мужской</option>
-                <option value="female">Женский</option>
+                <option value="">Всех</option>
+                <option value="female">Девушку</option>
+                <option value="male">Мужчину</option>
               </select>
             </div>
             <div>

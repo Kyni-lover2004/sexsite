@@ -33,7 +33,7 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const protectedPaths = ["/chat", "/people", "/create", "/profile"];
+  const protectedPaths = ["/chat", "/people", "/create", "/profile", "/admin"];
   const needsAuth = protectedPaths.some((p) =>
     request.nextUrl.pathname.startsWith(p)
   );

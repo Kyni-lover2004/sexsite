@@ -44,6 +44,7 @@ export function ProfileView({ profile, isOwn }: ProfileViewProps) {
     display_name: profile.display_name ?? "",
     bio: profile.bio ?? "",
     city: profile.city ?? "",
+    gender: profile.gender ?? "prefer_not_to_say",
     interests: profile.interests.join(", "),
   });
 
@@ -90,6 +91,7 @@ export function ProfileView({ profile, isOwn }: ProfileViewProps) {
       .from("profiles")
       .update({ available_for_chat: next })
       .eq("id", profile.id);
+    router.refresh();
   }
 
   async function handleSave() {
@@ -136,6 +138,7 @@ export function ProfileView({ profile, isOwn }: ProfileViewProps) {
         display_name: form.display_name || null,
         bio: form.bio || null,
         city: form.city || null,
+        gender: form.gender,
         interests,
       })
       .eq("id", profile.id);
@@ -226,6 +229,22 @@ export function ProfileView({ profile, isOwn }: ProfileViewProps) {
                     onChange={(e) => setForm({ ...form, city: e.target.value })}
                     placeholder="Город"
                   />
+                  <div>
+                    <label className="mb-1.5 block text-xs font-medium text-slate-400">
+                      Пол
+                    </label>
+                    <select
+                      value={form.gender}
+                      onChange={(e) =>
+                        setForm({ ...form, gender: e.target.value as any })
+                      }
+                      className="h-10 w-full rounded-xl border border-white/[0.08] bg-base-800/60 px-3.5 text-sm text-slate-100 transition-all duration-300 focus:border-accent/50 focus:outline-none focus:ring-2 focus:ring-accent/20"
+                    >
+                      <option value="male">Мужской</option>
+                      <option value="female">Женский</option>
+                      <option value="prefer_not_to_say">Не указывать</option>
+                    </select>
+                  </div>
                   <Input
                     value={form.interests}
                     onChange={(e) =>
@@ -285,6 +304,11 @@ export function ProfileView({ profile, isOwn }: ProfileViewProps) {
                   )}
 
                   <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
+                    {profile.gender && profile.gender !== "prefer_not_to_say" && (
+                      <span className="flex items-center gap-1">
+                        {profile.gender === "male" ? "👨 Мужчина" : "👩 Женщина"}
+                      </span>
+                    )}
                     {profile.city && (
                       <span className="flex items-center gap-1">
                         <MapPin size={12} />

@@ -7,6 +7,7 @@
 
 export type Gender = "male" | "female" | "other" | "prefer_not_to_say";
 export type TopicStatus = "active" | "archived";
+export type UserRole = "user" | "admin";
 
 export interface Profile {
   id: string;
@@ -21,6 +22,9 @@ export interface Profile {
   gender: Gender;
   available_for_chat: boolean;
   last_seen: string;
+  role: UserRole;
+  is_banned: boolean;
+  premium_until: string | null;
   created_at: string;
   updated_at: string;
 }

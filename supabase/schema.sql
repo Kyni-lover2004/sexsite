@@ -37,7 +37,10 @@ create table if not exists public.profiles (
   birth_date   date,                        -- age is derived, never stored raw
   gender       gender default 'prefer_not_to_say',
   last_seen    timestamptz default now(),   -- powers "online" indicator
-  available_for_chat boolean default false  -- "готов(а) пообщаться сейчас"
+  available_for_chat boolean default false, -- "готов(а) пообщаться сейчас"
+  role         text not null default 'user',          -- 'user' | 'admin'
+  is_banned    boolean not null default false,
+  premium_until timestamptz,                          -- null = no premium
   created_at   timestamptz default now(),
   updated_at   timestamptz default now()
 );
@@ -346,6 +349,38 @@ returns void language plpgsql security definer as $$
 begin
   update public.topics set view_count = view_count + 1 where id = topic_id;
 end $$;
+
+-- Helper: check if the current user is admin
+create or replace function public.is_admin()
+returns boolean language sql stable security definer as $$
+  select coalesce(
+    (select role = 'admin' from public.profiles where id = auth.uid()),
+    false
+  );
+$$;
+
+-- =============================================================
+--  ADMIN RLS POLICIES — admins can modify / delete anything
+-- =============================================================
+-- Admin can update any profile (e.g. ban)
+drop policy if exists profiles_admin_update on public.profiles;
+create policy profiles_admin_update on public.profiles
+  for update using (public.is_admin());
+
+-- Admin can delete any topic
+drop policy if exists topics_admin_delete on public.topics;
+create policy topics_admin_delete on public.topics
+  for delete using (public.is_admin());
+
+-- Admin can update any topic (e.g. archive)
+drop policy if exists topics_admin_update on public.topics;
+create policy topics_admin_update on public.topics
+  for update using (public.is_admin());
+
+-- Admin can delete any comment
+drop policy if exists comments_admin_delete on public.comments;
+create policy comments_admin_delete on public.comments
+  for delete using (public.is_admin());
 
 -- =============================================================
 --  STORAGE BUCKETS  (for avatars & chat images)
