@@ -33,16 +33,27 @@ export default async function ConversationPage({ params }: Props) {
 
   // If not found, treat params.id as the other user's ID
   if (!conversation) {
+    let targetConvId: string | null = null;
+    let limitReached = false;
+
     try {
-      const convId = await getOrCreateConversation(userId, params.id);
-      if (convId) {
-        redirect(`/chat/${convId}`);
-      }
+      targetConvId = await getOrCreateConversation(userId, params.id);
     } catch (err: any) {
       if (err.message === "LIMIT_REACHED") {
-        redirect("/premium?reason=limit");
+        limitReached = true;
+      } else {
+        console.error("Error creating conversation:", err);
       }
     }
+
+    if (limitReached) {
+      redirect("/premium?reason=limit");
+    }
+
+    if (targetConvId) {
+      redirect(`/chat/${targetConvId}`);
+    }
+
     notFound();
   }
 
