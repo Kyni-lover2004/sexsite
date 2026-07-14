@@ -47,7 +47,7 @@ export function AppShell({
           <motion.span
             whileHover={{ scale: 1.1, rotate: 5 }}
             transition={{ type: "spring", stiffness: 400, damping: 15 }}
-            className="grid h-10 w-10 place-items-center rounded-xl border border-gold/30 bg-gold-gradient text-base-950 shadow-glow-gold"
+            className="grid h-10 w-10 place-items-center rounded-xl border border-gold/30 bg-gold-gradient text-white shadow-glow-gold"
           >
             <Crown size={19} />
           </motion.span>
@@ -110,7 +110,7 @@ export function AppShell({
       {/* Main content */}
       <main className={cn(
         "relative z-10 flex flex-col md:pl-64 min-w-0",
-        noPadding ? "h-svh pb-16 md:pb-0" : "pb-24 md:pb-0"
+        noPadding ? "h-svh pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0" : "pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-0"
       )}>
         {noPadding ? (
           <div className="w-full flex-1 flex flex-col min-h-0">
@@ -124,11 +124,11 @@ export function AppShell({
       </main>
 
       {/* Mobile bottom nav */}
-      <div className="fixed right-4 top-4 z-30 md:hidden">
+      <div className="fixed right-4 top-[calc(1rem+env(safe-area-inset-top))] z-30 md:hidden">
         <ThemeToggle />
       </div>
 
-      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-gold/10 bg-base-950/98 shadow-[0_-18px_45px_rgba(0,0,0,0.42)] md:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-gold/15 bg-base-950/98 pb-[env(safe-area-inset-bottom)] shadow-[0_-10px_30px_rgba(0,0,0,0.32)] md:hidden">
         <div className="mx-auto flex max-w-md items-stretch justify-around">
           {NAV.map((item) => {
             const active = isActive(item.href);
@@ -137,7 +137,7 @@ export function AppShell({
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "relative flex flex-1 flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition-all duration-200",
+                  "relative flex min-h-14 flex-1 touch-manipulation flex-col items-center justify-center gap-1 px-1 py-2 text-[11px] font-medium transition-all duration-200",
                   active ? "text-gold-soft" : "text-slate-500"
                 )}
               >

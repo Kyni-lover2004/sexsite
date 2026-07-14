@@ -41,7 +41,7 @@ export function ThemeToggle({ className }: { className?: string }) {
       type="button"
       onClick={toggleTheme}
       className={cn(
-        "inline-flex h-10 w-10 items-center justify-center rounded-xl border border-gold/20",
+        "inline-flex h-11 w-11 touch-manipulation items-center justify-center rounded-xl border border-gold/20 sm:h-10 sm:w-10",
         "bg-base-900/70 text-gold-soft shadow-inner-glow backdrop-blur-xl",
         "transition-all duration-300 hover:border-gold/40 hover:bg-gold/10 hover:text-warm-100",
         className

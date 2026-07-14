@@ -141,17 +141,17 @@ export function PremiumView({ isPremium }: PremiumViewProps) {
       <motion.div
         initial={{ opacity: 0, y: -16 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mb-8 text-center"
+        className="mb-6 text-center sm:mb-8"
       >
         <motion.div
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ delay: 0.1, type: "spring", stiffness: 300 }}
-          className="mx-auto mb-4 grid h-16 w-16 place-items-center rounded-2xl bg-gold-gradient shadow-glow-gold"
+          className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-2xl bg-gold-gradient shadow-glow-gold sm:mb-4 sm:h-16 sm:w-16"
         >
-          <Crown size={32} className="text-base-950" />
+          <Crown size={32} className="text-white drop-shadow-sm" />
         </motion.div>
-        <h1 className="font-display text-3xl font-bold text-gradient-gold">
+        <h1 className="font-display text-2xl font-bold text-gradient-gold sm:text-3xl">
           Desire Privé Premium
         </h1>
         <p className="mt-2 text-sm text-slate-400">
@@ -217,12 +217,12 @@ export function PremiumView({ isPremium }: PremiumViewProps) {
             <GlassCard
               premium={plan.popular}
               interactive
-              className={`relative p-5 text-center ${
+              className={`relative p-4 text-center sm:p-5 ${
                 plan.popular ? "ring-1 ring-gold/30" : ""
               }`}
             >
               {plan.popular && (
-                <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full bg-gold-gradient px-3 py-0.5 text-[10px] font-bold text-base-950 shadow-glow-gold">
+                <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full bg-gold-gradient px-3 py-0.5 text-[10px] font-bold text-white shadow-glow-gold dark:[text-shadow:0_1px_2px_rgb(0_0_0/0.45)]">
                   ПОПУЛЯРНЫЙ
                 </span>
               )}

@@ -7,7 +7,7 @@ export function SetupGuide() {
 
       <div className="relative z-10 w-full max-w-lg glass-premium rounded-2xl p-8 shadow-glow-accent">
         <div className="mb-6 text-center">
-          <span className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-2xl border border-gold/30 bg-gold-gradient text-xl font-bold text-base-950 shadow-glow-gold animate-glow-breathe">
+          <span className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-2xl border border-gold/30 bg-gold-gradient text-xl font-bold text-white shadow-glow-gold animate-glow-breathe">
             DP
           </span>
           <h1 className="font-display text-xl font-bold text-gradient">

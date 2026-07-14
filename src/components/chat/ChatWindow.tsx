@@ -437,7 +437,7 @@ export function ChatWindow({
                 <div
                   className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm ${
                     isMine
-                      ? "border border-gold/25 bg-accent-gradient text-base-950 shadow-glow-accent"
+                      ? "border border-gold/25 bg-accent-gradient text-white shadow-glow-accent dark:[text-shadow:0_1px_2px_rgb(0_0_0/0.35)]"
                       : "bg-base-900/70 text-slate-200 border border-gold/10"
                   }`}
                 >
@@ -464,7 +464,7 @@ export function ChatWindow({
                   )}
                   <p
                     className={`mt-1 text-[10px] ${
-                      isMine ? "text-base-950/55" : "text-slate-600"
+                      isMine ? "text-white/70" : "text-slate-600"
                     }`}
                   >
                     {timeAgo(msg.created_at)}

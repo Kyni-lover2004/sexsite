@@ -72,7 +72,7 @@ export function AuthForm() {
               initial={{ scale: 0, rotate: -90 }}
               animate={{ scale: 1, rotate: 0 }}
               transition={{ type: "spring", stiffness: 300, damping: 20, delay: 0.2 }}
-              className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-2xl border border-gold/30 bg-gold-gradient text-base-950 shadow-glow-gold animate-glow-breathe"
+              className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-2xl border border-gold/30 bg-gold-gradient text-white shadow-glow-gold animate-glow-breathe"
             >
               <Crown size={26} />
             </motion.span>

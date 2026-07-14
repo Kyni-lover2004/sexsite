@@ -142,7 +142,7 @@ export function Feed({ initialTopics, currentUserId }: FeedProps) {
             <motion.h1
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
-              className="font-display text-4xl font-bold leading-tight text-gradient md:text-5xl"
+              className="font-display text-3xl font-bold leading-tight text-gradient sm:text-4xl md:text-5xl"
             >
               Обсуждения
             </motion.h1>
@@ -245,7 +245,7 @@ function TabButton({
           transition={{ type: "spring", stiffness: 400, damping: 30 }}
         />
       )}
-      <span className={`relative z-10 flex items-center gap-2 ${active ? "text-base-950" : ""}`}>
+      <span className={`relative z-10 flex items-center gap-2 ${active ? "text-white" : ""}`}>
         {icon}
         {label}
       </span>

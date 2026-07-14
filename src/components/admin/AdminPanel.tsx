@@ -193,7 +193,7 @@ export function AdminPanel({ currentUserId, users, topics }: AdminPanelProps) {
           onClick={() => setTab("users")}
           className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all ${
             tab === "users"
-              ? "bg-accent-gradient text-base-950 shadow-glow-accent"
+              ? "bg-accent-gradient text-white shadow-glow-accent"
               : "bg-base-800/50 text-slate-400 hover:text-white"
           }`}
         >
@@ -204,7 +204,7 @@ export function AdminPanel({ currentUserId, users, topics }: AdminPanelProps) {
           onClick={() => setTab("topics")}
           className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all ${
             tab === "topics"
-              ? "bg-accent-gradient text-base-950 shadow-glow-accent"
+              ? "bg-accent-gradient text-white shadow-glow-accent"
               : "bg-base-800/50 text-slate-400 hover:text-white"
           }`}
         >

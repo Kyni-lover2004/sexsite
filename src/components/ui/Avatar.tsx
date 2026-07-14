@@ -53,7 +53,7 @@ export function Avatar({
               className="h-full w-full object-cover"
             />
           ) : (
-            <span className="bg-accent-gradient bg-clip-text text-transparent">
+            <span className="text-gold-soft dark:text-white">
               {initials(name)}
             </span>
           )}
