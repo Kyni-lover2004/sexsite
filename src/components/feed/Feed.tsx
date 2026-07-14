@@ -175,7 +175,7 @@ export function Feed({ initialTopics, currentUserId }: FeedProps) {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Поиск по темам и тегам…"
-          className="h-11 w-full rounded-xl border border-gold/15 bg-base-900/60 pl-10 pr-4 text-sm text-white placeholder:text-slate-500 backdrop-blur transition-all duration-300 focus:border-gold/45 focus:outline-none focus:ring-2 focus:ring-gold/15 focus:shadow-[0_0_24px_rgba(245,213,138,0.1)]"
+          className="h-11 w-full rounded-xl border border-gold/15 bg-base-900/60 pl-10 pr-4 text-sm text-white placeholder:text-slate-500 backdrop-blur transition-all duration-300 focus:border-gold/45 focus:outline-none focus:ring-2 focus:ring-gold/15 focus:shadow-[0_0_24px_rgb(var(--gold-glow)/0.1)]"
         />
       </div>
 

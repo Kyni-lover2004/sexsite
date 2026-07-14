@@ -3,7 +3,7 @@ import { Database, Key, ExternalLink, Copy, Sparkles } from "lucide-react";
 export function SetupGuide() {
   return (
     <div className="relative flex min-h-dvh items-center justify-center px-4 overflow-hidden">
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent_12%,rgba(255,230,166,0.08)_13%,transparent_14%),linear-gradient(245deg,transparent_72%,rgba(201,151,63,0.07)_73%,transparent_74%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent_12%,rgb(var(--gold-glow)/0.08)_13%,transparent_14%),linear-gradient(245deg,transparent_72%,rgb(var(--gold)/0.07)_73%,transparent_74%)]" />
 
       <div className="relative z-10 w-full max-w-lg glass-premium rounded-2xl p-8 shadow-glow-accent">
         <div className="mb-6 text-center">
@@ -97,7 +97,7 @@ function Step({
 }) {
   return (
     <div className="flex gap-3">
-      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gold/15 text-xs font-bold text-gold-soft shadow-[0_0_8px_rgba(245,213,138,0.15)]">
+      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gold/15 text-xs font-bold text-gold-soft shadow-[0_0_8px_rgb(var(--gold-glow)/0.15)]">
         {number}
       </span>
       <div>

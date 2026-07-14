@@ -31,7 +31,7 @@ export function TopicCard({ topic, index, onLike }: TopicCardProps) {
     >
       <GlassCard interactive className="group relative overflow-hidden p-5">
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-soft/55 to-transparent" />
-        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent_0%,rgba(255,230,166,0.035)_42%,transparent_58%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent_0%,rgb(var(--gold-glow)/0.035)_42%,transparent_58%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
 
         <div className="relative flex items-center gap-3">
           <Avatar
@@ -94,7 +94,7 @@ export function TopicCard({ topic, index, onLike }: TopicCardProps) {
               size={16}
               className={
                 topic.liked_by_me
-                  ? "fill-current drop-shadow-[0_0_7px_rgba(245,213,138,0.5)]"
+                  ? "fill-current drop-shadow-[0_0_7px_rgb(var(--gold-glow)/0.5)]"
                   : ""
               }
             />

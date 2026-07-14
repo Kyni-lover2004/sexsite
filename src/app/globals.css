@@ -8,22 +8,22 @@
   color-scheme: light;
 
   --base-950: 255 255 255;
-  --base-900: 250 250 248;
-  --base-800: 244 245 240;
-  --base-700: 226 229 216;
-  --base-600: 190 197 169;
-  --base-500: 125 135 98;
+  --base-900: 253 252 255;
+  --base-800: 248 247 252;
+  --base-700: 234 230 244;
+  --base-600: 207 198 224;
+  --base-500: 143 126 171;
 
-  --accent: 104 116 62;
-  --accent-soft: 83 96 47;
-  --accent-deep: 57 68 32;
-  --accent-muted: 117 126 87;
-  --gold: 101 113 60;
-  --gold-soft: 76 89 42;
-  --gold-deep: 50 61 27;
-  --gold-glow: 205 213 178;
-  --warm-100: 28 31 22;
-  --warm-200: 62 69 48;
+  --accent: 181 159 224;
+  --accent-soft: 139 116 190;
+  --accent-deep: 108 83 160;
+  --accent-muted: 164 145 202;
+  --gold: 193 171 231;
+  --gold-soft: 151 128 202;
+  --gold-deep: 111 87 165;
+  --gold-glow: 222 210 247;
+  --warm-100: 35 29 46;
+  --warm-200: 74 62 91;
 }
 
 .dark {
@@ -36,16 +36,16 @@
   --base-600: 42 34 36;
   --base-500: 68 48 53;
 
-  --accent: 225 29 72;
-  --accent-soft: 251 73 112;
-  --accent-deep: 159 18 57;
-  --accent-muted: 190 48 78;
-  --gold: 220 38 72;
-  --gold-soft: 255 91 123;
-  --gold-deep: 136 13 48;
-  --gold-glow: 255 64 105;
-  --warm-100: 255 241 244;
-  --warm-200: 244 191 202;
+  --accent: 214 151 135;
+  --accent-soft: 245 190 168;
+  --accent-deep: 145 88 76;
+  --accent-muted: 188 122 108;
+  --gold: 219 166 143;
+  --gold-soft: 247 202 179;
+  --gold-deep: 151 91 75;
+  --gold-glow: 255 221 202;
+  --warm-100: 255 246 241;
+  --warm-200: 245 211 198;
 }
 
 * {
@@ -115,6 +115,15 @@ body::after {
 
 .light .text-slate-600 {
   color: rgb(122 102 94 / 0.72);
+}
+
+/* Lavender surfaces need dark ink for comfortable reading in light mode. */
+.light .text-gold,
+.light .text-gold-soft,
+.light .text-gradient,
+.light .text-gradient-gold {
+  color: rgb(var(--warm-100));
+  -webkit-text-fill-color: rgb(var(--warm-100));
 }
 
 .light .placeholder\:text-slate-500::placeholder {

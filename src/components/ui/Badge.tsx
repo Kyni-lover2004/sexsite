@@ -3,8 +3,8 @@ import { cn } from "@/lib/utils";
 type BadgeTone = "accent" | "gold" | "emerald" | "neutral";
 
 const tones: Record<BadgeTone, string> = {
-  accent: "bg-gold/10 text-gold-soft border-gold/25 hover:border-gold/50 hover:shadow-[0_0_14px_rgba(245,213,138,0.15)]",
-  gold: "bg-gold/10 text-gold-soft border-gold/25 hover:border-gold/50 hover:shadow-[0_0_14px_rgba(255,230,166,0.15)]",
+  accent: "bg-gold/10 text-gold-soft border-gold/25 hover:border-gold/50 hover:shadow-[0_0_14px_rgb(var(--gold-glow)/0.15)]",
+  gold: "bg-gold/10 text-gold-soft border-gold/25 hover:border-gold/50 hover:shadow-[0_0_14px_rgb(var(--gold-glow)/0.15)]",
   emerald: "bg-emerald-glow/10 text-emerald-glow border-emerald-glow/25",
   neutral: "bg-base-900/55 text-slate-300 border-gold/10 hover:border-gold/25",
 };
@@ -53,7 +53,7 @@ export function Tag({
       className={cn(
         "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium transition-all duration-200",
         active
-          ? "border-gold/45 bg-gold/15 text-gold-soft shadow-[0_0_14px_rgba(245,213,138,0.14)]"
+          ? "border-gold/45 bg-gold/15 text-gold-soft shadow-[0_0_14px_rgb(var(--gold-glow)/0.14)]"
           : "border-gold/10 bg-base-900/50 text-slate-400",
         onClick && "hover:border-gold/40 hover:text-gold-soft hover:bg-gold/10",
         className

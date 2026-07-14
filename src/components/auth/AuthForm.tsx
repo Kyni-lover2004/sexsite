@@ -57,8 +57,8 @@ export function AuthForm() {
 
   return (
     <div className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-base-950 px-4">
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent_12%,rgba(255,230,166,0.09)_13%,transparent_14%),linear-gradient(245deg,transparent_70%,rgba(201,151,63,0.08)_71%,transparent_72%)]" />
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-44 border-b border-gold/10 bg-[linear-gradient(180deg,rgba(255,230,166,0.08),transparent)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent_12%,rgb(var(--gold-glow)/0.09)_13%,transparent_14%),linear-gradient(245deg,transparent_70%,rgb(var(--gold)/0.08)_71%,transparent_72%)]" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-44 border-b border-gold/10 bg-[linear-gradient(180deg,rgb(var(--gold-glow)/0.08),transparent)]" />
 
       <motion.div
         initial={{ opacity: 0, y: 24, scale: 0.96 }}

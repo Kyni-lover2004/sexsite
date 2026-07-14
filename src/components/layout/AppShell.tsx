@@ -81,14 +81,14 @@ export function AppShell({
                 {active && (
                   <motion.span
                     layoutId="nav-active"
-                    className="absolute inset-0 -z-10 rounded-xl border border-gold/20 bg-accent-gradient-subtle shadow-[0_0_24px_rgba(245,213,138,0.08)]"
+                    className="absolute inset-0 -z-10 rounded-xl border border-gold/20 bg-accent-gradient-subtle shadow-[0_0_24px_rgb(var(--gold-glow)/0.08)]"
                     transition={{ type: "spring", stiffness: 400, damping: 30 }}
                   />
                 )}
                 <item.icon
                   className={cn(
                     "h-5 w-5 transition-colors",
-                    active && "text-gold-soft drop-shadow-[0_0_8px_rgba(245,213,138,0.42)]"
+                    active && "text-gold-soft drop-shadow-[0_0_8px_rgb(var(--gold-glow)/0.42)]"
                   )}
                 />
                 {item.label}
@@ -144,14 +144,14 @@ export function AppShell({
                 {active && (
                   <motion.span
                     layoutId="mobilenav-active"
-                    className="absolute top-0 h-[2px] w-10 rounded-full bg-gold-gradient shadow-[0_0_10px_rgba(245,213,138,0.45)]"
+                    className="absolute top-0 h-[2px] w-10 rounded-full bg-gold-gradient shadow-[0_0_10px_rgb(var(--gold-glow)/0.45)]"
                     transition={{ type: "spring", stiffness: 400, damping: 30 }}
                   />
                 )}
                 <item.icon
                   className={cn(
                     "h-5 w-5",
-                    active && "drop-shadow-[0_0_8px_rgba(245,213,138,0.42)]"
+                    active && "drop-shadow-[0_0_8px_rgb(var(--gold-glow)/0.42)]"
                   )}
                 />
                 {item.label}

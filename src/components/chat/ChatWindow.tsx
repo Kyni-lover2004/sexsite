@@ -381,7 +381,7 @@ export function ChatWindow({
           </p>
         </div>
         <span
-          className="flex items-center gap-1.5 rounded-full border border-gold/25 bg-gold/10 px-2.5 py-1 text-[10px] text-gold-soft shadow-[0_0_12px_rgba(245,213,138,0.1)]"
+          className="flex items-center gap-1.5 rounded-full border border-gold/25 bg-gold/10 px-2.5 py-1 text-[10px] text-gold-soft shadow-[0_0_12px_rgb(var(--gold-glow)/0.1)]"
           title="Защищено сквозным шифрованием"
         >
           <Shield size={11} />
