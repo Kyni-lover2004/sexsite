@@ -107,11 +107,13 @@ export function CreateTopicForm() {
       }
     }
 
-    await supa
-      .from("topics")
-      .update({ status: "archived" })
-      .eq("author_id", user.id)
-      .eq("status", "active");
+    if (!isAdmin) {
+      await supa
+        .from("topics")
+        .update({ status: "archived" })
+        .eq("author_id", user.id)
+        .eq("status", "active");
+    }
 
     const tagsList = tags
       .split(",")
