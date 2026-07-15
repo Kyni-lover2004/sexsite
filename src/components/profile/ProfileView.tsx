@@ -666,9 +666,10 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                           className="h-10 min-w-0 rounded-xl border border-gold/15 bg-base-800/60 px-2 text-sm text-slate-100 transition-all duration-300 focus:border-gold/50 focus:outline-none focus:ring-2 focus:ring-gold/15 sm:px-3"
                         >
                           <option value="">Месяц</option>
-                          {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
-                            <option key={m} value={m}>{m}</option>
-                          ))}
+                          {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => {
+                            const val = m.toString().padStart(2, "0");
+                            return <option key={val} value={val}>{m}</option>;
+                          })}
                         </select>
                         <select
                           value={form.birth_date ? form.birth_date.split("-")[2] ?? "" : ""}
@@ -679,9 +680,10 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                           className="h-10 min-w-0 rounded-xl border border-gold/15 bg-base-800/60 px-2 text-sm text-slate-100 transition-all duration-300 focus:border-gold/50 focus:outline-none focus:ring-2 focus:ring-gold/15 sm:px-3"
                         >
                           <option value="">День</option>
-                          {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
-                            <option key={d} value={d}>{d}</option>
-                          ))}
+                          {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => {
+                            const val = d.toString().padStart(2, "0");
+                            return <option key={val} value={val}>{d}</option>;
+                          })}
                         </select>
                       </div>
                       {(() => {
