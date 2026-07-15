@@ -25,7 +25,6 @@ const NAV: NavItem[] = [
 
 const PERSONAL_NAV: NavItem[] = [
   { href: "/friends", label: "Мои друзья", icon: UserRoundCheck },
-  { href: "/my-videos", label: "Мои видео", icon: Video },
   { href: "/my-photos", label: "Мои фото", icon: Images },
 ];
 
