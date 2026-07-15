@@ -365,27 +365,32 @@ export function ChatWindow({
         >
           <ArrowLeft size={16} />
         </Link>
-        <Avatar
-          src={otherUser.avatar_url}
-          name={otherUser.display_name ?? otherUser.username}
-          lastSeen={otherUser.last_seen}
-          showPresence
-          size="md"
-        />
-        <div className="min-w-0 flex-1">
-          <p className="flex items-center gap-1.5 truncate text-sm font-medium text-white">
-            {otherUser.display_name ?? otherUser.username}
-            {otherUserPremium && (
-              <Crown
-                size={13}
-                className="shrink-0 fill-current text-gold-soft drop-shadow-[0_0_8px_rgb(var(--gold-glow)/0.45)]"
-              />
-            )}
-          </p>
-          <p className="text-xs text-slate-500">
-            {isOnline(otherUser.last_seen) ? "В сети" : `Был(а) ${timeAgo(otherUser.last_seen)}`}
-          </p>
-        </div>
+        <Link
+          href={`/profile/${otherUser.id}`}
+          className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3 hover:opacity-85 transition-opacity"
+        >
+          <Avatar
+            src={otherUser.avatar_url}
+            name={otherUser.display_name ?? otherUser.username}
+            lastSeen={otherUser.last_seen}
+            showPresence
+            size="md"
+          />
+          <div className="min-w-0 flex-1">
+            <p className="flex items-center gap-1.5 truncate text-sm font-medium text-white">
+              {otherUser.display_name ?? otherUser.username}
+              {otherUserPremium && (
+                <Crown
+                  size={13}
+                  className="shrink-0 fill-current text-gold-soft drop-shadow-[0_0_8px_rgb(var(--gold-glow)/0.45)]"
+                />
+              )}
+            </p>
+            <p className="text-xs text-slate-500">
+              {isOnline(otherUser.last_seen) ? "В сети" : `Был(а) ${timeAgo(otherUser.last_seen)}`}
+            </p>
+          </div>
+        </Link>
         <span
           className="chat-lavender flex shrink-0 items-center gap-1.5 rounded-full border border-gold/20 bg-gold/5 px-2 py-1 text-[10px] text-gold-soft shadow-[0_0_12px_rgb(var(--gold-glow)/0.08)] sm:px-2.5"
           title="Защищено сквозным шифрованием"
