@@ -33,7 +33,7 @@ export function getSexualInterestLabel(value?: string | null) {
 
 export function normalizeSexualInterests(values?: string[] | null) {
   return Array.from(
-    new Set((values ?? []).map(getSexualInterestLabel).filter((value): value is string => Boolean(value)))
+    new Set((values ?? []).map(getSexualInterestLabel).filter(Boolean) as string[])
   );
 }
 
