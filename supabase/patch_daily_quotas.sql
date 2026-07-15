@@ -1,7 +1,7 @@
 -- =============================================================
 --  Daily quotas: photos, profile opens, swipes
---  free: photos 10/day, profiles 2/day, swipes 10/day
---  premium: photos 100/day, profiles unlimited, swipes 100/day
+--  free: photos 10/day, profiles 2/day, swipe likes 10/day (pass free)
+--  premium: photos 100/day, profiles unlimited, swipe likes 100/day
 --  admin: unlimited everywhere
 --  Supabase → SQL Editor → Run
 -- =============================================================
