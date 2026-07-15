@@ -478,7 +478,7 @@ create policy profiles_select on public.profiles
   for select using (auth.role() = 'authenticated');
 drop policy if exists profiles_update on public.profiles;
 create policy profiles_update on public.profiles
-  for update using (auth.uid() = id) with check (auth.uid() = id);
+  for update using (auth.uid() = id or public.is_admin()) with check (auth.uid() = id or public.is_admin());
 drop policy if exists profiles_insert on public.profiles;
 create policy profiles_insert on public.profiles
   for insert with check (auth.uid() = id);
