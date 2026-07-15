@@ -21,6 +21,7 @@ import {
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { BrandLogo } from "@/components/ui/BrandLogo";
+import { NewGuestsBadge } from "./NewGuestsBadge";
 import { ThemeToggle } from "./ThemeToggle";
 
 interface NavItem {
@@ -118,8 +119,12 @@ export function AppShell({
                     )}
                   />
                   {item.label}
-                  {active && (
-                    <span className="ml-auto h-1.5 w-1.5 rounded-full bg-gold-soft shadow-neon-gold" />
+                  {item.href === "/guests" ? (
+                    <NewGuestsBadge />
+                  ) : (
+                    active && (
+                      <span className="ml-auto h-1.5 w-1.5 rounded-full bg-gold-soft shadow-neon-gold" />
+                    )
                   )}
                 </Link>
                 {index < NAV.length - 1 && (
@@ -320,13 +325,18 @@ export function AppShell({
                 {active && (
                   <span className="absolute top-0 h-[2px] w-8 rounded-full bg-gold-gradient shadow-[0_0_10px_rgb(var(--gold-glow)/0.45)]" />
                 )}
-                <item.icon
-                  className={cn(
-                    "h-[1.35rem] w-[1.35rem] shrink-0",
-                    active &&
-                      "drop-shadow-[0_0_8px_rgb(var(--gold-glow)/0.42)]"
+                <span className="relative">
+                  <item.icon
+                    className={cn(
+                      "h-[1.35rem] w-[1.35rem] shrink-0",
+                      active &&
+                        "drop-shadow-[0_0_8px_rgb(var(--gold-glow)/0.42)]"
+                    )}
+                  />
+                  {item.href === "/guests" && (
+                    <NewGuestsBadge compact />
                   )}
-                />
+                </span>
                 <span className="block max-w-full truncate text-center">
                   {item.shortLabel ?? item.label}
                 </span>

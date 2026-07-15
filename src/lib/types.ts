@@ -44,8 +44,26 @@ export interface Profile {
   smoking_attitude: string | null;
   drinking_attitude: string | null;
   orientation_roles: string[];
+  guests_seen_at?: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export type GuestFriendStatus = "none" | "sent" | "received" | "accepted";
+
+export interface GuestListItem {
+  visitId: string;
+  visitedAt: string;
+  isNew: boolean;
+  isMutual: boolean;
+  friendStatus: GuestFriendStatus;
+  visitor: {
+    id: string;
+    username: string;
+    display_name: string | null;
+    avatar_url: string | null;
+    last_seen: string | null;
+  };
 }
 
 export type SupportTicketStatus = "open" | "answered" | "closed";
