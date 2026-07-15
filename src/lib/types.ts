@@ -228,3 +228,31 @@ export interface DecryptedMessage extends Message {
 }
 
 export type FeedTab = "new" | "popular" | "interests";
+
+export type NotificationType =
+  | "friend_request"
+  | "friend_accepted"
+  | "guest"
+  | "chat_message"
+  | "support_reply"
+  | "topic_comment"
+  | "profile_like";
+
+export interface AppNotification {
+  id: string;
+  user_id: string;
+  type: NotificationType;
+  title: string;
+  body: string;
+  link: string | null;
+  actor_id: string | null;
+  meta: Record<string, unknown>;
+  read_at: string | null;
+  created_at: string;
+  actor?: {
+    id: string;
+    username: string;
+    display_name: string | null;
+    avatar_url: string | null;
+  } | null;
+}

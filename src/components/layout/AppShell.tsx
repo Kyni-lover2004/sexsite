@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { BrandLogo } from "@/components/ui/BrandLogo";
 import { NewGuestsBadge } from "./NewGuestsBadge";
+import { NotificationBell } from "./NotificationBell";
 import { ThemeToggle } from "./ThemeToggle";
 
 interface NavItem {
@@ -184,6 +185,7 @@ export function AppShell({
             v0.1 · E2EE ready
           </p>
           <div className="flex items-center gap-2">
+            <NotificationBell />
             <LogoutButton />
             <ThemeToggle />
           </div>
@@ -233,6 +235,7 @@ export function AppShell({
             </span>
           </div>
           <div className="flex shrink-0 items-center gap-1.5">
+            <NotificationBell compact />
             <ThemeToggle className="!h-10 !w-10" />
             <button
               type="button"

@@ -44,6 +44,7 @@ export async function middleware(request: NextRequest) {
     "/support",
     "/premium",
     "/topic/new",
+    "/notifications",
   ];
   const needsAuth = protectedPaths.some((p) =>
     request.nextUrl.pathname.startsWith(p)
