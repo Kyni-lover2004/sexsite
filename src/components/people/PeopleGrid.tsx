@@ -39,6 +39,7 @@ import { getCountries, getRegions, getCities } from "@/lib/data/locations";
 import {
   PEOPLE_SELECT,
   ONLINE_WINDOW_MS,
+  LIKE_SOURCE_PEOPLE,
   birthDateBounds,
   type PeopleCard,
   type PeopleTab,
@@ -99,11 +100,19 @@ export function PeopleGrid({
   const fetchPeople = useCallback(async () => {
     setLoading(true);
     try {
-      // Mutual tab needs likes table
+      // Mutual tab — only search (people) likes, never swipe
       if (tab === "mutual" && currentUserId) {
         const [{ data: iLiked }, { data: likedMe }] = await Promise.all([
-          supa.from("profile_likes").select("to_id").eq("from_id", currentUserId),
-          supa.from("profile_likes").select("from_id").eq("to_id", currentUserId),
+          supa
+            .from("profile_likes")
+            .select("to_id")
+            .eq("from_id", currentUserId)
+            .eq("source", LIKE_SOURCE_PEOPLE),
+          supa
+            .from("profile_likes")
+            .select("from_id")
+            .eq("to_id", currentUserId)
+            .eq("source", LIKE_SOURCE_PEOPLE),
         ]);
         const a = new Set((iLiked ?? []).map((r: any) => r.to_id as string));
         const b = new Set((likedMe ?? []).map((r: any) => r.from_id as string));
@@ -203,7 +212,7 @@ export function PeopleGrid({
         }
       }
 
-      // Enrich likes
+      // Enrich with SEARCH likes only
       if (currentUserId && rows.length > 0) {
         const ids = rows.map((r) => r.id);
         const [{ data: fromMe }, { data: toMe }] = await Promise.all([
@@ -211,11 +220,13 @@ export function PeopleGrid({
             .from("profile_likes")
             .select("to_id")
             .eq("from_id", currentUserId)
+            .eq("source", LIKE_SOURCE_PEOPLE)
             .in("to_id", ids),
           supa
             .from("profile_likes")
             .select("from_id")
             .eq("to_id", currentUserId)
+            .eq("source", LIKE_SOURCE_PEOPLE)
             .in("from_id", ids),
         ]);
         const iLiked = new Set(
@@ -284,25 +295,50 @@ export function PeopleGrid({
         .from("profile_likes")
         .delete()
         .eq("from_id", currentUserId)
-        .eq("to_id", userId);
+        .eq("to_id", userId)
+        .eq("source", LIKE_SOURCE_PEOPLE);
     } else {
       const { error } = await supa.from("profile_likes").insert({
         from_id: currentUserId,
         to_id: userId,
+        source: LIKE_SOURCE_PEOPLE,
       });
       if (error && error.code !== "23505") {
-        // revert
-        setUsers((prev) =>
-          prev.map((u) =>
-            u.id === userId
-              ? {
-                  ...u,
-                  iLiked: liked,
-                  isMutual: liked && !!u.likedMe,
-                }
-              : u
-          )
-        );
+        // Column source missing (pre-migration): plain insert
+        if (
+          String(error.message ?? "").includes("source") ||
+          error.code === "PGRST204"
+        ) {
+          const { error: e2 } = await supa.from("profile_likes").insert({
+            from_id: currentUserId,
+            to_id: userId,
+          });
+          if (e2 && e2.code !== "23505") {
+            setUsers((prev) =>
+              prev.map((u) =>
+                u.id === userId
+                  ? {
+                      ...u,
+                      iLiked: liked,
+                      isMutual: liked && !!u.likedMe,
+                    }
+                  : u
+              )
+            );
+          }
+        } else {
+          setUsers((prev) =>
+            prev.map((u) =>
+              u.id === userId
+                ? {
+                    ...u,
+                    iLiked: liked,
+                    isMutual: liked && !!u.likedMe,
+                  }
+                : u
+            )
+          );
+        }
       }
     }
     setLikeBusy(null);
@@ -341,7 +377,7 @@ export function PeopleGrid({
           Люди
         </motion.h1>
         <p className="text-sm text-slate-500">
-          Интерес без чата · взаимно — особый статус
+          Интерес из поиска · вкладка «Взаимно» только по поиску (не свайпы)
           {viewerCity ? ` · рядом: ${viewerCity}` : ""}
         </p>
       </div>

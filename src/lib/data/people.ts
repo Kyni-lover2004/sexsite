@@ -4,6 +4,7 @@ import type { Profile } from "@/lib/types";
 import {
   PEOPLE_SELECT,
   ONLINE_WINDOW_MS,
+  LIKE_SOURCE_PEOPLE,
   birthDateBounds,
   type PeopleCard,
   type PeopleSearchFilters,
@@ -132,9 +133,18 @@ async function getMutualMatches(
 ): Promise<PeopleCard[]> {
   const supa = createClient() as any;
 
+  // Mutual only within search (people) likes — not swipe
   const [{ data: iLiked }, { data: likedMe }] = await Promise.all([
-    supa.from("profile_likes").select("to_id").eq("from_id", userId),
-    supa.from("profile_likes").select("from_id").eq("to_id", userId),
+    supa
+      .from("profile_likes")
+      .select("to_id")
+      .eq("from_id", userId)
+      .eq("source", LIKE_SOURCE_PEOPLE),
+    supa
+      .from("profile_likes")
+      .select("from_id")
+      .eq("to_id", userId)
+      .eq("source", LIKE_SOURCE_PEOPLE),
   ]);
 
   const likedByMe = new Set((iLiked ?? []).map((r: any) => r.to_id as string));
@@ -179,11 +189,13 @@ async function enrichWithLikes(
       .from("profile_likes")
       .select("to_id")
       .eq("from_id", currentUserId)
+      .eq("source", LIKE_SOURCE_PEOPLE)
       .in("to_id", ids),
     supa
       .from("profile_likes")
       .select("from_id")
       .eq("to_id", currentUserId)
+      .eq("source", LIKE_SOURCE_PEOPLE)
       .in("from_id", ids),
   ]);
 

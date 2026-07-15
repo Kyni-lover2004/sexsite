@@ -27,14 +27,15 @@ export async function getSwipeViewerMeta(userId: string | null): Promise<{
   };
 }
 
-/** Lightweight counts for likes tab badge. */
+/** Swipe-inbox badge — only likes from the swipe stream. */
 export async function getReceivedLikesCount(userId: string | null): Promise<number> {
   if (!userId) return 0;
   const supa = createClient() as any;
   const { count } = await supa
     .from("profile_likes")
     .select("from_id", { count: "exact", head: true })
-    .eq("to_id", userId);
+    .eq("to_id", userId)
+    .eq("source", "swipe");
   return count ?? 0;
 }
 

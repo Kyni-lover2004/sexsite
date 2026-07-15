@@ -2,6 +2,11 @@
 
 import type { Profile } from "@/lib/types";
 
+/** Like from People search (not swipe deck). */
+export const LIKE_SOURCE_PEOPLE = "people";
+/** Like from Swipe deck. */
+export const LIKE_SOURCE_SWIPE = "swipe";
+
 export const PEOPLE_SELECT =
   "id, username, display_name, avatar_url, status, bio, interests, dating_goal, dating_goals, country, region, city, birth_date, gender, available_for_chat, last_seen, role, premium_until, looking_for, created_at";
 

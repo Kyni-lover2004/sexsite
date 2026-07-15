@@ -42,6 +42,7 @@ import {
 import { getCountries, getRegions, getCities } from "@/lib/data/locations";
 import {
   PEOPLE_SELECT,
+  LIKE_SOURCE_SWIPE,
   birthDateBounds,
 } from "@/lib/data/people-shared";
 import {
@@ -183,15 +184,20 @@ export function SwipeExperience({
     setDeckLoading(true);
     setDeckError("");
     try {
-      // Exclusions
+      // Exclusions — only SWIPE likes / passes (search likes stay independent)
       const [{ data: liked }, { data: passed }, { data: likedMeRows }] =
         await Promise.all([
-          supa.from("profile_likes").select("to_id").eq("from_id", currentUserId),
+          supa
+            .from("profile_likes")
+            .select("to_id")
+            .eq("from_id", currentUserId)
+            .eq("source", LIKE_SOURCE_SWIPE),
           supa.from("profile_passes").select("to_id").eq("from_id", currentUserId),
           supa
             .from("profile_likes")
             .select("from_id, is_superlike")
-            .eq("to_id", currentUserId),
+            .eq("to_id", currentUserId)
+            .eq("source", LIKE_SOURCE_SWIPE),
         ]);
 
       const exclude = new Set<string>([
@@ -298,7 +304,7 @@ export function SwipeExperience({
   const loadLikes = useCallback(async () => {
     setLikesLoading(true);
     try {
-      // Prefer RPC for ordering; fallback to table
+      // SWIPE stream only
       let receivedRows: any[] = [];
       const rpc = await supa.rpc("get_swipe_likes_received", { p_limit: 60 });
       if (!rpc.error && Array.isArray(rpc.data)) {
@@ -308,12 +314,14 @@ export function SwipeExperience({
           .from("profile_likes")
           .select("from_id, is_superlike, created_at")
           .eq("to_id", currentUserId)
+          .eq("source", LIKE_SOURCE_SWIPE)
           .order("created_at", { ascending: false })
           .limit(60);
         const { data: myLikes } = await supa
           .from("profile_likes")
           .select("to_id")
-          .eq("from_id", currentUserId);
+          .eq("from_id", currentUserId)
+          .eq("source", LIKE_SOURCE_SWIPE);
         const mine = new Set(
           (myLikes ?? []).map((r: any) => r.to_id as string)
         );
@@ -322,7 +330,6 @@ export function SwipeExperience({
           is_superlike: !!r.is_superlike,
           is_mutual: mine.has(r.from_id),
         }));
-        // Sort superlikes first client-side
         receivedRows.sort(
           (a, b) => Number(b.is_superlike) - Number(a.is_superlike)
         );
@@ -332,13 +339,15 @@ export function SwipeExperience({
         .from("profile_likes")
         .select("to_id, is_superlike, created_at")
         .eq("from_id", currentUserId)
+        .eq("source", LIKE_SOURCE_SWIPE)
         .order("created_at", { ascending: false })
         .limit(60);
 
       const { data: whoLikedMe } = await supa
         .from("profile_likes")
         .select("from_id")
-        .eq("to_id", currentUserId);
+        .eq("to_id", currentUserId)
+        .eq("source", LIKE_SOURCE_SWIPE);
       const likedMeSet = new Set(
         (whoLikedMe ?? []).map((r: any) => r.from_id as string)
       );
@@ -479,7 +488,8 @@ export function SwipeExperience({
           .from("profile_likes")
           .delete()
           .eq("from_id", currentUserId)
-          .eq("to_id", toId);
+          .eq("to_id", toId)
+          .eq("source", LIKE_SOURCE_SWIPE);
         await supa
           .from("profile_passes")
           .upsert({ from_id: currentUserId, to_id: toId });
@@ -499,30 +509,35 @@ export function SwipeExperience({
       const payload: any = {
         from_id: currentUserId,
         to_id: toId,
-        source: "swipe",
+        source: LIKE_SOURCE_SWIPE,
       };
-      // is_superlike may not exist yet
       if (action === "superlike") payload.is_superlike = true;
 
-      const { error } = await supa.from("profile_likes").upsert(payload, {
-        onConflict: "from_id,to_id",
+      let { error } = await supa.from("profile_likes").upsert(payload, {
+        onConflict: "from_id,to_id,source",
       });
-      if (error && error.code !== "23505") {
-        // try plain insert without extra cols
-        const { error: e2 } = await supa.from("profile_likes").insert({
-          from_id: currentUserId,
-          to_id: toId,
-        });
-        if (e2 && e2.code !== "23505") {
-          return { ok: false, error: e2.message };
+      if (error) {
+        // Older unique(from_id,to_id) or missing columns
+        const ins = await supa.from("profile_likes").insert(payload);
+        error = ins.error;
+        if (error && error.code !== "23505") {
+          const plain = await supa.from("profile_likes").insert({
+            from_id: currentUserId,
+            to_id: toId,
+          });
+          if (plain.error && plain.error.code !== "23505") {
+            return { ok: false, error: plain.error.message };
+          }
         }
       }
 
+      // Mutual only if they liked you via swipe too
       const { data: back } = await supa
         .from("profile_likes")
         .select("from_id")
         .eq("from_id", toId)
         .eq("to_id", currentUserId)
+        .eq("source", LIKE_SOURCE_SWIPE)
         .maybeSingle();
 
       return {
@@ -1224,7 +1239,7 @@ function Header({
             Свайпы
           </h1>
           <p className="text-sm text-slate-500">
-            Знакомства · лайк / пасс · взаимность
+            Только свайпы · лайки поиска сюда не попадают
           </p>
         </div>
       </div>
