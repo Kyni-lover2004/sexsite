@@ -1,7 +1,8 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/components/layout/AppShell";
 import { ProfileView } from "@/components/profile/ProfileView";
+import { ProfileOpenGate } from "@/components/profile/ProfileOpenGate";
 import { noIndexMetadata } from "@/lib/seo";
 
 interface Props {
@@ -16,6 +17,27 @@ export const metadata = noIndexMetadata;
 export default async function UserProfilePage({ params }: Props) {
   const supabase = createClient();
   const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) redirect(`/login?next=/profile/${params.id}`);
+
+  const isOwn = auth.user.id === params.id;
+
+  // Free users: max 2 foreign profile opens / day (premium & admin unlimited)
+  if (!isOwn) {
+    const { data: openRes, error: openErr } = await (supabase as any).rpc(
+      "record_profile_open",
+      { p_profile_id: params.id }
+    );
+    if (!openErr && openRes && openRes.allowed === false) {
+      return (
+        <AppShell>
+          <ProfileOpenGate
+            limit={typeof openRes.limit === "number" ? openRes.limit : 2}
+            count={typeof openRes.count === "number" ? openRes.count : 2}
+          />
+        </AppShell>
+      );
+    }
+  }
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -55,16 +77,15 @@ export default async function UserProfilePage({ params }: Props) {
     !!(profile as any).premium_until &&
     new Date((profile as any).premium_until) > new Date();
 
-  let viewerIsPremium = false;
-  if (auth.user) {
-    const { data: me } = await supabase
-      .from("profiles")
-      .select("premium_until")
-      .eq("id", auth.user.id)
-      .maybeSingle();
-    viewerIsPremium =
-      !!me?.premium_until && new Date(me.premium_until) > new Date();
-  }
+  const { data: me } = await supabase
+    .from("profiles")
+    .select("premium_until, role")
+    .eq("id", auth.user.id)
+    .maybeSingle();
+
+  const viewerIsPremium =
+    !!me?.premium_until && new Date(me.premium_until) > new Date();
+  const viewerIsAdmin = (me as any)?.role === "admin";
 
   return (
     <AppShell>
@@ -73,9 +94,10 @@ export default async function UserProfilePage({ params }: Props) {
         photos={(photos ?? []) as any}
         albums={(albums ?? []) as any}
         friendsCount={friendsCount || 0}
-        isOwn={auth.user?.id === params.id}
+        isOwn={isOwn}
         isPremium={profileIsPremium}
         viewerIsPremium={viewerIsPremium}
+        viewerIsAdmin={viewerIsAdmin}
       />
     </AppShell>
   );

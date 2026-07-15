@@ -6,21 +6,29 @@ import { isPremiumActive } from "@/lib/utils";
 
 export async function getSwipeViewerMeta(userId: string | null): Promise<{
   isPremium: boolean;
+  isAdmin: boolean;
   city: string | null;
   country: string | null;
   gender: string | null;
 }> {
   if (!userId) {
-    return { isPremium: false, city: null, country: null, gender: null };
+    return {
+      isPremium: false,
+      isAdmin: false,
+      city: null,
+      country: null,
+      gender: null,
+    };
   }
   const supa = createClient() as any;
   const { data } = await supa
     .from("profiles")
-    .select("premium_until, city, country, gender")
+    .select("premium_until, city, country, gender, role")
     .eq("id", userId)
     .maybeSingle();
   return {
     isPremium: isPremiumActive(data?.premium_until),
+    isAdmin: data?.role === "admin",
     city: data?.city ?? null,
     country: data?.country ?? null,
     gender: data?.gender ?? null,

@@ -109,7 +109,8 @@ export function ProfileView({
   isOwn,
   isPremium = false,
   viewerIsPremium = false,
-}: ProfileViewProps & { viewerIsPremium?: boolean }) {
+  viewerIsAdmin = false,
+}: ProfileViewProps & { viewerIsPremium?: boolean; viewerIsAdmin?: boolean }) {
   const supabase = createClient();
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -178,11 +179,12 @@ export function ProfileView({
     void checkRoleAndFriendship();
   }, [supabase, isOwn, profile.id]);
 
-  // Free *viewers* are limited; own profile / premium viewers unlimited.
-  const photoLimit = usePhotoViewLimit(
-    isOwn ? null : profile.id,
-    isOwn || viewerIsPremium
-  );
+  // Free 10/day · Premium 100/day · Admin/own unlimited
+  const photoLimit = usePhotoViewLimit(isOwn ? null : profile.id, {
+    skip: isOwn || viewerIsAdmin,
+    viewerIsPremium,
+  });
+  const showPhotoQuota = !isOwn && !viewerIsAdmin && !photoLimit.unlimited;
 
   const [form, setForm] = useState({
     username: profile.username,
@@ -1372,16 +1374,17 @@ export function ProfileView({
           </div>
         ) : (
           <>
-            {!isOwn && !viewerIsPremium && (
+            {showPhotoQuota && photoLimit.limit != null && (
               <div className="mb-3 flex items-center justify-between rounded-lg border border-gold/10 bg-base-900/40 px-3 py-2">
                 <span className="text-xs text-slate-400">
-                  Просмотров фото: {photoLimit.viewedCount} / {photoLimit.limit}
+                  Фото сегодня: {photoLimit.viewedCount} / {photoLimit.limit}
+                  {viewerIsPremium ? " (Premium)" : " (бесплатно)"}
                 </span>
                 {photoLimit.limitReached ? (
                   <Link href="/premium">
                     <Button variant="gold" size="sm">
                       <Crown size={12} />
-                      Докупить Premium
+                      {viewerIsPremium ? "Лимит дня" : "Premium · 100/день"}
                     </Button>
                   </Link>
                 ) : (
@@ -1416,10 +1419,10 @@ export function ProfileView({
                     <button
                       type="button"
                       onClick={() => {
-                        if (!isOwn && !viewerIsPremium && photoLimit.limitReached) {
+                        if (showPhotoQuota && photoLimit.limitReached) {
                           return;
                         }
-                        if (!isOwn && !viewerIsPremium) {
+                        if (showPhotoQuota) {
                           void photoLimit.recordView(photo.id).then((allowed) => {
                             if (!allowed) return;
                             setLightboxIndex(idx);
@@ -1436,25 +1439,27 @@ export function ProfileView({
                         src={photo.url}
                         alt={photo.caption ?? "Фото профиля"}
                         className={`h-full w-full object-cover transition-transform duration-500 group-hover:scale-105 ${
-                          !isOwn && !viewerIsPremium && photoLimit.limitReached
+                          showPhotoQuota && photoLimit.limitReached
                             ? "blur-md brightness-50"
                             : ""
                         }`}
                       />
-                      {!isOwn && !viewerIsPremium && photoLimit.limitReached && (
+                      {showPhotoQuota && photoLimit.limitReached && (
                         <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/60">
                           <Crown size={24} className="text-gold" />
                           <span className="text-xs text-gold-soft">
-                            Лимит исчерпан
+                            Дневной лимит фото
                           </span>
-                          <Link
-                            href="/premium"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <Button variant="gold" size="sm">
-                              Докупить Premium
-                            </Button>
-                          </Link>
+                          {!viewerIsPremium && (
+                            <Link
+                              href="/premium"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Button variant="gold" size="sm">
+                                Premium · 100/день
+                              </Button>
+                            </Link>
+                          )}
                         </div>
                       )}
                     </button>

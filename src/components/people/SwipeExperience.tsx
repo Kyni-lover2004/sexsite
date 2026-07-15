@@ -453,6 +453,12 @@ export function SwipeExperience({
         showToast("Нужен Premium для суперлайка");
       } else if (result.error === "superlike_limit") {
         showToast("Лимит суперлайков на сегодня");
+      } else if (result.error === "swipe_daily_limit") {
+        showToast(
+          isPremium
+            ? "Лимит свайпов на сегодня (100). Завтра снова."
+            : "Лимит свайпов: 10/день. Premium — 100/день."
+        );
       } else if (result.error === "rate_limit") {
         showToast("Слишком много действий. Подождите");
       } else {

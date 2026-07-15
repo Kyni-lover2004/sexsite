@@ -34,7 +34,7 @@ export default async function SwipePage({
     <AppShell>
       <SwipeExperience
         currentUserId={auth.user.id}
-        isPremium={meta.isPremium}
+        isPremium={meta.isPremium || meta.isAdmin}
         viewerCity={meta.city}
         viewerCountry={meta.country}
         initialTab={initialTab}
