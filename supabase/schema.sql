@@ -153,6 +153,18 @@ create table if not exists public.friendships (
   constraint friendships_not_self check (requester_id <> addressee_id)
 );
 
+-- Dating interest / like (not friendship). Mutual like = soft match.
+create table if not exists public.profile_likes (
+  id         uuid primary key default gen_random_uuid(),
+  from_id    uuid not null references public.profiles (id) on delete cascade,
+  to_id      uuid not null references public.profiles (id) on delete cascade,
+  created_at timestamptz not null default now(),
+  unique (from_id, to_id),
+  constraint profile_likes_not_self check (from_id <> to_id)
+);
+create index if not exists profile_likes_to_idx on public.profile_likes (to_id, created_at desc);
+create index if not exists profile_likes_from_idx on public.profile_likes (from_id, created_at desc);
+
 -- Collapse A→B and B→A duplicates (prefer accepted, then newest pending).
 delete from public.friendships f
 using (
@@ -560,6 +572,7 @@ alter table public.profiles        enable row level security;
 alter table public.profile_photos  enable row level security;
 alter table public.profile_visits  enable row level security;
 alter table public.friendships     enable row level security;
+alter table public.profile_likes   enable row level security;
 alter table public.profile_videos  enable row level security;
 alter table public.profile_wall_posts enable row level security;
 alter table public.encryption_keys enable row level security;
@@ -694,6 +707,17 @@ create policy friendships_update on public.friendships
 drop policy if exists friendships_delete on public.friendships;
 create policy friendships_delete on public.friendships
   for delete using (auth.uid() = requester_id or auth.uid() = addressee_id);
+
+-- Profile likes (dating interest)
+drop policy if exists profile_likes_select on public.profile_likes;
+create policy profile_likes_select on public.profile_likes
+  for select using (auth.uid() = from_id or auth.uid() = to_id);
+drop policy if exists profile_likes_insert on public.profile_likes;
+create policy profile_likes_insert on public.profile_likes
+  for insert with check (auth.uid() = from_id);
+drop policy if exists profile_likes_delete on public.profile_likes;
+create policy profile_likes_delete on public.profile_likes
+  for delete using (auth.uid() = from_id);
 
 -- Request / accept without reverse-pair duplicates.
 -- Returns: 'sent' | 'accepted' | 'already' | 'self' | 'not_auth'

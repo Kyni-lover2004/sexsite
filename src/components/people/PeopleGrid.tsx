@@ -1,6 +1,6 @@
 "use client";
 
-import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import {
   Search,
@@ -10,8 +10,13 @@ import {
   MessageCircle,
   CheckCircle2,
   HeartHandshake,
+  Heart,
   X,
   Crown,
+  Radio,
+  Users,
+  Sparkles,
+  Loader2,
 } from "lucide-react";
 import Link from "next/link";
 import { Avatar } from "@/components/ui/Avatar";
@@ -28,111 +33,275 @@ import {
   getDatingGoalLabels,
 } from "@/lib/data/profileOptions";
 import { getCountries, getRegions, getCities } from "@/lib/data/locations";
+import {
+  PEOPLE_SELECT,
+  ONLINE_WINDOW_MS,
+  birthDateBounds,
+  type PeopleCard,
+  type PeopleTab,
+} from "@/lib/data/people-shared";
+import { cn } from "@/lib/utils";
 import type { Profile } from "@/lib/types";
 
-/** Columns needed for cards + filters (avoid select *). Keep in sync with people page. */
-const PEOPLE_SELECT =
-  "id, username, display_name, avatar_url, status, bio, interests, dating_goal, dating_goals, country, region, city, birth_date, gender, available_for_chat, last_seen, role, premium_until, looking_for, created_at";
+const TABS: { id: PeopleTab; label: string; icon: React.ReactNode }[] = [
+  { id: "nearby", label: "Рядом", icon: <MapPin size={14} /> },
+  { id: "online", label: "Онлайн", icon: <Radio size={14} /> },
+  { id: "available", label: "Общаюсь", icon: <Sparkles size={14} /> },
+  { id: "mutual", label: "Взаимно", icon: <HeartHandshake size={14} /> },
+  { id: "all", label: "Все", icon: <Users size={14} /> },
+];
 
 export function PeopleGrid({
   currentUserId,
   initialUsers = [],
+  viewerCity = null,
+  viewerCountry = null,
 }: {
   currentUserId: string | null;
-  initialUsers?: Profile[];
+  initialUsers?: PeopleCard[];
+  viewerCity?: string | null;
+  viewerCountry?: string | null;
 }) {
   const supabase = useMemo(() => createClient(), []);
   const supa = supabase as any;
-  const [users, setUsers] = useState<Profile[]>(initialUsers);
-  const [loading, setLoading] = useState(initialUsers.length === 0);
+
+  const [users, setUsers] = useState<PeopleCard[]>(initialUsers);
+  const [loading, setLoading] = useState(false);
+  const [tab, setTab] = useState<PeopleTab>("nearby");
   const [query, setQuery] = useState("");
-  const deferredQuery = useDeferredValue(query);
   const [showFilters, setShowFilters] = useState(false);
+  const [likeBusy, setLikeBusy] = useState<string | null>(null);
+  const skipFirst = useRef(true);
+
   const [filters, setFilters] = useState({
     gender: "",
-    country: "",
+    country: viewerCountry ?? "",
     region: "",
-    city: "",
+    city: viewerCity ?? "",
     interests: [] as string[],
     datingGoals: [] as string[],
     minAge: "",
     maxAge: "",
-    onlineOnly: false,
-    availableOnly: false,
   });
-
-  useEffect(() => {
-    // Server already hydrated the list — no client waterfall on first paint.
-    if (initialUsers.length > 0) return;
-
-    let active = true;
-    setLoading(true);
-
-    let q = supa
-      .from("profiles")
-      .select(PEOPLE_SELECT)
-      .order("last_seen", { ascending: false })
-      .limit(60);
-
-    if (currentUserId) {
-      q = q.neq("id", currentUserId);
-    }
-
-    q.then(({ data }: any) => {
-      if (!active) return;
-      setUsers((data ?? []) as Profile[]);
-      setLoading(false);
-    });
-
-    return () => {
-      active = false;
-    };
-  }, [currentUserId, initialUsers.length, supa]);
 
   const countries = useMemo(() => getCountries(), []);
-  const regions = useMemo(() => getRegions(filters.country), [filters.country]);
-  const cities = useMemo(() => getCities(filters.country, filters.region), [filters.country, filters.region]);
+  const regions = useMemo(
+    () => getRegions(filters.country),
+    [filters.country]
+  );
+  const cities = useMemo(
+    () => getCities(filters.country, filters.region),
+    [filters.country, filters.region]
+  );
 
-  const filtered = users.filter((u) => {
-    if (deferredQuery) {
-      const q = deferredQuery.toLowerCase();
-      const matchesName =
-        u.display_name?.toLowerCase().includes(q) ||
-        u.username.toLowerCase().includes(q) ||
-        u.bio?.toLowerCase().includes(q) ||
-        u.city?.toLowerCase().includes(q) ||
-        getDatingGoalLabels(u.dating_goals, u.dating_goal).some((goal) => goal.toLowerCase().includes(q)) ||
-        u.interests.some((interest) => interest.toLowerCase().includes(q));
-      if (!matchesName) return false;
+  const fetchPeople = useCallback(async () => {
+    setLoading(true);
+    try {
+      // Mutual tab needs likes table
+      if (tab === "mutual" && currentUserId) {
+        const [{ data: iLiked }, { data: likedMe }] = await Promise.all([
+          supa.from("profile_likes").select("to_id").eq("from_id", currentUserId),
+          supa.from("profile_likes").select("from_id").eq("to_id", currentUserId),
+        ]);
+        const a = new Set((iLiked ?? []).map((r: any) => r.to_id as string));
+        const b = new Set((likedMe ?? []).map((r: any) => r.from_id as string));
+        const mutualIds = [...a].filter((id) => b.has(id));
+        if (mutualIds.length === 0) {
+          setUsers([]);
+          setLoading(false);
+          return;
+        }
+        let q = supa
+          .from("profiles")
+          .select(PEOPLE_SELECT)
+          .in("id", mutualIds.slice(0, 80))
+          .order("last_seen", { ascending: false })
+          .limit(48);
+        if (filters.gender) q = q.eq("gender", filters.gender);
+        if (filters.city) q = q.eq("city", filters.city);
+        const { data } = await q;
+        setUsers(
+          ((data ?? []) as PeopleCard[]).map((p) => ({
+            ...p,
+            iLiked: true,
+            likedMe: true,
+            isMutual: true,
+          }))
+        );
+        setLoading(false);
+        return;
+      }
+
+      let q = supa.from("profiles").select(PEOPLE_SELECT).limit(48);
+      if (currentUserId) q = q.neq("id", currentUserId);
+
+      if (filters.gender) q = q.eq("gender", filters.gender);
+      if (filters.country) q = q.eq("country", filters.country);
+      if (filters.region) q = q.eq("region", filters.region);
+      if (filters.city) q = q.eq("city", filters.city);
+      if (filters.interests.length) {
+        q = q.overlaps("interests", filters.interests.slice(0, 12));
+      }
+      if (filters.datingGoals.length) {
+        q = q.overlaps("dating_goals", filters.datingGoals.slice(0, 12));
+      }
+
+      const { minBirth, maxBirth } = birthDateBounds(
+        filters.minAge ? Number(filters.minAge) : null,
+        filters.maxAge ? Number(filters.maxAge) : null
+      );
+      if (minBirth) q = q.gte("birth_date", minBirth);
+      if (maxBirth) q = q.lte("birth_date", maxBirth);
+
+      const qText = query.trim().replace(/[%_,.()"'\\]/g, "").slice(0, 60);
+      if (qText) {
+        q = q.or(
+          `username.ilike.%${qText}%,display_name.ilike.%${qText}%,city.ilike.%${qText}%,bio.ilike.%${qText}%`
+        );
+      }
+
+      if (tab === "online") {
+        const since = new Date(Date.now() - ONLINE_WINDOW_MS).toISOString();
+        q = q.gte("last_seen", since).order("last_seen", { ascending: false });
+      } else if (tab === "available") {
+        q = q
+          .eq("available_for_chat", true)
+          .order("last_seen", { ascending: false });
+      } else if (tab === "nearby") {
+        const city = filters.city || viewerCity;
+        const country = filters.country || viewerCountry;
+        if (city) q = q.eq("city", city);
+        else if (country) q = q.eq("country", country);
+        q = q.order("last_seen", { ascending: false });
+      } else {
+        q = q.order("last_seen", { ascending: false });
+      }
+
+      const { data, error } = await q;
+      if (error) {
+        console.error(error);
+        setUsers([]);
+        setLoading(false);
+        return;
+      }
+
+      let rows = (data ?? []) as PeopleCard[];
+
+      // Nearby fallback if city filter empty
+      if (tab === "nearby" && rows.length < 6 && viewerCity && !filters.city) {
+        const { data: more } = await supa
+          .from("profiles")
+          .select(PEOPLE_SELECT)
+          .neq("id", currentUserId)
+          .order("last_seen", { ascending: false })
+          .limit(48);
+        const seen = new Set(rows.map((r) => r.id));
+        for (const p of more ?? []) {
+          if (!seen.has(p.id)) rows.push(p as PeopleCard);
+        }
+      }
+
+      // Enrich likes
+      if (currentUserId && rows.length > 0) {
+        const ids = rows.map((r) => r.id);
+        const [{ data: fromMe }, { data: toMe }] = await Promise.all([
+          supa
+            .from("profile_likes")
+            .select("to_id")
+            .eq("from_id", currentUserId)
+            .in("to_id", ids),
+          supa
+            .from("profile_likes")
+            .select("from_id")
+            .eq("to_id", currentUserId)
+            .in("from_id", ids),
+        ]);
+        const iLiked = new Set(
+          (fromMe ?? []).map((r: any) => r.to_id as string)
+        );
+        const likedMe = new Set(
+          (toMe ?? []).map((r: any) => r.from_id as string)
+        );
+        rows = rows.map((p) => ({
+          ...p,
+          iLiked: iLiked.has(p.id),
+          likedMe: likedMe.has(p.id),
+          isMutual: iLiked.has(p.id) && likedMe.has(p.id),
+        }));
+      }
+
+      setUsers(rows);
+    } finally {
+      setLoading(false);
     }
-    if (filters.gender && u.gender !== filters.gender) return false;
-    if (filters.city && u.city?.toLowerCase() !== filters.city.toLowerCase()) return false;
-    if (
-      filters.interests.length > 0 &&
-      !filters.interests.some((interest) =>
-        u.interests.some((ui) => {
-          const option = SEXUAL_INTERESTS.find((item) => item.value === interest);
-          return ui === interest || ui === option?.label;
-        })
-      )
-    )
-      return false;
-    if (
-      filters.datingGoals.length > 0 &&
-      !filters.datingGoals.some((goal) =>
-        (u.dating_goals?.length ? u.dating_goals : u.dating_goal ? [u.dating_goal] : []).includes(goal)
-      )
-    )
-      return false;
-    if (filters.onlineOnly && !isOnline(u.last_seen)) return false;
-    if (filters.availableOnly && !u.available_for_chat) return false;
+  }, [
+    currentUserId,
+    filters,
+    query,
+    supa,
+    tab,
+    viewerCity,
+    viewerCountry,
+  ]);
 
-    const age = ageFromBirthDate(u.birth_date);
-    if (filters.minAge && age !== null && age < Number(filters.minAge)) return false;
-    if (filters.maxAge && age !== null && age > Number(filters.maxAge)) return false;
+  // Initial paint uses server data; refetch on tab/filter changes
+  useEffect(() => {
+    if (skipFirst.current) {
+      skipFirst.current = false;
+      return;
+    }
+    const t = window.setTimeout(() => void fetchPeople(), 280);
+    return () => window.clearTimeout(t);
+  }, [fetchPeople]);
 
-    return true;
-  });
+  async function toggleLike(userId: string) {
+    if (!currentUserId) return;
+    setLikeBusy(userId);
+    const target = users.find((u) => u.id === userId);
+    const liked = !!target?.iLiked;
+
+    // Optimistic
+    setUsers((prev) =>
+      prev.map((u) => {
+        if (u.id !== userId) return u;
+        const iLiked = !liked;
+        const isMutual = iLiked && !!u.likedMe;
+        return { ...u, iLiked, isMutual };
+      })
+    );
+
+    if (liked) {
+      await supa
+        .from("profile_likes")
+        .delete()
+        .eq("from_id", currentUserId)
+        .eq("to_id", userId);
+    } else {
+      const { error } = await supa.from("profile_likes").insert({
+        from_id: currentUserId,
+        to_id: userId,
+      });
+      if (error && error.code !== "23505") {
+        // revert
+        setUsers((prev) =>
+          prev.map((u) =>
+            u.id === userId
+              ? {
+                  ...u,
+                  iLiked: liked,
+                  isMutual: liked && !!u.likedMe,
+                }
+              : u
+          )
+        );
+      }
+    }
+    setLikeBusy(null);
+  }
+
+  function hasPremium(user: Profile) {
+    return !!user.premium_until && new Date(user.premium_until) > new Date();
+  }
 
   function toggleInterestFilter(value: string) {
     setFilters((prev) => ({
@@ -152,13 +321,9 @@ export function PeopleGrid({
     }));
   }
 
-  function hasPremium(user: Profile) {
-    return !!user.premium_until && new Date(user.premium_until) > new Date();
-  }
-
   return (
     <div>
-      <div className="mb-6">
+      <div className="mb-5">
         <motion.h1
           initial={{ opacity: 0, x: -10 }}
           animate={{ opacity: 1, x: 0 }}
@@ -167,8 +332,29 @@ export function PeopleGrid({
           Люди
         </motion.h1>
         <p className="text-sm text-slate-500">
-          Знакомьтесь и находите новых друзей
+          Интерес без чата · взаимно — особый статус
+          {viewerCity ? ` · рядом: ${viewerCity}` : ""}
         </p>
+      </div>
+
+      {/* Tabs */}
+      <div className="mb-4 flex gap-1 overflow-x-auto rounded-xl border border-gold/15 bg-base-900/60 p-1">
+        {TABS.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => setTab(t.id)}
+            className={cn(
+              "relative flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-medium transition-colors sm:px-3 sm:text-sm",
+              tab === t.id
+                ? "bg-accent-gradient text-white shadow-glow-accent"
+                : "text-slate-500 hover:text-warm-100"
+            )}
+          >
+            {t.icon}
+            {t.label}
+          </button>
+        ))}
       </div>
 
       <div className="mb-4 flex gap-2">
@@ -180,7 +366,7 @@ export function PeopleGrid({
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Поиск по имени, городу, интересам…"
+            placeholder="Имя, город, bio…"
             className="pl-10"
           />
         </div>
@@ -203,11 +389,15 @@ export function PeopleGrid({
           <GlassCard className="space-y-4 p-4">
             <div className="grid grid-cols-2 items-end gap-3 sm:flex sm:flex-wrap">
               <div className="col-span-2 sm:col-span-1">
-                <label className="mb-1 block text-xs text-slate-500">Я ищу</label>
+                <label className="mb-1 block text-xs text-slate-500">
+                  Я ищу
+                </label>
                 <select
                   value={filters.gender}
-                  onChange={(e) => setFilters({ ...filters, gender: e.target.value })}
-                  className="h-9 w-full min-w-0 rounded-lg border border-gold/15 bg-base-800 px-2 text-sm text-white transition-colors focus:border-gold/50"
+                  onChange={(e) =>
+                    setFilters({ ...filters, gender: e.target.value })
+                  }
+                  className="h-9 w-full min-w-0 rounded-lg border border-gold/15 bg-base-800 px-2 text-sm text-white"
                 >
                   <option value="">Всех</option>
                   {GENDER_OPTIONS.map((g) => (
@@ -218,13 +408,17 @@ export function PeopleGrid({
                 </select>
               </div>
               <div>
-                <label className="mb-1 block text-xs text-slate-500">Возраст от</label>
+                <label className="mb-1 block text-xs text-slate-500">
+                  Возраст от
+                </label>
                 <Input
                   type="number"
                   value={filters.minAge}
-                  onChange={(e) => setFilters({ ...filters, minAge: e.target.value })}
+                  onChange={(e) =>
+                    setFilters({ ...filters, minAge: e.target.value })
+                  }
                   className="h-9 w-20"
-                  min={0}
+                  min={18}
                 />
               </div>
               <div>
@@ -232,34 +426,12 @@ export function PeopleGrid({
                 <Input
                   type="number"
                   value={filters.maxAge}
-                  onChange={(e) => setFilters({ ...filters, maxAge: e.target.value })}
+                  onChange={(e) =>
+                    setFilters({ ...filters, maxAge: e.target.value })
+                  }
                   className="h-9 w-20"
-                  min={0}
+                  min={18}
                 />
-              </div>
-              <div className="col-span-2 flex flex-col gap-2 sm:col-span-1">
-                <label className="flex items-center gap-2 text-sm text-slate-300">
-                  <input
-                    type="checkbox"
-                    checked={filters.onlineOnly}
-                    onChange={(e) =>
-                      setFilters({ ...filters, onlineOnly: e.target.checked })
-                    }
-                    className="rounded border-white/20 bg-base-800 accent-accent"
-                  />
-                  Только онлайн
-                </label>
-                <label className="flex items-center gap-2 text-sm text-emerald-400">
-                  <input
-                    type="checkbox"
-                    checked={filters.availableOnly}
-                    onChange={(e) =>
-                      setFilters({ ...filters, availableOnly: e.target.checked })
-                    }
-                    className="rounded border-white/20 bg-base-800 accent-emerald-500"
-                  />
-                  Готовы пообщаться
-                </label>
               </div>
             </div>
 
@@ -272,26 +444,39 @@ export function PeopleGrid({
                 <select
                   value={filters.country}
                   onChange={(e) =>
-                    setFilters({ ...filters, country: e.target.value, region: "", city: "" })
+                    setFilters({
+                      ...filters,
+                      country: e.target.value,
+                      region: "",
+                      city: "",
+                    })
                   }
-                  className="h-9 w-full min-w-0 rounded-lg border border-gold/15 bg-base-800 px-2 text-sm text-white transition-colors focus:border-gold/50"
+                  className="h-9 w-full rounded-lg border border-gold/15 bg-base-800 px-2 text-sm text-white"
                 >
                   <option value="">Страна</option>
                   {countries.map((c) => (
-                    <option key={c} value={c}>{c}</option>
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
                   ))}
                 </select>
                 {filters.country && (
                   <select
                     value={filters.region}
                     onChange={(e) =>
-                      setFilters({ ...filters, region: e.target.value, city: "" })
+                      setFilters({
+                        ...filters,
+                        region: e.target.value,
+                        city: "",
+                      })
                     }
-                    className="h-9 w-full min-w-0 rounded-lg border border-gold/15 bg-base-800 px-2 text-sm text-white transition-colors focus:border-gold/50"
+                    className="h-9 w-full rounded-lg border border-gold/15 bg-base-800 px-2 text-sm text-white"
                   >
                     <option value="">Регион</option>
                     {regions.map((r) => (
-                      <option key={r} value={r}>{r}</option>
+                      <option key={r} value={r}>
+                        {r}
+                      </option>
                     ))}
                   </select>
                 )}
@@ -301,23 +486,31 @@ export function PeopleGrid({
                     onChange={(e) =>
                       setFilters({ ...filters, city: e.target.value })
                     }
-                    className="h-9 w-full min-w-0 rounded-lg border border-gold/15 bg-base-800 px-2 text-sm text-white transition-colors focus:border-gold/50"
+                    className="h-9 w-full rounded-lg border border-gold/15 bg-base-800 px-2 text-sm text-white"
                   >
                     <option value="">Город</option>
                     {cities.map((c) => (
-                      <option key={c} value={c}>{c}</option>
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
                     ))}
                   </select>
                 )}
                 {(filters.country || filters.region || filters.city) && (
                   <button
+                    type="button"
                     onClick={() =>
-                      setFilters({ ...filters, country: "", region: "", city: "" })
+                      setFilters({
+                        ...filters,
+                        country: "",
+                        region: "",
+                        city: "",
+                      })
                     }
-                    className="flex h-9 items-center justify-center gap-1 rounded-lg border border-gold/15 bg-base-800 px-2 text-xs text-slate-400 transition-colors hover:text-white min-[420px]:justify-start"
+                    className="flex h-9 items-center gap-1 rounded-lg border border-gold/15 px-2 text-xs text-slate-400"
                   >
                     <X size={12} />
-                    Сбросить
+                    Сбросить локацию
                   </button>
                 )}
               </div>
@@ -325,19 +518,20 @@ export function PeopleGrid({
 
             <div>
               <label className="mb-1 block text-xs text-slate-500">
-                <HeartHandshake size={12} className="mr-1 inline" />
                 Цель знакомства
               </label>
               <div className="flex flex-wrap gap-1.5">
                 {DATING_GOALS.map((goal) => (
                   <button
                     key={goal.value}
+                    type="button"
                     onClick={() => toggleDatingGoalFilter(goal.value)}
-                    className={`rounded-full border px-2.5 py-1 text-[11px] font-medium transition-all ${
+                    className={cn(
+                      "rounded-full border px-2.5 py-1 text-[11px] font-medium",
                       filters.datingGoals.includes(goal.value)
                         ? "border-gold/40 bg-gold/20 text-gold-soft"
-                        : "border-gold/10 bg-base-800/60 text-slate-400 hover:border-gold/25 hover:text-slate-300"
-                    }`}
+                        : "border-gold/10 text-slate-400"
+                    )}
                   >
                     {goal.label}
                   </button>
@@ -353,12 +547,14 @@ export function PeopleGrid({
                 {SEXUAL_INTERESTS.map((interest) => (
                   <button
                     key={interest.value}
+                    type="button"
                     onClick={() => toggleInterestFilter(interest.value)}
-                    className={`rounded-full border px-2.5 py-1 text-[11px] font-medium transition-all ${
+                    className={cn(
+                      "rounded-full border px-2.5 py-1 text-[11px] font-medium",
                       filters.interests.includes(interest.value)
-                        ? "border-accent/40 bg-accent/20 text-accent-light"
-                        : "border-gold/10 bg-base-800/60 text-slate-400 hover:border-gold/25 hover:text-slate-300"
-                    }`}
+                        ? "border-accent/40 bg-accent/20 text-accent-soft"
+                        : "border-gold/10 text-slate-400"
+                    )}
                   >
                     {interest.label}
                   </button>
@@ -375,35 +571,54 @@ export function PeopleGrid({
             <SkeletonCard key={i} />
           ))}
         </div>
-      ) : filtered.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-white/[0.08] p-12 text-center">
-          <p className="text-slate-300">Никого не найдено</p>
+      ) : users.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-gold/15 p-12 text-center">
+          <p className="text-slate-300">
+            {tab === "mutual"
+              ? "Пока нет взаимных интересов"
+              : tab === "online"
+                ? "Сейчас никто не в сети"
+                : tab === "available"
+                  ? "Никто не отметил «готов(а) пообщаться»"
+                  : "Никого не найдено"}
+          </p>
+          <p className="mt-1 text-sm text-slate-500">
+            {tab === "mutual"
+              ? "Ставьте «Интерес» — когда ответят взаимно, человек появится здесь"
+              : "Смените вкладку или ослабьте фильтры"}
+          </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {filtered.map((user, i) => (
+          {users.map((user, i) => (
             <motion.div
               key={user.id}
-              initial={{ opacity: 0, y: 16, scale: 0.97 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{
-                delay: Math.min(i * 0.05, 0.3),
-                duration: 0.4,
-                ease: [0.22, 1, 0.36, 1],
-              }}
-              className="flex flex-col h-full"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: Math.min(i * 0.04, 0.2), duration: 0.3 }}
+              className="flex h-full flex-col"
             >
-              <GlassCard interactive className="group relative flex flex-1 flex-col justify-between overflow-hidden p-4 h-full">
-                <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-accent/[0.03] to-gold/[0.02] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
-
+              <GlassCard
+                interactive
+                className={cn(
+                  "group relative flex h-full flex-1 flex-col justify-between overflow-hidden p-4",
+                  user.isMutual && "border-rose-400/25 ring-1 ring-rose-400/15"
+                )}
+              >
+                {user.isMutual && (
+                  <span className="absolute left-3 top-3 z-10 flex items-center gap-1 rounded-full border border-rose-400/30 bg-rose-500/15 px-2 py-0.5 text-[10px] font-semibold text-rose-300">
+                    <HeartHandshake size={10} />
+                    Взаимно
+                  </span>
+                )}
                 {user.available_for_chat && (
-                  <span className="absolute right-4 top-4 flex items-center gap-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 text-[10px] font-medium text-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.15)] animate-pulse">
+                  <span className="absolute right-3 top-3 flex items-center gap-1 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-400">
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                    Общаюсь сейчас
+                    Общаюсь
                   </span>
                 )}
 
-                <div className="relative flex items-start gap-3">
+                <div className="relative mt-5 flex items-start gap-3">
                   <Avatar
                     src={user.avatar_url}
                     name={user.display_name ?? user.username}
@@ -413,14 +628,18 @@ export function PeopleGrid({
                   />
                   <div className="min-w-0 flex-1">
                     <Link href={`/profile/${user.id}`}>
-                      <p className="flex min-w-0 flex-wrap items-center gap-1.5 break-words font-medium text-white transition-colors hover:text-gradient">
+                      <p className="flex flex-wrap items-center gap-1.5 font-medium text-white hover:text-gold-soft">
                         {user.display_name ?? user.username}
                         {hasPremium(user) && (
                           <Crown
                             size={14}
-                            className="shrink-0 fill-current text-gold-soft drop-shadow-[0_0_8px_rgb(var(--gold-glow)/0.45)]"
-                            aria-label="Премиум"
+                            className="shrink-0 fill-current text-gold-soft"
                           />
+                        )}
+                        {isOnline(user.last_seen) && (
+                          <span className="text-[10px] font-normal text-emerald-400">
+                            online
+                          </span>
                         )}
                       </p>
                     </Link>
@@ -430,10 +649,16 @@ export function PeopleGrid({
                         {user.bio}
                       </p>
                     )}
-                    {getDatingGoalLabels(user.dating_goals, user.dating_goal).length > 0 && (
+                    {getDatingGoalLabels(user.dating_goals, user.dating_goal)
+                      .length > 0 && (
                       <span className="mt-2 inline-flex max-w-full items-center gap-1 rounded-full border border-gold/20 bg-gold/10 px-2 py-0.5 text-[11px] text-gold-soft">
                         <HeartHandshake size={11} />
-                        <span className="truncate">{getDatingGoalLabels(user.dating_goals, user.dating_goal).join(" · ")}</span>
+                        <span className="truncate">
+                          {getDatingGoalLabels(
+                            user.dating_goals,
+                            user.dating_goal
+                          ).join(" · ")}
+                        </span>
                       </span>
                     )}
                     <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-500">
@@ -455,10 +680,15 @@ export function PeopleGrid({
                           Готов(а) общаться
                         </span>
                       )}
+                      {user.likedMe && !user.isMutual && (
+                        <span className="text-rose-300/90">
+                          Интересуется вами
+                        </span>
+                      )}
                     </div>
-                    {user.interests.length > 0 && (
+                    {user.interests?.length > 0 && (
                       <div className="mt-2 flex flex-wrap gap-1">
-                        {user.interests.slice(0, 4).map((interest) => (
+                        {(user.interests ?? []).slice(0, 4).map((interest: string) => (
                           <Tag key={interest} label={interest} />
                         ))}
                       </div>
@@ -467,11 +697,44 @@ export function PeopleGrid({
                 </div>
 
                 {currentUserId && (
-                  <div className="relative mt-3 flex justify-end">
-                    <Link href={`/chat/${user.id}`} className="w-full min-[420px]:w-auto">
-                      <Button variant="outline" size="sm" className="w-full min-[420px]:w-auto">
+                  <div className="relative mt-3 flex flex-wrap gap-2">
+                    <Button
+                      variant={user.iLiked ? "primary" : "outline"}
+                      size="sm"
+                      className="flex-1"
+                      disabled={likeBusy === user.id}
+                      onClick={() => toggleLike(user.id)}
+                    >
+                      {likeBusy === user.id ? (
+                        <Loader2 size={14} className="animate-spin" />
+                      ) : (
+                        <Heart
+                          size={14}
+                          className={user.iLiked ? "fill-current" : ""}
+                        />
+                      )}
+                      {user.isMutual
+                        ? "Взаимно"
+                        : user.iLiked
+                          ? "Есть интерес"
+                          : "Интерес"}
+                    </Button>
+                    <Link
+                      href={`/chat/${user.id}`}
+                      className="min-w-[7.5rem] flex-1"
+                    >
+                      <Button
+                        size="sm"
+                        className={cn(
+                          "w-full",
+                          user.isMutual
+                            ? "bg-emerald-600/90 hover:bg-emerald-600"
+                            : ""
+                        )}
+                        variant={user.isMutual ? "primary" : "outline"}
+                      >
                         <MessageCircle size={14} />
-                        Написать
+                        {user.isMutual ? "Написать ✓" : "Написать"}
                       </Button>
                     </Link>
                   </div>
@@ -494,7 +757,6 @@ function SkeletonCard() {
           <div className="h-4 w-32 rounded bg-white/[0.06]" />
           <div className="h-3 w-24 rounded bg-white/[0.04]" />
           <div className="mt-2 h-3 w-full rounded bg-white/[0.04]" />
-          <div className="h-3 w-3/4 rounded bg-white/[0.04]" />
         </div>
       </div>
     </div>
