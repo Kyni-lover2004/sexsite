@@ -10,7 +10,7 @@ export function ProfileHeader({ profile, isOwn, available, onToggleAvailable, on
   const age = ageFromBirthDate(profile.birth_date);
   const gender = profile.gender === "male" ? "👨 Мужчина" : profile.gender === "female" ? "👩 Женщина" : profile.gender === "couple_mf" ? "👫 Пара МЖ" : null;
   return (
-    <header className="fixed left-4 right-4 top-[calc(5.5rem+env(safe-area-inset-top))] z-40 rounded-2xl border border-gold/15 bg-gradient-to-br from-gold/20 via-accent-deep/10 to-gold/10 p-4 backdrop-blur-xl sm:p-5 md:left-64 md:right-0 md:top-24 md:mx-auto md:max-w-4xl md:px-8">
+    <header className="fixed left-4 right-4 top-[calc(4.5rem+env(safe-area-inset-top))] z-40 rounded-2xl border border-gold/15 bg-gradient-to-br from-gold/20 via-accent-deep/10 to-gold/10 p-4 backdrop-blur-xl sm:p-5 md:left-64 md:right-0 md:top-14 md:mx-auto md:max-w-4xl md:px-8">
       <div className="flex items-start gap-3 sm:gap-4">
         <Avatar src={profile.avatar_url} name={profile.display_name ?? profile.username} size="xl" lastSeen={profile.last_seen} showPresence />
         <div className="min-w-0 flex-1">
