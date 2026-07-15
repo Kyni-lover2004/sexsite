@@ -482,7 +482,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
       country: form.country || null,
       region: form.region || null,
       city: form.city || null,
-      birth_date: form.birth_date || null,
+      birth_date: form.birth_date && form.birth_date.split("-").every(Boolean) && form.birth_date.split("-").length === 3 ? form.birth_date : null,
       gender: form.gender,
       dating_goal: form.dating_goals[0] || null,
       dating_goals: form.dating_goals,
@@ -610,12 +610,12 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
   }
 
   function setBirthDateFromComponents(year: string, month: string, day: string) {
-    if (year && month && day) {
-      const paddedMonth = month.padStart(2, "0");
-      const paddedDay = day.padStart(2, "0");
-      setForm({ ...form, birth_date: `${year}-${paddedMonth}-${paddedDay}` });
-    } else {
+    if (!year && !month && !day) {
       setForm({ ...form, birth_date: "" });
+    } else {
+      const paddedMonth = month ? month.padStart(2, "0") : "";
+      const paddedDay = day ? day.padStart(2, "0") : "";
+      setForm({ ...form, birth_date: `${year}-${paddedMonth}-${paddedDay}` });
     }
   }
 

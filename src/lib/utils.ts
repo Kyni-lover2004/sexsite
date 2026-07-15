@@ -46,6 +46,7 @@ export function isOnline(lastSeen: string | null | undefined): boolean {
 export function ageFromBirthDate(birthDate: string | null): number | null {
   if (!birthDate) return null;
   const bd = new Date(birthDate);
+  if (isNaN(bd.getTime())) return null;
   const now = new Date();
   let age = now.getFullYear() - bd.getFullYear();
   const m = now.getMonth() - bd.getMonth();
