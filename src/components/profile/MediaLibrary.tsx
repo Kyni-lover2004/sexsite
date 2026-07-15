@@ -20,7 +20,7 @@ export function MediaLibrary({ kind, userId, initialItems, initialAlbums = [] }:
   const [creatingAlbum, setCreatingAlbum] = useState(false);
   
   // Filter for viewing
-  const [viewAlbumId, setViewAlbumId] = useState<string>("all");
+  const [viewAlbumId, setViewAlbumId] = useState<string>("main");
 
   async function createAlbum() {
     if (!newAlbumName.trim()) return;
@@ -87,11 +87,9 @@ export function MediaLibrary({ kind, userId, initialItems, initialAlbums = [] }:
   }
 
   // filter items based on viewAlbumId
-  const displayedItems = viewAlbumId === "all" 
-    ? items 
-    : viewAlbumId === "main" 
-      ? items.filter(i => !i.album_id) 
-      : items.filter(i => i.album_id === viewAlbumId);
+  const displayedItems = viewAlbumId === "main" 
+    ? items.filter((i: any) => !i.album_id) 
+    : items.filter((i: any) => i.album_id === viewAlbumId);
 
   return (
     <div className="space-y-6">
@@ -157,12 +155,6 @@ export function MediaLibrary({ kind, userId, initialItems, initialAlbums = [] }:
       {/* Viewing controls */}
       {kind === "photo" && (
         <div className="flex overflow-x-auto pb-2 gap-2 scrollbar-hide">
-          <button 
-            onClick={() => setViewAlbumId("all")}
-            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${viewAlbumId === "all" ? "bg-gold text-base-900" : "bg-base-800 text-slate-400 hover:text-slate-200 border border-gold/10"}`}
-          >
-            Все фото
-          </button>
           <button 
             onClick={() => setViewAlbumId("main")}
             className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${viewAlbumId === "main" ? "bg-gold text-base-900" : "bg-base-800 text-slate-400 hover:text-slate-200 border border-gold/10"}`}
