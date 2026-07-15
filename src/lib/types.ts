@@ -18,6 +18,7 @@ export interface Profile {
   bio: string | null;
   interests: string[];
   dating_goal: string | null;
+  dating_goals: string[];
   country: string | null;
   region: string | null;
   city: string | null;
@@ -38,6 +39,8 @@ export interface Profile {
   mobility: string | null;
   height: number | null;
   weight: number | null;
+  breast_size: string | null;
+  penis_size: string | null;
   smoking_attitude: string | null;
   drinking_attitude: string | null;
   orientation_roles: string[];

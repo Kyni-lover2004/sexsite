@@ -25,7 +25,7 @@ import {
   GENDER_OPTIONS,
   DATING_GOALS,
   SEXUAL_INTERESTS,
-  getDatingGoalLabel,
+  getDatingGoalLabels,
 } from "@/lib/data/profileOptions";
 import { getCountries, getRegions, getCities } from "@/lib/data/locations";
 import type { Profile } from "@/lib/types";
@@ -81,7 +81,7 @@ export function PeopleGrid({ currentUserId }: { currentUserId: string | null }) 
         u.username.toLowerCase().includes(q) ||
         u.bio?.toLowerCase().includes(q) ||
         u.city?.toLowerCase().includes(q) ||
-        getDatingGoalLabel(u.dating_goal)?.toLowerCase().includes(q) ||
+        getDatingGoalLabels(u.dating_goals, u.dating_goal).some((goal) => goal.toLowerCase().includes(q)) ||
         u.interests.some((interest) => interest.toLowerCase().includes(q));
       if (!matchesName) return false;
     }
@@ -96,7 +96,9 @@ export function PeopleGrid({ currentUserId }: { currentUserId: string | null }) 
       return false;
     if (
       filters.datingGoals.length > 0 &&
-      !filters.datingGoals.includes(u.dating_goal ?? "")
+      !filters.datingGoals.some((goal) =>
+        (u.dating_goals?.length ? u.dating_goals : u.dating_goal ? [u.dating_goal] : []).includes(goal)
+      )
     )
       return false;
     if (filters.onlineOnly && !isOnline(u.last_seen)) return false;
@@ -405,10 +407,10 @@ export function PeopleGrid({ currentUserId }: { currentUserId: string | null }) 
                         {user.bio}
                       </p>
                     )}
-                    {getDatingGoalLabel(user.dating_goal) && (
-                        <span className="mt-2 inline-flex max-w-full items-center gap-1 rounded-full border border-gold/20 bg-gold/10 px-2 py-0.5 text-[11px] text-gold-soft">
+                    {getDatingGoalLabels(user.dating_goals, user.dating_goal).length > 0 && (
+                      <span className="mt-2 inline-flex max-w-full items-center gap-1 rounded-full border border-gold/20 bg-gold/10 px-2 py-0.5 text-[11px] text-gold-soft">
                         <HeartHandshake size={11} />
-                          <span className="truncate">{getDatingGoalLabel(user.dating_goal)}</span>
+                        <span className="truncate">{getDatingGoalLabels(user.dating_goals, user.dating_goal).join(" · ")}</span>
                       </span>
                     )}
                     <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-500">

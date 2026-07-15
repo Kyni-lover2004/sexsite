@@ -34,6 +34,7 @@ create table if not exists public.profiles (
   bio          text,
   interests    text[] default '{}',         -- tags / interests
   dating_goal  text,                        -- why the person wants to meet
+  dating_goals text[] default '{}',         -- selected meeting goals
   city         text,
   birth_date   date,                        -- age is derived, never stored raw
   gender       gender default 'prefer_not_to_say',
@@ -52,6 +53,7 @@ create table if not exists public.profiles (
 
 alter table public.profiles
   add column if not exists dating_goal text,
+  add column if not exists dating_goals text[] default '{}',
   add column if not exists banned_until timestamptz,
   add column if not exists ban_reason text,
   add column if not exists banned_by uuid references public.profiles (id) on delete set null,
@@ -66,9 +68,17 @@ alter table public.profiles
   add column if not exists mobility text,
   add column if not exists height integer,
   add column if not exists weight integer,
+  add column if not exists breast_size text,
+  add column if not exists penis_size text,
   add column if not exists smoking_attitude text,
   add column if not exists drinking_attitude text,
   add column if not exists orientation_roles text[] default '{}';
+
+-- Keep existing single-goal profiles visible after enabling multi-select goals.
+update public.profiles
+set dating_goals = array[dating_goal]
+where dating_goal is not null
+  and coalesce(array_length(dating_goals, 1), 0) = 0;
 
 -- Derived age helper (kept out of the table to avoid stale data)
 create or replace function public.profile_age(bd date)

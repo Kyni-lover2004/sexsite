@@ -44,7 +44,19 @@ import {
   SMOKING_ATTITUDE_OPTIONS,
   DRINKING_ATTITUDE_OPTIONS,
   ORIENTATION_ROLES,
+  BREAST_SIZE_OPTIONS,
+  PENIS_SIZE_OPTIONS,
   getDatingGoalLabel,
+  getLookingForLabel,
+  getSmokingAttitudeLabel,
+  getDrinkingAttitudeLabel,
+  getMobilityLabel,
+  normalizeDatingGoal,
+  normalizeLookingFor,
+  normalizeOrientationValues,
+  normalizeSmokingAttitude,
+  normalizeDrinkingAttitude,
+  getOrientationLabel,
   getLabel,
 } from "@/lib/data/profileOptions";
 import type { Profile, ProfilePhoto } from "@/lib/types";
@@ -123,16 +135,23 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
     birth_date: profile.birth_date ?? "",
     gender: profile.gender ?? "prefer_not_to_say",
     dating_goal: profile.dating_goal ?? "",
+    dating_goals: profile.dating_goals?.length
+      ? profile.dating_goals.map(normalizeDatingGoal).filter(Boolean)
+      : profile.dating_goal
+        ? [normalizeDatingGoal(profile.dating_goal)].filter((value): value is string => Boolean(value))
+        : [],
     interests: profile.interests.join(", "),
-    looking_for: profile.looking_for ?? [],
+    looking_for: normalizeLookingFor(profile.looking_for),
     age_preference: profile.age_preference ?? "",
     meeting_place: profile.meeting_place ?? [],
     mobility: profile.mobility ?? "",
     height: profile.height ?? "",
     weight: profile.weight ?? "",
-    smoking_attitude: profile.smoking_attitude ?? "",
-    drinking_attitude: profile.drinking_attitude ?? "",
-    orientation_roles: profile.orientation_roles ?? [],
+    breast_size: profile.breast_size ?? "",
+    penis_size: profile.penis_size ?? "",
+    smoking_attitude: normalizeSmokingAttitude(profile.smoking_attitude),
+    drinking_attitude: normalizeDrinkingAttitude(profile.drinking_attitude),
+    orientation_roles: normalizeOrientationValues(profile.orientation_roles),
   });
 
   const online = isOnline(profile.last_seen);
@@ -421,7 +440,8 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
       city: form.city || null,
       birth_date: form.birth_date || null,
       gender: form.gender,
-      dating_goal: form.dating_goal || null,
+      dating_goal: form.dating_goals[0] || null,
+      dating_goals: form.dating_goals,
       interests,
       looking_for: form.looking_for,
       age_preference: form.age_preference || null,
@@ -429,6 +449,8 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
       mobility: form.mobility || null,
       height: form.height ? Number(form.height) : null,
       weight: form.weight ? Number(form.weight) : null,
+      breast_size: form.breast_size || null,
+      penis_size: form.penis_size || null,
       smoking_attitude: form.smoking_attitude || null,
       drinking_attitude: form.drinking_attitude || null,
       orientation_roles: form.orientation_roles,
@@ -441,8 +463,11 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
 
     if (updateError) {
       console.error("Profile save error:", updateError);
-      if (updateError.message?.includes("dating_goal") || updateError.message?.includes("looking_for")) {
-        const { dating_goal: _d, looking_for: _l, age_preference: _a, meeting_place: _m, mobility: _mo, height: _h, weight: _w, smoking_attitude: _s, drinking_attitude: _dr, orientation_roles: _or, ...fallbackUpdate } = profileUpdate;
+      if (updateError.message?.includes("dating_goal") || updateError.message?.includes("dating_goals") || updateError.message?.includes("breast_size") || updateError.message?.includes("penis_size") || updateError.message?.includes("looking_for")) {
+        const { dating_goals: _ds, breast_size: _bs, penis_size: _ps, ...fallbackUpdate } = profileUpdate;
+        if (updateError.message?.includes("dating_goal") && !updateError.message?.includes("dating_goals")) {
+          delete fallbackUpdate.dating_goal;
+        }
         const { error: fallbackError } = await supa
           .from("profiles")
           .update(fallbackUpdate)
@@ -459,7 +484,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
       }
 
       setSaveError(
-        updateError.message?.includes("dating_goal")
+        updateError.message?.includes("dating_goal") || updateError.message?.includes("dating_goals") || updateError.message?.includes("breast_size") || updateError.message?.includes("penis_size")
           ? "В Supabase еще не применена новая схема профиля. Примените supabase/schema.sql и сохраните профиль снова."
           : `Не удалось сохранить профиль: ${updateError.message}`
       );
@@ -473,11 +498,20 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
   }
 
   const age = ageFromBirthDate(profile.birth_date);
-  const datingGoalLabel = getDatingGoalLabel(profile.dating_goal);
+  const profileDatingGoals = profile.dating_goals?.length
+    ? profile.dating_goals
+    : profile.dating_goal
+      ? [profile.dating_goal]
+      : [];
+  const datingGoalLabels = profileDatingGoals
+    .map((value) => getDatingGoalLabel(value) ?? value)
+    .filter(Boolean);
   const agePrefLabel = getLabel(AGE_PREFERENCE_OPTIONS, profile.age_preference);
-  const mobilityLabel = getLabel(MOBILITY_OPTIONS, profile.mobility);
-  const smokingLabel = getLabel(SMOKING_ATTITUDE_OPTIONS, profile.smoking_attitude);
-  const drinkingLabel = getLabel(DRINKING_ATTITUDE_OPTIONS, profile.drinking_attitude);
+  const mobilityLabel = getMobilityLabel(profile.mobility);
+  const smokingLabel = getSmokingAttitudeLabel(profile.smoking_attitude);
+  const drinkingLabel = getDrinkingAttitudeLabel(profile.drinking_attitude);
+  const breastSizeLabel = getLabel(BREAST_SIZE_OPTIONS, profile.breast_size) ?? profile.breast_size;
+  const penisSizeLabel = profile.penis_size ? `${profile.penis_size} см` : null;
   const selectedInterests = form.interests
     .split(",")
     .map((item) => item.trim())
@@ -489,6 +523,14 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
       ? selectedInterests.filter((item) => item !== interest)
       : [...selectedInterests, interest];
     setForm({ ...form, interests: next.join(", ") });
+  }
+
+  function toggleDatingGoal(value: string) {
+    const exists = form.dating_goals.includes(value);
+    const next = exists
+      ? form.dating_goals.filter((v) => v !== value)
+      : [...form.dating_goals, value];
+    setForm({ ...form, dating_goals: next, dating_goal: next[0] ?? "" });
   }
 
   function toggleLookingFor(value: string) {
@@ -623,14 +665,15 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                       placeholder="Только русские буквы, до 10 символов"
                     />
                   </div>
-                  <div className="order-7 border-t border-gold/10 pt-3">
+                  <div className="order-8 border-t border-gold/10 pt-3">
                     <label className="mb-1.5 block text-xs font-bold uppercase tracking-[0.12em] text-gold-soft/80">
                       О себе:
                     </label>
                     <Textarea
                       value={form.bio}
-                      onChange={(e) => setForm({ ...form, bio: e.target.value })}
+                      onChange={(e) => setForm({ ...form, bio: e.target.value.slice(0, 2000) })}
                       placeholder="Расскажите о себе"
+                      maxLength={2000}
                       rows={3}
                     />
                   </div>
@@ -754,9 +797,15 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                     </label>
                     <select
                       value={form.gender}
-                      onChange={(e) =>
-                        setForm({ ...form, gender: e.target.value as any })
-                      }
+                      onChange={(e) => {
+                        const gender = e.target.value as typeof form.gender;
+                        setForm({
+                          ...form,
+                          gender,
+                          breast_size: gender === "female" ? form.breast_size : "",
+                          penis_size: gender === "male" ? form.penis_size : "",
+                        });
+                      }}
                       className="h-10 w-full rounded-xl border border-gold/15 bg-base-800/60 px-3.5 text-sm text-slate-100 transition-all duration-300 focus:border-gold/50 focus:outline-none focus:ring-2 focus:ring-gold/15"
                     >
                       {GENDER_OPTIONS.map((g) => (
@@ -769,27 +818,24 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                   </div>
                   <div className="order-6 border-t border-gold/10 pt-3">
                     <p className="mb-2 text-xs font-bold uppercase tracking-[0.12em] text-gold-soft/80">
-                      Цели знакомств:
+                      Кого ищете:
                     </p>
                     <label className="mb-1.5 block text-xs font-normal text-slate-400">
-                      Зачем хотите познакомиться
+                      Цель знакомства (можно выбрать несколько вариантов)
                     </label>
-                    <select
-                      value={form.dating_goal}
-                      onChange={(e) =>
-                        setForm({ ...form, dating_goal: e.target.value })
-                      }
-                      className="h-10 w-full rounded-xl border border-gold/15 bg-base-800/60 px-3.5 text-sm text-slate-100 transition-all duration-300 focus:border-gold/50 focus:outline-none focus:ring-2 focus:ring-gold/15"
-                    >
-                      <option value="">Не указано</option>
+                    <div className="flex flex-wrap gap-1.5">
                       {DATING_GOALS.map((goal) => (
-                        <option key={goal.value} value={goal.value}>
-                          {goal.label}
-                        </option>
+                        <Tag
+                          key={goal.value}
+                          label={goal.label}
+                          showHash={false}
+                          active={form.dating_goals.includes(goal.value)}
+                          onClick={() => toggleDatingGoal(goal.value)}
+                        />
                       ))}
-                    </select>
+                    </div>
                   </div>
-                  <div className="order-8 border-t border-gold/10 pt-3">
+                  <div className="order-6 border-t border-gold/10 pt-3">
                     <p className="mb-2 text-xs font-bold text-gold-soft/80 uppercase tracking-[0.12em]">
                       Кого хотелось бы найти:
                     </p>
@@ -901,6 +947,57 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                         />
                       </div>
                     </div>
+                    {form.gender === "female" && (
+                      <div className="mt-3">
+                        <label className="mb-1.5 block text-xs font-normal text-slate-400">
+                          Размер груди
+                        </label>
+                        <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-2">
+                          <select
+                            value={BREAST_SIZE_OPTIONS.some((opt) => opt.value === form.breast_size) ? form.breast_size : ""}
+                            onChange={(e) => setForm({ ...form, breast_size: e.target.value })}
+                            className="h-10 w-full min-w-0 rounded-xl border border-gold/15 bg-base-800/60 px-3 text-sm text-slate-100 transition-all duration-300 focus:border-gold/50 focus:outline-none focus:ring-2 focus:ring-gold/15"
+                          >
+                            <option value="">Выбрать размер</option>
+                            {BREAST_SIZE_OPTIONS.map((option) => (
+                              <option key={option.value} value={option.value}>{option.label}</option>
+                            ))}
+                          </select>
+                          <Input
+                            value={BREAST_SIZE_OPTIONS.some((opt) => opt.value === form.breast_size) ? "" : form.breast_size}
+                            onChange={(e) => setForm({ ...form, breast_size: e.target.value })}
+                            placeholder="Или вручную"
+                          />
+                        </div>
+                      </div>
+                    )}
+                    {form.gender === "male" && (
+                      <div className="mt-3">
+                        <label className="mb-1.5 block text-xs font-normal text-slate-400">
+                          Размер члена (см)
+                        </label>
+                        <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-2">
+                          <select
+                            value={PENIS_SIZE_OPTIONS.some((opt) => opt.value === form.penis_size) ? form.penis_size : ""}
+                            onChange={(e) => setForm({ ...form, penis_size: e.target.value })}
+                            className="h-10 w-full min-w-0 rounded-xl border border-gold/15 bg-base-800/60 px-3 text-sm text-slate-100 transition-all duration-300 focus:border-gold/50 focus:outline-none focus:ring-2 focus:ring-gold/15"
+                          >
+                            <option value="">Выбрать размер</option>
+                            {PENIS_SIZE_OPTIONS.map((option) => (
+                              <option key={option.value} value={option.value}>{option.label}</option>
+                            ))}
+                          </select>
+                          <Input
+                            type="number"
+                            min={1}
+                            max={50}
+                            value={PENIS_SIZE_OPTIONS.some((opt) => opt.value === form.penis_size) ? "" : form.penis_size}
+                            onChange={(e) => setForm({ ...form, penis_size: e.target.value })}
+                            placeholder="Или вручную, см"
+                          />
+                        </div>
+                      </div>
+                    )}
                     <div className="mt-3">
                       <label className="mb-1.5 block text-xs font-normal text-slate-400">
                         Отношение к курению
@@ -933,7 +1030,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                     </div>
                   </div>
 
-                  <div className="order-9 border-t border-gold/10 pt-3">
+                  <div className="order-7 border-t border-gold/10 pt-3">
                     <label className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-gold-soft/80">
                       Интересы:
                     </label>
@@ -1138,15 +1235,19 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                     </div>
                   )}
 
-                  {datingGoalLabel && (
+                  {datingGoalLabels.length > 0 && (
                     <div className="order-4 mt-0 w-full space-y-2 border-x border-t border-gold/10 bg-base-800/45 p-3.5 sm:p-5">
                       <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-gold-soft/60">
                         Цели знакомств:
                       </p>
-                      <p className="text-sm font-normal text-slate-400">
-                        <span className="font-normal">Зачем хотите познакомиться:</span>{" "}
-                        <span className="text-slate-300">{datingGoalLabel}</span>
-                      </p>
+                      <div className="space-y-1.5">
+                        <p className="text-xs font-normal text-slate-400">Цель знакомства:</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {datingGoalLabels.map((label) => (
+                            <Tag key={label} label={label} showHash={false} />
+                          ))}
+                        </div>
+                      </div>
                     </div>
                   )}
 
@@ -1162,7 +1263,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                         <div className="space-y-1.5">
                           <p className="text-xs font-normal text-slate-400">С кем хотите познакомиться:</p>
                           <div className="flex flex-wrap gap-1.5">{profile.looking_for.map((v) => {
-                            const label = LOOKING_FOR_OPTIONS.find((o) => o.value === v)?.label ?? v;
+                            const label = getLookingForLabel(v) ?? v;
                             return <Tag key={v} label={label} showHash={false} />;
                           })}</div>
                         </div>
@@ -1188,15 +1289,19 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                   {(profile.orientation_roles?.length > 0 ||
                     profile.height ||
                     profile.weight ||
+                    profile.breast_size ||
+                    profile.penis_size ||
                     profile.smoking_attitude ||
                     profile.drinking_attitude) && (
                     <div className="order-3 mt-0 w-full space-y-2 rounded-t-2xl border border-gold/10 bg-base-800/45 p-3.5 sm:p-5">
                       <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-gold-soft/60">
                         Личные данные:
                       </p>
-                      {profile.orientation_roles?.length > 0 && <div className="space-y-1.5"><p className="text-xs font-normal text-slate-400">Ориентация:</p><div className="flex flex-wrap gap-1.5">{profile.orientation_roles.map((v) => { const label = ORIENTATION_ROLES.find((o) => o.value === v)?.label ?? v; return <Tag key={v} label={label} showHash={false} />; })}</div></div>}
+                      {profile.orientation_roles?.length > 0 && <div className="space-y-1.5"><p className="text-xs font-normal text-slate-400">Ориентация:</p><div className="flex flex-wrap gap-1.5">{profile.orientation_roles.map((v) => { const label = getOrientationLabel(v) ?? v; return <Tag key={v} label={label} showHash={false} />; })}</div></div>}
                       {profile.height && <p className="text-xs font-normal text-slate-400">Рост: <span className="text-slate-300">{profile.height} см</span></p>}
                       {profile.weight && <p className="text-xs font-normal text-slate-400">Вес: <span className="text-slate-300">{profile.weight} кг</span></p>}
+                      {profile.breast_size && profile.gender === "female" && <p className="text-xs font-normal text-slate-400">Размер груди: <span className="text-slate-300">{breastSizeLabel}</span></p>}
+                      {profile.penis_size && profile.gender === "male" && <p className="text-xs font-normal text-slate-400">Размер члена: <span className="text-slate-300">{penisSizeLabel}</span></p>}
                       {smokingLabel && <p className="text-xs font-normal text-slate-400">Отношение к курению: <span className="text-slate-300">{smokingLabel}</span></p>}
                       {drinkingLabel && <p className="text-xs font-normal text-slate-400">Отношение к алкоголю: <span className="text-slate-300">{drinkingLabel}</span></p>}
                     </div>
