@@ -10,10 +10,12 @@ export default async function GuestsPage() {
   const supabase = createClient();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) redirect("/login?next=/guests");
+  const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
   const { data } = await (supabase as any)
     .from("profile_visits")
     .select("id,visited_at,visitor:profiles!profile_visits_visitor_id_fkey(id,username,display_name,avatar_url,last_seen)")
     .eq("profile_id", auth.user.id)
+    .gte("visited_at", twentyFourHoursAgo)
     .order("visited_at", { ascending: false })
     .limit(100);
 

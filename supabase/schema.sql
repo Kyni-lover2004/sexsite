@@ -504,6 +504,9 @@ create policy profile_visits_select on public.profile_visits
 drop policy if exists profile_visits_insert on public.profile_visits;
 create policy profile_visits_insert on public.profile_visits
   for insert with check (auth.uid() = visitor_id and visitor_id <> profile_id);
+drop policy if exists profile_visits_update on public.profile_visits;
+create policy profile_visits_update on public.profile_visits
+  for update using (auth.uid() = visitor_id) with check (auth.uid() = visitor_id);
 
 -- Friend requests are visible and manageable only by their participants.
 drop policy if exists friendships_select on public.friendships;
