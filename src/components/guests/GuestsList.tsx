@@ -15,6 +15,8 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { createClient } from "@/lib/supabase/client";
 import { timeAgo } from "@/lib/utils";
+import { haptic } from "@/lib/haptic";
+import { EmptyState } from "@/components/ui/EmptyState";
 import type { GuestFriendStatus, GuestListItem } from "@/lib/types";
 
 export function GuestsList({ initialGuests }: { initialGuests: GuestListItem[] }) {
@@ -32,6 +34,7 @@ export function GuestsList({ initialGuests }: { initialGuests: GuestListItem[] }
 
     if (error) {
       console.error(error);
+      haptic("warning");
       return;
     }
 
@@ -39,6 +42,7 @@ export function GuestsList({ initialGuests }: { initialGuests: GuestListItem[] }
     if (data === "accepted" || data === "already") next = "accepted";
     else if (data === "sent") next = "sent";
 
+    haptic(next === "accepted" ? "success" : "medium");
     setGuests((prev) =>
       prev.map((g) =>
         g.visitor.id === guestId ? { ...g, friendStatus: next } : g
@@ -55,9 +59,11 @@ export function GuestsList({ initialGuests }: { initialGuests: GuestListItem[] }
     setBusyId(null);
     if (error) {
       console.error(error);
+      haptic("warning");
       return;
     }
     if (data === "accepted" || data === "already") {
+      haptic("success");
       setGuests((prev) =>
         prev.map((g) =>
           g.visitor.id === guestId
@@ -71,20 +77,13 @@ export function GuestsList({ initialGuests }: { initialGuests: GuestListItem[] }
 
   if (guests.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-gold/15 bg-base-800/30 px-6 py-12 text-center">
-        <EyeEmpty />
-        <p className="mt-3 text-sm text-slate-400">
-          За последние 24 часа гостей не было
-        </p>
-        <p className="mt-1 text-xs text-slate-600">
-          Когда кто-то откроет вашу анкету — он появится здесь
-        </p>
-        <Link href="/people" className="mt-5 inline-block">
-          <Button size="sm" variant="outline">
-            Смотреть людей
-          </Button>
-        </Link>
-      </div>
+      <EmptyState
+        icon={<EyeEmpty />}
+        title="За последние 24 часа гостей не было"
+        description="Когда кто-то откроет вашу анкету — он появится здесь"
+        actionLabel="Смотреть людей"
+        actionHref="/people"
+      />
     );
   }
 
@@ -222,11 +221,9 @@ export function GuestsList({ initialGuests }: { initialGuests: GuestListItem[] }
 
 function EyeEmpty() {
   return (
-    <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl border border-gold/15 bg-gold/5 text-gold-soft/70">
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
-        <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
-        <circle cx="12" cy="12" r="3" />
-      </svg>
-    </div>
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
+      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
   );
 }

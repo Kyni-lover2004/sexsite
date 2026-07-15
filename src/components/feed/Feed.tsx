@@ -22,9 +22,11 @@ import Link from "next/link";
 import { TopicCard } from "./TopicCard";
 import { PeopleStrip } from "./PeopleStrip";
 import { Button } from "@/components/ui/Button";
-import { Skeleton } from "@/components/ui/Skeleton";
 import { createClient } from "@/lib/supabase/client";
 import { scoreTopic } from "@/lib/feed";
+import { haptic } from "@/lib/haptic";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { SkeletonList } from "@/components/ui/Skeleton";
 import type { FeedPerson, FeedTab, TopicWithAuthor } from "@/lib/types";
 
 interface FeedProps {
@@ -186,6 +188,7 @@ export function Feed({
     const target = topics.find((t) => t.id === id);
     if (!target) return;
     const liked = target.liked_by_me;
+    haptic(liked ? "selection" : "light");
 
     startTransition(() =>
       setTopics((prev) =>
@@ -362,15 +365,28 @@ export function Feed({
       </div>
 
       {loading ? (
-        <div className="space-y-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <TopicSkeleton key={i} />
-          ))}
-        </div>
+        <SkeletonList count={4} variant="topic" />
       ) : visible.length === 0 && people.length === 0 ? (
         <EmptyState
-          hasQuery={query.length > 0 || !!tagFilter}
-          interestsEmpty={tab === "interests"}
+          icon={<Sparkles size={22} />}
+          title={
+            query.length > 0 || tagFilter
+              ? "Ничего не найдено"
+              : tab === "interests"
+                ? "Нет тем по вашим интересам"
+                : "Пока нет активных тем"
+          }
+          description={
+            tab === "interests"
+              ? "Добавьте интересы в анкете или создайте тему с вашими тегами"
+              : query || tagFilter
+                ? "Попробуйте другой запрос или сбросьте тег"
+                : "Создайте первую тему и начните обсуждение"
+          }
+          actionLabel={
+            tab === "interests" ? "Моя анкета" : "Создать тему"
+          }
+          actionHref={tab === "interests" ? "/profile" : "/topic/new"}
         />
       ) : (
         <div className="space-y-4">
@@ -430,52 +446,6 @@ function TabButton({
         {label}
       </span>
     </button>
-  );
-}
-
-function TopicSkeleton() {
-  return (
-    <div className="rounded-2xl border border-gold/10 bg-base-800/45 p-5">
-      <div className="flex items-center gap-3">
-        <Skeleton className="h-10 w-10 rounded-full" />
-        <div className="space-y-2">
-          <Skeleton className="h-3 w-32" />
-          <Skeleton className="h-2.5 w-20" />
-        </div>
-      </div>
-      <Skeleton className="mt-4 h-5 w-3/4" />
-      <Skeleton className="mt-2 h-4 w-full" />
-    </div>
-  );
-}
-
-function EmptyState({
-  hasQuery,
-  interestsEmpty,
-}: {
-  hasQuery: boolean;
-  interestsEmpty?: boolean;
-}) {
-  return (
-    <div className="rounded-2xl border border-dashed border-gold/15 bg-base-900/35 p-12 text-center">
-      <div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-xl border border-gold/20 bg-gold/10">
-        <Sparkles size={20} className="text-gold-soft" />
-      </div>
-      <p className="text-slate-300">
-        {hasQuery
-          ? "Ничего не найдено"
-          : interestsEmpty
-            ? "Нет тем по вашим интересам"
-            : "Пока нет активных тем"}
-      </p>
-      <p className="mt-1 text-sm text-slate-500">
-        {interestsEmpty
-          ? "Добавьте теги в анкету или создайте тему с вашими интересами"
-          : hasQuery
-            ? "Попробуйте другой запрос или тег"
-            : "Создайте первую и начните обсуждение"}
-      </p>
-    </div>
   );
 }
 

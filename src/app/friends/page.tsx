@@ -273,9 +273,20 @@ export default async function FriendsPage() {
                 </div>
               ))
             ) : (
-              <p className="col-span-full rounded-2xl border border-dashed border-gold/15 p-8 text-center text-sm text-slate-500">
-                Список друзей пока пуст
-              </p>
+              <div className="col-span-full rounded-2xl border border-dashed border-gold/15 bg-base-900/40 px-6 py-10 text-center">
+                <p className="font-semibold text-warm-100">
+                  Список друзей пока пуст
+                </p>
+                <p className="mt-2 text-sm text-slate-500">
+                  Найдите людей в поиске и отправьте заявку
+                </p>
+                <Link
+                  href="/people"
+                  className="mt-4 inline-block text-sm font-medium text-gold-soft hover:underline"
+                >
+                  Смотреть людей →
+                </Link>
+              </div>
             )}
           </div>
         </section>

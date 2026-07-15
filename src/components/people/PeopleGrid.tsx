@@ -24,8 +24,11 @@ import { GlassCard } from "@/components/ui/GlassCard";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Tag } from "@/components/ui/Badge";
-import { ageFromBirthDate, isOnline } from "@/lib/utils";
+import { ageFromBirthDate, isOnline, cn } from "@/lib/utils";
+import { haptic } from "@/lib/haptic";
 import { createClient } from "@/lib/supabase/client";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { SkeletonList } from "@/components/ui/Skeleton";
 import {
   GENDER_OPTIONS,
   DATING_GOALS,
@@ -40,7 +43,6 @@ import {
   type PeopleCard,
   type PeopleTab,
 } from "@/lib/data/people-shared";
-import { cn } from "@/lib/utils";
 import type { Profile } from "@/lib/types";
 
 const TABS: { id: PeopleTab; label: string; icon: React.ReactNode }[] = [
@@ -259,6 +261,8 @@ export function PeopleGrid({
     setLikeBusy(userId);
     const target = users.find((u) => u.id === userId);
     const liked = !!target?.iLiked;
+
+    haptic(liked ? "selection" : "success");
 
     // Optimistic
     setUsers((prev) =>
@@ -566,28 +570,30 @@ export function PeopleGrid({
       )}
 
       {loading ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <SkeletonCard key={i} />
-          ))}
-        </div>
+        <SkeletonList count={4} variant="person" />
       ) : users.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-gold/15 p-12 text-center">
-          <p className="text-slate-300">
-            {tab === "mutual"
+        <EmptyState
+          icon={<Users size={22} />}
+          title={
+            tab === "mutual"
               ? "Пока нет взаимных интересов"
               : tab === "online"
                 ? "Сейчас никто не в сети"
                 : tab === "available"
-                  ? "Никто не отметил «готов(а) пообщаться»"
-                  : "Никого не найдено"}
-          </p>
-          <p className="mt-1 text-sm text-slate-500">
-            {tab === "mutual"
+                  ? "Никто не в режиме «общаюсь»"
+                  : "Никого не найдено"
+          }
+          description={
+            tab === "mutual"
               ? "Ставьте «Интерес» — когда ответят взаимно, человек появится здесь"
-              : "Смените вкладку или ослабьте фильтры"}
-          </p>
-        </div>
+              : "Смените вкладку, ослабьте фильтры или заполните город в анкете"
+          }
+          actionLabel={tab === "nearby" ? "Заполнить анкету" : "Смотреть всех"}
+          actionHref={tab === "nearby" ? "/profile" : undefined}
+          onAction={
+            tab === "nearby" ? undefined : () => setTab("all")
+          }
+        />
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {users.map((user, i) => (
@@ -744,21 +750,6 @@ export function PeopleGrid({
           ))}
         </div>
       )}
-    </div>
-  );
-}
-
-function SkeletonCard() {
-  return (
-    <div className="rounded-2xl border border-white/[0.06] bg-base-800/40 p-4">
-      <div className="flex gap-3">
-        <div className="h-14 w-14 rounded-full bg-white/[0.06]" />
-        <div className="flex-1 space-y-2">
-          <div className="h-4 w-32 rounded bg-white/[0.06]" />
-          <div className="h-3 w-24 rounded bg-white/[0.04]" />
-          <div className="mt-2 h-3 w-full rounded bg-white/[0.04]" />
-        </div>
-      </div>
     </div>
   );
 }

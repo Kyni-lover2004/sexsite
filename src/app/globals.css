@@ -7,23 +7,24 @@
   --font-display: "Space Grotesk", system-ui, sans-serif;
   color-scheme: light;
 
-  --base-950: 253 251 248;
-  --base-900: 248 244 239;
-  --base-800: 241 235 228;
-  --base-700: 225 214 205;
-  --base-600: 194 176 164;
-  --base-500: 144 119 105;
+  /* Champagne ivory premium light theme */
+  --base-950: 252 248 243;
+  --base-900: 255 252 248;
+  --base-800: 248 242 234;
+  --base-700: 232 220 208;
+  --base-600: 196 176 158;
+  --base-500: 148 124 108;
 
-  --accent: 174 119 105;
-  --accent-soft: 122 83 75;
-  --accent-deep: 104 67 58;
-  --accent-muted: 152 116 103;
-  --gold: 190 142 125;
-  --gold-soft: 128 83 74;
-  --gold-deep: 112 72 62;
-  --gold-glow: 237 212 202;
-  --warm-100: 35 29 27;
-  --warm-200: 78 62 56;
+  --accent: 184 122 98;
+  --accent-soft: 156 96 78;
+  --accent-deep: 132 78 62;
+  --accent-muted: 168 128 112;
+  --gold: 176 132 96;
+  --gold-soft: 140 96 72;
+  --gold-deep: 120 78 56;
+  --gold-glow: 232 204 176;
+  --warm-100: 28 22 18;
+  --warm-200: 72 56 48;
 }
 
 .dark {
@@ -63,10 +64,16 @@ body {
   min-height: 100vh;
   min-height: -webkit-fill-available;
   background-image:
-    linear-gradient(180deg, rgb(var(--base-950)) 0%, rgb(var(--base-900)) 48%, rgb(var(--base-950)) 100%);
+    linear-gradient(165deg, rgb(var(--base-900)) 0%, rgb(var(--base-950)) 42%, rgb(var(--base-800)) 100%);
   background-attachment: fixed;
   min-height: 100vh;
   position: relative;
+}
+
+.dark body,
+html.dark body {
+  background-image:
+    linear-gradient(180deg, rgb(var(--base-950)) 0%, rgb(var(--base-900)) 48%, rgb(var(--base-950)) 100%);
 }
 
 body::before {
@@ -75,10 +82,32 @@ body::before {
   inset: 0;
   pointer-events: none;
   z-index: 0;
+  opacity: 0.4;
+  background-image:
+    radial-gradient(ellipse 80% 50% at 15% 0%, rgb(var(--gold-glow) / 0.35) 0%, transparent 55%),
+    radial-gradient(ellipse 60% 40% at 90% 100%, rgb(var(--gold) / 0.18) 0%, transparent 50%),
+    radial-gradient(circle at 50% 40%, rgb(var(--accent) / 0.06) 0%, transparent 45%);
+}
+
+.dark body::before,
+html.dark body::before {
   opacity: 0.28;
   background-image:
     radial-gradient(circle at 20% 20%, rgb(var(--gold-glow) / 0.12) 0%, transparent 50%),
     radial-gradient(circle at 80% 80%, rgb(var(--gold) / 0.08) 0%, transparent 60%);
+}
+
+/* Light premium surfaces */
+.light .glass,
+.light .glass-strong,
+.light .glass-premium {
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.65) inset,
+    0 18px 40px rgb(80 50 30 / 0.08);
+}
+
+.light [class*="border-gold"] {
+  border-color: rgb(var(--gold) / 0.22);
 }
 
 /* Prefer reduced motion — snappier / less GPU thrash on low-end phones */

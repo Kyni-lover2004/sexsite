@@ -1,0 +1,33 @@
+{
+  "name": "Desire Privé",
+  "short_name": "Desire Privé",
+  "description": "Приватный клуб: обсуждения, знакомства и защищённый чат",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#040404",
+  "theme_color": "#040404",
+  "lang": "ru",
+  "categories": ["social", "lifestyle"],
+  "icons": [
+    {
+      "src": "/icon-192.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "maskable"
+    }
+  ]
+}

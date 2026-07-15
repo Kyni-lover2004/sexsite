@@ -12,6 +12,8 @@ import {
   ensureKeyPair,
   hasLocalKey,
 } from "@/lib/crypto";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { SkeletonList } from "@/components/ui/Skeleton";
 
 interface ConversationItem {
   id: string;
@@ -45,11 +47,17 @@ export function ConversationList({
 }) {
   const [previews, setPreviews] = useState<Record<string, string>>({});
   const [hasKey, setHasKey] = useState<boolean | null>(null);
+  const [decrypting, setDecrypting] = useState(conversations.length > 0);
 
   useEffect(() => {
     let cancelled = false;
 
     async function decryptPreviews() {
+      if (conversations.length === 0) {
+        setDecrypting(false);
+        return;
+      }
+      setDecrypting(true);
       const local = await hasLocalKey();
       if (!cancelled) setHasKey(local);
       if (!local) {
@@ -87,7 +95,10 @@ export function ConversationList({
         })
       );
 
-      if (!cancelled) setPreviews(next);
+      if (!cancelled) {
+        setPreviews(next);
+        setDecrypting(false);
+      }
     }
 
     void decryptPreviews();
@@ -118,22 +129,15 @@ export function ConversationList({
       )}
 
       {conversations.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-white/[0.08] bg-white/[0.01] p-12 text-center">
-          <div className="chat-lavender mx-auto mb-3 grid h-14 w-14 place-items-center rounded-xl border border-gold/20 bg-gold/10 animate-pulse-glow">
-            <Shield size={24} className="text-gold-soft" />
-          </div>
-          <p className="text-slate-300">Пока нет диалогов</p>
-          <p className="mt-1 text-sm text-slate-500">
-            Найдите человека в поиске и нажмите «Написать» — переписка появится
-            здесь
-          </p>
-          <Link
-            href="/people"
-            className="mt-4 inline-block text-sm font-medium text-gold-soft hover:underline"
-          >
-            Перейти к людям →
-          </Link>
-        </div>
+        <EmptyState
+          icon={<Shield size={22} />}
+          title="Пока нет диалогов"
+          description="Найдите человека в поиске и нажмите «Написать» — переписка появится здесь"
+          actionLabel="Смотреть людей"
+          actionHref="/people"
+        />
+      ) : decrypting && Object.keys(previews).length === 0 ? (
+        <SkeletonList count={5} variant="chat" />
       ) : (
         <div className="space-y-2">
           {conversations.map((conv, i) => {

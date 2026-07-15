@@ -4,6 +4,7 @@ import { createClient, supabaseConfigured } from "@/lib/supabase/server";
 import { SetupGuide } from "@/components/SetupGuide";
 import { BannedScreen } from "@/components/auth/BannedScreen";
 import { PresenceTracker } from "@/components/auth/PresenceTracker";
+import { RegisterSW } from "@/components/pwa/RegisterSW";
 import "./globals.css";
 
 const inter = Inter({
@@ -24,13 +25,36 @@ export const metadata: Metadata = {
     template: "%s · Desire Privé",
   },
   description:
-    "Современная социальная платформа: форум с обсуждениями, знакомства и мессенджер со сквозным шифрованием.",
+    "Приватный клуб: обсуждения, знакомства и мессенджер со сквозным шифрованием.",
+  applicationName: "Desire Privé",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Desire Privé",
+  },
+  icons: {
+    icon: [
+      { url: "/icon-192.jpg", sizes: "192x192", type: "image/jpeg" },
+      { url: "/icon-512.jpg", sizes: "512x512", type: "image/jpeg" },
+    ],
+    apple: [{ url: "/apple-touch-icon.jpg", sizes: "180x180", type: "image/jpeg" }],
+  },
+  formatDetection: {
+    telephone: false,
+  },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#040404",
+  themeColor: [
+    { media: "(prefers-color-scheme: dark)", color: "#040404" },
+    { media: "(prefers-color-scheme: light)", color: "#f8f4ef" },
+  ],
   width: "device-width",
   initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
 };
 
 const themeScript = `
@@ -115,6 +139,7 @@ export default async function RootLayout({
           <>
             {children}
             <PresenceTracker />
+            <RegisterSW />
           </>
         )}
       </body>
