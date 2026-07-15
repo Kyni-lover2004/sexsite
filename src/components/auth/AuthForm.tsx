@@ -1,26 +1,69 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { motion } from "framer-motion";
-import { Crown, Mail, Lock, LogIn } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  ArrowRight,
+  Crown,
+  Eye,
+  EyeOff,
+  Lock,
+  LogIn,
+  Mail,
+  MessageSquare,
+  Shield,
+  Sparkles,
+  Users,
+} from "lucide-react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { GlassCard } from "@/components/ui/GlassCard";
 
+/* ---------- password strength ---------- */
+function getPasswordStrength(pw: string): {
+  score: number;
+  label: string;
+  color: string;
+} {
+  let score = 0;
+  if (pw.length >= 6) score++;
+  if (pw.length >= 10) score++;
+  if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) score++;
+  if (/\d/.test(pw)) score++;
+  if (/[^A-Za-z0-9]/.test(pw)) score++;
+
+  if (score <= 1) return { score, label: "Слабый", color: "bg-red-500" };
+  if (score <= 2) return { score, label: "Средний", color: "bg-amber-500" };
+  if (score <= 3) return { score, label: "Хороший", color: "bg-yellow-400" };
+  return { score, label: "Отличный", color: "bg-emerald-400" };
+}
+
+/* ---------- decorative features for the left panel ---------- */
+const DECO_FEATURES = [
+  { icon: MessageSquare, label: "Обсуждения и форум" },
+  { icon: Users, label: "Поиск людей" },
+  { icon: Shield, label: "Сквозное шифрование" },
+];
+
+/* ---------- main component ---------- */
 export function AuthForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const supabase = createClient();
 
+  const initialMode = searchParams.get("mode") === "register" ? "register" : "login";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [mode, setMode] = useState<"login" | "register">("login");
+  const [showPassword, setShowPassword] = useState(false);
+  const [mode, setMode] = useState<"login" | "register">(initialMode);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const paramError = searchParams.get("error");
+  const strength = useMemo(() => getPasswordStrength(password), [password]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -52,138 +95,321 @@ export function AuthForm() {
 
   async function handleOAuth(provider: string) {
     setLoading(true);
-    await supabase.auth.signInWithOAuth({ provider: provider as any, options: { redirectTo: `${location.origin}/auth/callback` } });
+    await supabase.auth.signInWithOAuth({
+      provider: provider as any,
+      options: { redirectTo: `${location.origin}/auth/callback` },
+    });
   }
 
   return (
-    <div className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-base-950 px-4">
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent_12%,rgb(var(--gold-glow)/0.09)_13%,transparent_14%),linear-gradient(245deg,transparent_70%,rgb(var(--gold)/0.08)_71%,transparent_72%)]" />
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-44 border-b border-gold/10 bg-[linear-gradient(180deg,rgb(var(--gold-glow)/0.08),transparent)]" />
+    <div className="relative flex min-h-dvh overflow-hidden bg-base-950">
+      {/* ---- Decorative background ---- */}
+      <div className="pointer-events-none fixed inset-0 hero-mesh" />
+      <div className="orb orb-gold orb-animate-1 h-80 w-80 -top-24 -left-24 opacity-50" />
+      <div className="orb orb-accent orb-animate-2 h-96 w-96 -bottom-32 -right-32 opacity-35" />
 
-      <motion.div
-        initial={{ opacity: 0, y: 24, scale: 0.96 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-        className="relative z-10 w-full max-w-sm"
-      >
-        <GlassCard premium className="p-8">
-          <div className="mb-6 text-center">
+      {/* ---- LEFT: Decorative panel (desktop only) ---- */}
+      <div className="hidden lg:flex lg:w-1/2 relative items-center justify-center p-12">
+        <div className="auth-deco-panel absolute inset-0" />
+        <div className="particle-field absolute inset-0" />
+        <div className="relative z-10 max-w-md">
+          <motion.div
+            initial={{ opacity: 0, x: -30 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+          >
+            {/* Logo */}
             <motion.span
               initial={{ scale: 0, rotate: -90 }}
               animate={{ scale: 1, rotate: 0 }}
-              transition={{ type: "spring", stiffness: 300, damping: 20, delay: 0.2 }}
-              className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-2xl border border-gold/30 bg-gold-gradient text-white shadow-glow-gold animate-glow-breathe"
+              transition={{
+                type: "spring",
+                stiffness: 300,
+                damping: 20,
+                delay: 0.2,
+              }}
+              className="mb-8 grid h-16 w-16 place-items-center rounded-2xl border border-gold/30 bg-gold-gradient text-white shadow-glow-gold animate-glow-breathe"
             >
-              <Crown size={26} />
+              <Crown size={30} />
             </motion.span>
-            <h1 className="font-display text-xl font-bold text-gradient">
-              {mode === "login" ? "Вход" : "Регистрация"}
+
+            <h1 className="font-display text-4xl font-bold leading-tight text-gradient xl:text-5xl">
+              Desire Privé
             </h1>
-            <p className="mt-1 text-sm text-slate-500">
-              {mode === "login"
-                ? "Добро пожаловать обратно"
-                : "Создайте аккаунт"}
+            <p className="mt-1 text-sm uppercase tracking-[0.24em] text-gold-soft/50">
+              private club
             </p>
-          </div>
-
-          {(error || paramError) && (
-            <p className="mb-4 rounded-lg bg-red-500/10 border border-red-500/20 px-3 py-2 text-xs text-red-400">
-              {error || (paramError === "auth_failed" ? "Ошибка входа. Попробуйте снова." : paramError)}
+            <p className="mt-6 max-w-sm text-base leading-7 text-slate-400">
+              Современная приватная платформа для общения, знакомств и обсуждений
+              в защищённой атмосфере.
             </p>
-          )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-slate-400">Email</label>
-              <div className="relative">
-                <Mail size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-                <Input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
-                  className="pl-10"
-                  required
-                />
-              </div>
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-slate-400">Пароль</label>
-              <div className="relative">
-                <Lock size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-                <Input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="pl-10"
-                  minLength={6}
-                  required
-                />
-              </div>
-            </div>
-            <Button type="submit" disabled={loading} className="w-full">
-              <LogIn size={16} />
-              {loading ? "…" : mode === "login" ? "Войти" : "Зарегистрироваться"}
-            </Button>
-          </form>
-
-          <div className="my-6 flex items-center gap-3">
-            <span className="h-px flex-1 bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
-            <span className="text-xs text-slate-600">или</span>
-            <span className="h-px flex-1 bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
-          </div>
-
-          <div className="space-y-3">
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={() => handleOAuth("google")}
-              disabled={loading}
-            >
-              <GoogleLogo />
-              Google
-            </Button>
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={() => handleOAuth("telegram")}
-              disabled={loading}
-            >
-              <TelegramLogo />
-              Telegram
-            </Button>
-          </div>
-
-          <p className="mt-6 text-center text-xs text-slate-600">
-            {mode === "login" ? (
-              <>
-                Нет аккаунта?{" "}
-                <button
-                  onClick={() => { setMode("register"); setError(""); }}
-                  className="font-medium text-gold-soft hover:underline"
+            {/* Feature pills */}
+            <div className="mt-10 space-y-3">
+              {DECO_FEATURES.map((f, i) => (
+                <motion.div
+                  key={f.label}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.4 + i * 0.1, duration: 0.5 }}
+                  className="flex items-center gap-3 rounded-xl border border-gold/10 bg-base-800/40 px-4 py-3 backdrop-blur-sm"
                 >
-                  Зарегистрироваться
-                </button>
-              </>
-            ) : (
-              <>
-                Уже есть аккаунт?{" "}
-                <button
-                  onClick={() => { setMode("login"); setError(""); }}
-                  className="font-medium text-gold-soft hover:underline"
+                  <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-gold/20 bg-gold/10">
+                    <f.icon size={17} className="text-gold-soft" />
+                  </div>
+                  <span className="text-sm font-medium text-warm-100">
+                    {f.label}
+                  </span>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+        </div>
+      </div>
+
+      {/* ---- RIGHT: Auth form ---- */}
+      <div className="flex flex-1 items-center justify-center px-4 py-12 lg:w-1/2">
+        <motion.div
+          initial={{ opacity: 0, y: 24, scale: 0.96 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+          className="relative z-10 w-full max-w-md"
+        >
+          <GlassCard premium className="p-8 sm:p-10">
+            {/* Header */}
+            <div className="mb-8 text-center">
+              {/* Mobile-only logo */}
+              <motion.span
+                initial={{ scale: 0, rotate: -90 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{
+                  type: "spring",
+                  stiffness: 300,
+                  damping: 20,
+                  delay: 0.15,
+                }}
+                className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl border border-gold/30 bg-gold-gradient text-white shadow-glow-gold animate-glow-breathe lg:hidden"
+              >
+                <Crown size={26} />
+              </motion.span>
+
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={mode}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.25 }}
                 >
-                  Войти
-                </button>
-              </>
-            )}
-          </p>
-        </GlassCard>
-      </motion.div>
+                  <h1 className="font-display text-2xl font-bold text-gradient">
+                    {mode === "login" ? "Добро пожаловать" : "Создать аккаунт"}
+                  </h1>
+                  <p className="mt-1.5 text-sm text-slate-500">
+                    {mode === "login"
+                      ? "Войдите в свой аккаунт"
+                      : "Присоединяйтесь к сообществу"}
+                  </p>
+                </motion.div>
+              </AnimatePresence>
+            </div>
+
+            {/* Error display */}
+            <AnimatePresence>
+              {(error || paramError) && (
+                <motion.p
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="mb-5 overflow-hidden rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2.5 text-xs text-red-400"
+                >
+                  {error ||
+                    (paramError === "auth_failed"
+                      ? "Ошибка входа. Попробуйте снова."
+                      : paramError)}
+                </motion.p>
+              )}
+            </AnimatePresence>
+
+            {/* Form */}
+            <form onSubmit={handleSubmit} className="space-y-5">
+              {/* Email */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-slate-400">
+                  Email
+                </label>
+                <div className="relative">
+                  <Mail
+                    size={16}
+                    className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500"
+                  />
+                  <Input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    className="pl-10"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Password */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-slate-400">
+                  Пароль
+                </label>
+                <div className="relative">
+                  <Lock
+                    size={16}
+                    className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500"
+                  />
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="pl-10 pr-10"
+                    minLength={6}
+                    required
+                  />
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 transition-colors hover:text-slate-300"
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+
+                {/* Password strength indicator (register only) */}
+                <AnimatePresence>
+                  {mode === "register" && password.length > 0 && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="overflow-hidden pt-1.5"
+                    >
+                      <div className="flex gap-1">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <div
+                            key={i}
+                            className={`strength-bar flex-1 ${
+                              i < strength.score
+                                ? strength.color
+                                : "bg-base-700/60"
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      <p className="mt-1 text-[11px] text-slate-500">
+                        Сила пароля:{" "}
+                        <span className="text-slate-400">
+                          {strength.label}
+                        </span>
+                      </p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Submit */}
+              <Button type="submit" disabled={loading} className="w-full">
+                {loading ? (
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                ) : (
+                  <>
+                    {mode === "login" ? (
+                      <LogIn size={16} />
+                    ) : (
+                      <Sparkles size={16} />
+                    )}
+                    {mode === "login" ? "Войти" : "Зарегистрироваться"}
+                  </>
+                )}
+              </Button>
+            </form>
+
+            {/* Divider */}
+            <div className="my-7 flex items-center gap-3">
+              <span className="h-px flex-1 bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
+              <span className="text-xs text-slate-600">или</span>
+              <span className="h-px flex-1 bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
+            </div>
+
+            {/* OAuth */}
+            <div className="space-y-3">
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => handleOAuth("google")}
+                disabled={loading}
+              >
+                <GoogleLogo />
+                Войти через Google
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => handleOAuth("telegram")}
+                disabled={loading}
+              >
+                <TelegramLogo />
+                Войти через Telegram
+              </Button>
+            </div>
+
+            {/* Mode switch */}
+            <p className="mt-8 text-center text-sm text-slate-500">
+              {mode === "login" ? (
+                <>
+                  Нет аккаунта?{" "}
+                  <button
+                    onClick={() => {
+                      setMode("register");
+                      setError("");
+                    }}
+                    className="inline-flex items-center gap-1 font-medium text-gold-soft transition-colors hover:text-gold hover:underline"
+                  >
+                    Зарегистрироваться
+                    <ArrowRight size={13} />
+                  </button>
+                </>
+              ) : (
+                <>
+                  Уже есть аккаунт?{" "}
+                  <button
+                    onClick={() => {
+                      setMode("login");
+                      setError("");
+                    }}
+                    className="inline-flex items-center gap-1 font-medium text-gold-soft transition-colors hover:text-gold hover:underline"
+                  >
+                    Войти
+                    <ArrowRight size={13} />
+                  </button>
+                </>
+              )}
+            </p>
+
+            {/* Back to home */}
+            <div className="mt-6 text-center">
+              <Link
+                href="/"
+                className="text-xs text-slate-600 transition-colors hover:text-slate-400"
+              >
+                ← На главную
+              </Link>
+            </div>
+          </GlassCard>
+        </motion.div>
+      </div>
     </div>
   );
 }
 
+/* ---------- OAuth logos ---------- */
 function GoogleLogo() {
   return (
     <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none">
