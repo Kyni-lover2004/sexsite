@@ -510,7 +510,7 @@ create policy profile_photos_delete on public.profile_photos
 -- Visits: visitors record their own visits; only the profile owner reads them.
 drop policy if exists profile_visits_select on public.profile_visits;
 create policy profile_visits_select on public.profile_visits
-  for select using (auth.uid() = profile_id);
+  for select using (auth.uid() = profile_id or auth.uid() = visitor_id);
 drop policy if exists profile_visits_insert on public.profile_visits;
 create policy profile_visits_insert on public.profile_visits
   for insert with check (auth.uid() = visitor_id and visitor_id <> profile_id);

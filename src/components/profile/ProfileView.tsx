@@ -173,13 +173,27 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
       const { data: auth } = await supabase.auth.getUser();
       if (auth?.user && auth.user.id !== profile.id) {
         try {
-          await (supabase as any).from("profile_visits").upsert({
-            profile_id: profile.id,
-            visitor_id: auth.user.id,
-            visited_at: new Date().toISOString()
-          }, {
-            onConflict: "profile_id,visitor_id"
-          });
+          const { data: existing } = await (supabase as any)
+            .from("profile_visits")
+            .select("id")
+            .eq("profile_id", profile.id)
+            .eq("visitor_id", auth.user.id)
+            .limit(1);
+
+          if (existing && existing.length > 0) {
+            await (supabase as any)
+              .from("profile_visits")
+              .update({ visited_at: new Date().toISOString() })
+              .eq("id", existing[0].id);
+          } else {
+            await (supabase as any)
+              .from("profile_visits")
+              .insert({
+                profile_id: profile.id,
+                visitor_id: auth.user.id,
+                visited_at: new Date().toISOString()
+              });
+          }
         } catch (err) {
           console.error("Failed to log profile visit from client:", err);
         }
