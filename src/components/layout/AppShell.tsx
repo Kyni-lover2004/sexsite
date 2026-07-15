@@ -241,14 +241,17 @@ export function AppShell({
         </div>
       </header>
 
-      {/* ---------- Mobile drawer ---------- */}
+      {/* ---------- Mobile drawer (from the RIGHT — under the hamburger) ---------- */}
       {mobileMenuOpen && (
         <div
-          className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm md:hidden"
+          className="fixed inset-0 z-50 flex justify-end bg-black/50 backdrop-blur-sm md:hidden"
           onClick={() => setMobileMenuOpen(false)}
         >
-          <div
-            className="flex h-full w-[min(84vw,20rem)] flex-col border-r border-gold/15 bg-base-950 p-4 shadow-2xl"
+          <motion.div
+            initial={{ x: "100%" }}
+            animate={{ x: 0 }}
+            transition={{ type: "spring", stiffness: 380, damping: 34 }}
+            className="flex h-full w-[min(84vw,20rem)] flex-col border-l border-gold/15 bg-base-950 p-4 shadow-[-18px_0_50px_rgba(0,0,0,0.45)]"
             style={{ paddingTop: "calc(1rem + env(safe-area-inset-top))" }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -260,7 +263,7 @@ export function AppShell({
                     Desire Privé
                   </p>
                   <p className="text-[10px] uppercase tracking-[0.18em] text-gold-soft/50">
-                    меню
+                    private menu
                   </p>
                 </div>
               </div>
@@ -293,7 +296,7 @@ export function AppShell({
             <div className="mt-4 border-t border-gold/10 pt-3">
               <LogoutButton wide />
             </div>
-          </div>
+          </motion.div>
         </div>
       )}
 
