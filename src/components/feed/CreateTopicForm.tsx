@@ -12,7 +12,7 @@ import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import type { TopicMedia } from "@/lib/types";
 
-export function CreateTopicForm() {
+export function CreateTopicForm({ isAdmin = false }: { isAdmin?: boolean }) {
   const router = useRouter();
   const supabase = createClient();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -21,31 +21,8 @@ export function CreateTopicForm() {
   const [tags, setTags] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
   const [topicType, setTopicType] = useState<"discussion" | "promo" | "news">("discussion");
   const [media, setMedia] = useState<{ file: File; preview: string; uploading: boolean }[]>([]);
-
-  useEffect(() => {
-    async function checkRole() {
-      const { data: { user } } = await supabase.auth.getUser();
-      console.log("Auth user checking role:", user);
-      if (user) {
-        const { data: profile, error } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", user.id)
-          .maybeSingle();
-        console.log("Profile check result:", { profile, error });
-        if (profile?.role === "admin") {
-          console.log("User is admin! Showing post type selector.");
-          setIsAdmin(true);
-        } else {
-          console.log("User is not admin. Role is:", profile?.role);
-        }
-      }
-    }
-    checkRole();
-  }, [supabase]);
 
   async function handleMediaSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);

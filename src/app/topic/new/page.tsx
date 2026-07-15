@@ -14,9 +14,18 @@ export default async function NewTopicPage() {
 
   if (!auth.user) redirect("/login?next=/topic/new");
 
+  // Получаем роль пользователя на сервере
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", auth.user.id)
+    .maybeSingle();
+
+  const isAdmin = profile?.role === "admin";
+
   return (
     <AppShell>
-      <CreateTopicForm />
+      <CreateTopicForm isAdmin={isAdmin} />
     </AppShell>
   );
 }
