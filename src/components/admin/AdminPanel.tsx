@@ -3,11 +3,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import Link from "next/link";
 import {
   AlertTriangle,
   Ban,
   CheckCircle2,
   Crown,
+  Flag,
   Headphones,
   Loader2,
   MessageSquare,
@@ -15,6 +17,7 @@ import {
   Send,
   Shield,
   Trash2,
+  UserRound,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -24,7 +27,7 @@ import { Button } from "@/components/ui/Button";
 import { Input, Textarea } from "@/components/ui/Input";
 import { AttachmentGallery, AttachmentPicker } from "@/components/support/SupportAttachments";
 import { createClient } from "@/lib/supabase/client";
-import { timeAgo } from "@/lib/utils";
+import { timeAgo, cn } from "@/lib/utils";
 import type {
   Profile,
   SupportAttachment,
@@ -32,9 +35,51 @@ import type {
   TopicWithAuthor,
 } from "@/lib/types";
 
-type Tab = "users" | "topics" | "support" | "chats";
+type Tab =
+  | "users"
+  | "topics"
+  | "support"
+  | "chats"
+  | "reports_posts"
+  | "reports_people";
 type BanDuration = "30d" | "90d" | "365d" | "permanent";
 type PremiumDuration = "7d" | "30d" | "90d" | "365d" | "permanent";
+
+export type ContentReportRow = {
+  id: string;
+  reporter_id: string;
+  topic_id: string | null;
+  comment_id: string | null;
+  reason: string;
+  reason_code?: string | null;
+  details?: string | null;
+  status: string;
+  created_at: string;
+  reporter?: Pick<
+    Profile,
+    "id" | "username" | "display_name" | "avatar_url"
+  > | null;
+  topic?: { id: string; title: string; author_id: string } | null;
+};
+
+export type ProfileReportRow = {
+  id: string;
+  reporter_id: string;
+  reported_user_id: string;
+  reason_code: string;
+  reason_label: string;
+  details: string;
+  status: string;
+  created_at: string;
+  reporter?: Pick<
+    Profile,
+    "id" | "username" | "display_name" | "avatar_url"
+  > | null;
+  reported?: Pick<
+    Profile,
+    "id" | "username" | "display_name" | "avatar_url"
+  > | null;
+};
 
 interface AdminPanelProps {
   currentUserId: string;
@@ -42,6 +87,8 @@ interface AdminPanelProps {
   topics: TopicWithAuthor[];
   supportTickets: SupportTicketWithMessages[];
   conversations: any[];
+  contentReports?: ContentReportRow[];
+  profileReports?: ProfileReportRow[];
 }
 
 const BAN_DURATIONS: { value: BanDuration; label: string }[] = [
@@ -84,6 +131,8 @@ export function AdminPanel({
   topics,
   supportTickets,
   conversations = [],
+  contentReports: initialContentReports = [],
+  profileReports: initialProfileReports = [],
 }: AdminPanelProps) {
   const supabase = createClient();
   const supa = supabase as any;
@@ -98,6 +147,46 @@ export function AdminPanel({
   const [banReason, setBanReason] = useState("Нарушение правил сайта");
   const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
   const [replyFiles, setReplyFiles] = useState<Record<string, File[]>>({});
+  const [contentReports, setContentReports] = useState(initialContentReports);
+  const [profileReports, setProfileReports] = useState(initialProfileReports);
+
+  async function setContentReportStatus(
+    id: string,
+    status: "open" | "reviewed" | "dismissed"
+  ) {
+    setActionLoading(id);
+    const { error } = await supa
+      .from("content_reports")
+      .update({ status })
+      .eq("id", id);
+    if (!error) {
+      setContentReports((prev) =>
+        prev.map((r) => (r.id === id ? { ...r, status } : r))
+      );
+    }
+    setActionLoading(null);
+  }
+
+  async function setProfileReportStatus(
+    id: string,
+    status: "open" | "reviewed" | "dismissed"
+  ) {
+    setActionLoading(id);
+    const { error } = await supa
+      .from("profile_reports")
+      .update({
+        status,
+        reviewed_at: new Date().toISOString(),
+        reviewed_by: currentUserId,
+      })
+      .eq("id", id);
+    if (!error) {
+      setProfileReports((prev) =>
+        prev.map((r) => (r.id === id ? { ...r, status } : r))
+      );
+    }
+    setActionLoading(null);
+  }
 
   async function uploadSupportAttachments(
     ticketId: string,
@@ -361,6 +450,29 @@ export function AdminPanel({
       (!user.banned_until || new Date(user.banned_until) > new Date())
   ).length;
   const premiumCount = users.filter(isPremiumActive).length;
+  const openPostReports = contentReports.filter((r) => r.status === "open")
+    .length;
+  const openPeopleReports = profileReports.filter((r) => r.status === "open")
+    .length;
+
+  const filteredContentReports = contentReports.filter((r) => {
+    if (!q) return true;
+    return (
+      r.reason.toLowerCase().includes(q) ||
+      r.reporter?.username?.toLowerCase().includes(q) ||
+      r.topic?.title?.toLowerCase().includes(q) ||
+      (r.details ?? "").toLowerCase().includes(q)
+    );
+  });
+  const filteredProfileReports = profileReports.filter((r) => {
+    if (!q) return true;
+    return (
+      r.reason_label.toLowerCase().includes(q) ||
+      r.details.toLowerCase().includes(q) ||
+      r.reporter?.username?.toLowerCase().includes(q) ||
+      r.reported?.username?.toLowerCase().includes(q)
+    );
+  });
 
   return (
     <div>
@@ -378,17 +490,19 @@ export function AdminPanel({
               Админ-панель
             </h1>
             <p className="text-sm text-slate-500">
-              Пользователи, премиум, блокировки и поддержка
+              Пользователи, жалобы, премиум, блокировки и поддержка
             </p>
           </div>
         </div>
       </motion.div>
 
-      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         <StatCard label="Пользователей" value={users.length} />
         <StatCard label="Премиум" value={premiumCount} tone="gold" />
         <StatCard label="Забанено" value={activeBans} tone="red" />
         <StatCard label="Поддержка" value={supportTickets.length} />
+        <StatCard label="Жалобы посты" value={openPostReports} tone="red" />
+        <StatCard label="Жалобы люди" value={openPeopleReports} tone="red" />
       </div>
 
       <div className="mb-4 flex flex-wrap gap-2">
@@ -399,6 +513,30 @@ export function AdminPanel({
         <TabButton active={tab === "topics"} onClick={() => setTab("topics")}>
           <MessageSquare size={16} />
           Топики
+        </TabButton>
+        <TabButton
+          active={tab === "reports_posts"}
+          onClick={() => setTab("reports_posts")}
+        >
+          <Flag size={16} />
+          Жалобы: посты
+          {openPostReports > 0 && (
+            <span className="ml-1 rounded-full bg-red-500/90 px-1.5 text-[10px] font-bold text-white">
+              {openPostReports}
+            </span>
+          )}
+        </TabButton>
+        <TabButton
+          active={tab === "reports_people"}
+          onClick={() => setTab("reports_people")}
+        >
+          <UserRound size={16} />
+          Жалобы: люди
+          {openPeopleReports > 0 && (
+            <span className="ml-1 rounded-full bg-red-500/90 px-1.5 text-[10px] font-bold text-white">
+              {openPeopleReports}
+            </span>
+          )}
         </TabButton>
         <TabButton active={tab === "support"} onClick={() => setTab("support")}>
           <Headphones size={16} />
@@ -608,6 +746,225 @@ export function AdminPanel({
                 )}
               </GlassCard>
             ))}
+          </motion.div>
+        )}
+
+        {tab === "reports_posts" && (
+          <motion.div
+            key="reports_posts"
+            initial={{ opacity: 0, x: -18 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 18 }}
+            className="space-y-2"
+          >
+            {filteredContentReports.length === 0 ? (
+              <GlassCard className="p-8 text-center text-slate-400">
+                Жалоб на посты/комментарии пока нет
+              </GlassCard>
+            ) : (
+              filteredContentReports.map((r) => (
+                <GlassCard
+                  key={r.id}
+                  className={cn(
+                    "p-4",
+                    r.status === "open" && "border-red-500/20"
+                  )}
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <div className="flex flex-wrap items-center gap-2 text-xs">
+                        <StatusPill status={r.status} />
+                        <span className="text-slate-500">
+                          {timeAgo(r.created_at)}
+                        </span>
+                        {r.comment_id ? (
+                          <span className="rounded bg-base-800 px-1.5 py-0.5 text-slate-400">
+                            комментарий
+                          </span>
+                        ) : (
+                          <span className="rounded bg-base-800 px-1.5 py-0.5 text-slate-400">
+                            пост
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm font-medium text-warm-100">
+                        {r.reason}
+                      </p>
+                      {r.details && (
+                        <p className="text-xs text-slate-400">{r.details}</p>
+                      )}
+                      <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-500">
+                        <span>
+                          От: @
+                          {r.reporter?.username ?? r.reporter_id.slice(0, 8)}
+                        </span>
+                        {r.topic_id && (
+                          <Link
+                            href={`/topic/${r.topic_id}`}
+                            className="text-gold-soft hover:underline"
+                          >
+                            {r.topic?.title
+                              ? `Пост: ${r.topic.title}`
+                              : "Открыть пост"}
+                          </Link>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {r.status === "open" && (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={actionLoading === r.id}
+                            onClick={() =>
+                              void setContentReportStatus(r.id, "reviewed")
+                            }
+                          >
+                            <CheckCircle2 size={14} />
+                            Проверено
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            disabled={actionLoading === r.id}
+                            onClick={() =>
+                              void setContentReportStatus(r.id, "dismissed")
+                            }
+                          >
+                            Отклонить
+                          </Button>
+                        </>
+                      )}
+                      {r.status !== "open" && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          disabled={actionLoading === r.id}
+                          onClick={() =>
+                            void setContentReportStatus(r.id, "open")
+                          }
+                        >
+                          Вернуть
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </GlassCard>
+              ))
+            )}
+          </motion.div>
+        )}
+
+        {tab === "reports_people" && (
+          <motion.div
+            key="reports_people"
+            initial={{ opacity: 0, x: -18 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 18 }}
+            className="space-y-2"
+          >
+            {filteredProfileReports.length === 0 ? (
+              <GlassCard className="p-8 text-center text-slate-400">
+                Жалоб на пользователей пока нет
+              </GlassCard>
+            ) : (
+              filteredProfileReports.map((r) => (
+                <GlassCard
+                  key={r.id}
+                  className={cn(
+                    "p-4",
+                    r.status === "open" && "border-red-500/20"
+                  )}
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="flex min-w-0 flex-1 gap-3">
+                      <Avatar
+                        src={r.reported?.avatar_url}
+                        name={
+                          r.reported?.display_name ??
+                          r.reported?.username ??
+                          "?"
+                        }
+                        size="md"
+                      />
+                      <div className="min-w-0 space-y-1">
+                        <div className="flex flex-wrap items-center gap-2 text-xs">
+                          <StatusPill status={r.status} />
+                          <span className="text-slate-500">
+                            {timeAgo(r.created_at)}
+                          </span>
+                        </div>
+                        <p className="font-medium text-warm-100">
+                          <Link
+                            href={`/profile/${r.reported_user_id}`}
+                            className="hover:text-gold-soft"
+                          >
+                            @
+                            {r.reported?.username ??
+                              r.reported_user_id.slice(0, 8)}
+                          </Link>
+                        </p>
+                        <p className="text-sm text-gold-soft/90">
+                          {r.reason_label}
+                        </p>
+                        {r.details && (
+                          <p className="text-xs text-slate-400">{r.details}</p>
+                        )}
+                        <p className="text-xs text-slate-500">
+                          Жалоба от @
+                          {r.reporter?.username ?? r.reporter_id.slice(0, 8)}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      <Link href={`/profile/${r.reported_user_id}`}>
+                        <Button size="sm" variant="outline">
+                          Анкета
+                        </Button>
+                      </Link>
+                      {r.status === "open" && (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={actionLoading === r.id}
+                            onClick={() =>
+                              void setProfileReportStatus(r.id, "reviewed")
+                            }
+                          >
+                            <CheckCircle2 size={14} />
+                            Проверено
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            disabled={actionLoading === r.id}
+                            onClick={() =>
+                              void setProfileReportStatus(r.id, "dismissed")
+                            }
+                          >
+                            Отклонить
+                          </Button>
+                        </>
+                      )}
+                      {r.status !== "open" && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          disabled={actionLoading === r.id}
+                          onClick={() =>
+                            void setProfileReportStatus(r.id, "open")
+                          }
+                        >
+                          Вернуть
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </GlassCard>
+              ))
+            )}
           </motion.div>
         )}
 
@@ -856,6 +1213,29 @@ export function AdminPanel({
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+function StatusPill({ status }: { status: string }) {
+  const map: Record<string, string> = {
+    open: "bg-red-500/15 text-red-300 border-red-500/25",
+    reviewed: "bg-emerald-500/15 text-emerald-300 border-emerald-500/25",
+    dismissed: "bg-slate-500/15 text-slate-400 border-slate-500/20",
+  };
+  const labels: Record<string, string> = {
+    open: "Открыта",
+    reviewed: "Проверена",
+    dismissed: "Отклонена",
+  };
+  return (
+    <span
+      className={cn(
+        "rounded-full border px-2 py-0.5 text-[10px] font-semibold",
+        map[status] ?? map.open
+      )}
+    >
+      {labels[status] ?? status}
+    </span>
   );
 }
 

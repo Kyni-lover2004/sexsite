@@ -132,6 +132,7 @@ export function ProfileView({
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [isAdminViewer, setIsAdminViewer] = useState(false);
+  const [viewerId, setViewerId] = useState<string | null>(null);
 
   useEffect(() => {
     async function checkRoleAndFriendship() {
@@ -139,6 +140,7 @@ export function ProfileView({
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) return;
+      setViewerId(user.id);
 
       const { data: viewerProfile } = await supabase
         .from("profiles")
@@ -690,7 +692,15 @@ export function ProfileView({
       />
 
       {!editing && <>
-        <ProfileHeader profile={profile} isOwn={isOwn} available={available} friendsCount={friendsCount} onToggleAvailable={toggleAvailable} onEdit={() => setEditing(true)} />
+        <ProfileHeader
+          profile={profile}
+          isOwn={isOwn}
+          available={available}
+          friendsCount={friendsCount}
+          onToggleAvailable={toggleAvailable}
+          onEdit={() => setEditing(true)}
+          currentUserId={viewerId}
+        />
         <div className="h-[13rem] sm:h-[10rem]" aria-hidden="true" />
       </>}
 

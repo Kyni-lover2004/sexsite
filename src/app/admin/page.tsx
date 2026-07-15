@@ -19,6 +19,8 @@ export default async function AdminPage() {
     { data: topics },
     { data: supportTickets },
     { data: conversations },
+    contentReportsRes,
+    profileReportsRes,
   ] = await Promise.all([
     supabase
       .from("profiles")
@@ -44,7 +46,36 @@ export default async function AdminPage() {
       .select("id, user_a, user_b, created_at, updated_at")
       .order("updated_at", { ascending: false })
       .limit(100),
+    (supabase as any)
+      .from("content_reports")
+      .select(
+        `id, reporter_id, topic_id, comment_id, reason, reason_code, details, status, created_at,
+         reporter:profiles!content_reports_reporter_id_fkey(id, username, display_name, avatar_url),
+         topic:topics!content_reports_topic_id_fkey(id, title, author_id)`
+      )
+      .order("created_at", { ascending: false })
+      .limit(100),
+    (supabase as any)
+      .from("profile_reports")
+      .select(
+        `id, reporter_id, reported_user_id, reason_code, reason_label, details, status, created_at,
+         reporter:profiles!profile_reports_reporter_id_fkey(id, username, display_name, avatar_url),
+         reported:profiles!profile_reports_reported_user_id_fkey(id, username, display_name, avatar_url)`
+      )
+      .order("created_at", { ascending: false })
+      .limit(100),
   ]);
+
+  const contentReports = (contentReportsRes.data ?? []).map((r: any) => ({
+    ...r,
+    reporter: Array.isArray(r.reporter) ? r.reporter[0] ?? null : r.reporter,
+    topic: Array.isArray(r.topic) ? r.topic[0] ?? null : r.topic,
+  }));
+  const profileReports = (profileReportsRes.data ?? []).map((r: any) => ({
+    ...r,
+    reporter: Array.isArray(r.reporter) ? r.reporter[0] ?? null : r.reporter,
+    reported: Array.isArray(r.reported) ? r.reported[0] ?? null : r.reported,
+  }));
 
   const ticketIds = (supportTickets ?? []).map((ticket: any) => ticket.id);
   const { data: supportMessages } =
@@ -88,6 +119,8 @@ export default async function AdminPage() {
         topics={(topics ?? []) as any}
         supportTickets={supportWithMessages as any}
         conversations={conversationsWithUsers}
+        contentReports={contentReports}
+        profileReports={profileReports}
       />
     </AppShell>
   );
