@@ -16,7 +16,6 @@ import {
   CheckCircle2,
   Trash2,
   ImagePlus,
-  HeartHandshake,
   Shield,
   Crown,
 } from "lucide-react";
@@ -488,7 +487,10 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
         onClose={() => setLightboxOpen(false)}
       />
 
-      {!editing && <ProfileHeader profile={profile} isOwn={isOwn} available={available} onToggleAvailable={toggleAvailable} onEdit={() => setEditing(true)} />}
+      {!editing && <>
+        <ProfileHeader profile={profile} isOwn={isOwn} available={available} onToggleAvailable={toggleAvailable} onEdit={() => setEditing(true)} />
+        <div className="h-[13rem] sm:h-[10rem]" aria-hidden="true" />
+      </>}
 
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
         <GlassCard
@@ -569,7 +571,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                   </div>
                   <div className="order-7 border-t border-gold/10 pt-3">
                     <label className="mb-1.5 block text-xs font-bold uppercase tracking-[0.12em] text-gold-soft/80">
-                      О себе
+                      О себе:
                     </label>
                     <Textarea
                       value={form.bio}
@@ -580,7 +582,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                   </div>
                   <div className="order-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div>
-                      <label className="mb-1.5 block text-xs font-medium text-slate-400">
+                      <label className="mb-1.5 block text-xs font-normal text-slate-400">
                         <MapPin size={12} className="mr-1 inline" />
                         Локация
                       </label>
@@ -640,7 +642,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                       </div>
                     </div>
                     <div>
-                      <label className="mb-1.5 block text-xs font-medium text-slate-400">
+                      <label className="mb-1.5 block text-xs font-normal text-slate-400">
                         Дата рождения
                       </label>
                       <div className="grid grid-cols-3 gap-1.5">
@@ -711,8 +713,11 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                       <option value="prefer_not_to_say">Не указывать</option>
                     </select>
                   </div>
-                  <div className="order-8">
-                    <label className="mb-1.5 block text-xs font-medium text-slate-400">
+                  <div className="order-6 border-t border-gold/10 pt-3">
+                    <p className="mb-2 text-xs font-bold uppercase tracking-[0.12em] text-gold-soft/80">
+                      Цели знакомств:
+                    </p>
+                    <label className="mb-1.5 block text-xs font-normal text-slate-400">
                       Зачем хотите познакомиться
                     </label>
                     <select
@@ -730,13 +735,13 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                       ))}
                     </select>
                   </div>
-                  <div className="order-9 border-t border-gold/10 pt-3">
+                  <div className="order-8 border-t border-gold/10 pt-3">
                     <p className="mb-2 text-xs font-bold text-gold-soft/80 uppercase tracking-[0.12em]">
-                      Кого хотелось бы найти и где
+                      Кого хотелось бы найти:
                     </p>
                     <div className="space-y-3">
                       <div>
-                        <label className="mb-1.5 block text-xs font-medium text-slate-400">
+                        <label className="mb-1.5 block text-xs font-normal text-slate-400">
                           С кем хотите познакомиться?
                         </label>
                         <div className="flex flex-wrap gap-1.5">
@@ -752,7 +757,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                         </div>
                       </div>
                       <div>
-                        <label className="mb-1.5 block text-xs font-medium text-slate-400">
+                        <label className="mb-1.5 block text-xs font-normal text-slate-400">
                           Возраст тех, с кем Вы хотите познакомиться
                         </label>
                         <select
@@ -767,7 +772,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                         </select>
                       </div>
                       <div>
-                        <label className="mb-1.5 block text-xs font-medium text-slate-400">
+                        <label className="mb-1.5 block text-xs font-normal text-slate-400">
                           Предпочтительное место для встречи
                         </label>
                         <div className="flex flex-wrap gap-1.5">
@@ -783,7 +788,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                         </div>
                       </div>
                       <div>
-                        <label className="mb-1.5 block text-xs font-medium text-slate-400">
+                        <label className="mb-1.5 block text-xs font-normal text-slate-400">
                           Степень вашей мобильности
                         </label>
                         <select
@@ -802,12 +807,22 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
 
                   <div className="order-5 border-t border-gold/10 pt-3">
                     <p className="mb-2 text-xs font-bold text-gold-soft/80 uppercase tracking-[0.12em]">
-                      Внешность и личные данные
+                      Личные данные:
                     </p>
+                    <div className="mb-3">
+                      <label className="mb-1.5 block text-xs font-normal text-slate-400">
+                        Ориентация
+                      </label>
+                      <div className="flex flex-wrap gap-1.5">
+                        {ORIENTATION_ROLES.map((opt) => (
+                          <Tag key={opt.value} label={opt.label} showHash={false} active={form.orientation_roles.includes(opt.value)} onClick={() => toggleOrientationRole(opt.value)} />
+                        ))}
+                      </div>
+                    </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="mb-1.5 block text-xs font-medium text-slate-400">
-                          Рост (см)
+                        <label className="mb-1.5 block text-xs font-normal text-slate-400">
+                          Рост
                         </label>
                         <Input
                           type="number"
@@ -819,8 +834,8 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                         />
                       </div>
                       <div>
-                        <label className="mb-1.5 block text-xs font-medium text-slate-400">
-                          Вес (кг)
+                        <label className="mb-1.5 block text-xs font-normal text-slate-400">
+                          Вес
                         </label>
                         <Input
                           type="number"
@@ -833,8 +848,8 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                       </div>
                     </div>
                     <div className="mt-3">
-                      <label className="mb-1.5 block text-xs font-medium text-slate-400">
-                        Отношение к курению во время встречи
+                      <label className="mb-1.5 block text-xs font-normal text-slate-400">
+                        Отношение к курению
                       </label>
                       <select
                         value={form.smoking_attitude}
@@ -848,8 +863,8 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                       </select>
                     </div>
                     <div className="mt-3">
-                      <label className="mb-1.5 block text-xs font-medium text-slate-400">
-                        Отношение к спиртному во время встречи
+                      <label className="mb-1.5 block text-xs font-normal text-slate-400">
+                        Отношение к алкоголю
                       </label>
                       <select
                         value={form.drinking_attitude}
@@ -864,31 +879,9 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                     </div>
                   </div>
 
-                  <div className="order-6 border-t border-gold/10 pt-3">
-                    <p className="mb-2 text-xs font-bold text-gold-soft/80 uppercase tracking-[0.12em]">
-                      Ориентация
-                    </p>
-                    <div>
-                      <label className="mb-1.5 block text-xs font-medium text-slate-400">
-                        Ориентация и роль
-                      </label>
-                      <div className="flex flex-wrap gap-1.5">
-                        {ORIENTATION_ROLES.map((opt) => (
-                          <Tag
-                            key={opt.value}
-                            label={opt.label}
-                            showHash={false}
-                            active={form.orientation_roles.includes(opt.value)}
-                            onClick={() => toggleOrientationRole(opt.value)}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="order-10 border-t border-gold/10 pt-3">
+                  <div className="order-9 border-t border-gold/10 pt-3">
                     <label className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-gold-soft/80">
-                      Интересы
+                      Интересы:
                     </label>
                     <div className="space-y-3 rounded-xl border border-gold/10 bg-base-900/40 p-3">
                       {INTEREST_SECTIONS.map((section) => (
@@ -918,7 +911,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                       className="mt-3"
                     />
                   </div>
-                  <div className="order-11 grid grid-cols-1 gap-2 min-[360px]:grid-cols-2 sm:flex">
+                  <div className="order-10 grid grid-cols-1 gap-2 min-[360px]:grid-cols-2 sm:flex">
                     <Button
                       size="sm"
                       onClick={handleSave}
@@ -1034,7 +1027,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
 
                   <section className="order-5 mt-0 w-full space-y-2 border-x border-t border-gold/10 bg-base-800/45 p-3.5 sm:p-5">
                     <h2 className="text-[11px] font-bold uppercase tracking-[0.14em] text-gold-soft/60">
-                      О себе
+                      О себе:
                     </h2>
                     <p className="whitespace-pre-wrap break-words text-sm leading-6 text-slate-400 dark:text-slate-300">
                       {profile.bio?.trim() ||
@@ -1046,6 +1039,9 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
 
                   {profile.interests.length > 0 && (
                     <div className="order-7 mt-0 w-full space-y-3 rounded-b-2xl border border-t-0 border-gold/10 bg-base-800/45 p-3.5 sm:p-5">
+                      <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-gold-soft/60">
+                        Интересы:
+                      </p>
                       {INTEREST_SECTIONS.map((section) => {
                         const sectionTags = profile.interests.filter((i) =>
                           (section.items as unknown as string[]).includes(i)
@@ -1088,79 +1084,67 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                     </div>
                   )}
 
-                  {(datingGoalLabel ||
-                    profile.looking_for?.length > 0 ||
+                  {datingGoalLabel && (
+                    <div className="order-4 mt-0 w-full space-y-2 border-x border-t border-gold/10 bg-base-800/45 p-3.5 sm:p-5">
+                      <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-gold-soft/60">
+                        Цели знакомств:
+                      </p>
+                      <p className="text-sm font-normal text-slate-400">
+                        <span className="font-normal">Зачем хотите познакомиться:</span>{" "}
+                        <span className="text-slate-300">{datingGoalLabel}</span>
+                      </p>
+                    </div>
+                  )}
+
+                  {(profile.looking_for?.length > 0 ||
                     profile.age_preference ||
                     profile.meeting_place?.length > 0 ||
                     profile.mobility) && (
                     <div className="order-6 mt-0 w-full space-y-2 border-x border-t border-gold/10 bg-base-800/45 p-3.5 sm:p-5">
                       <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-gold-soft/60">
-                        Кого хотелось бы найти и где
+                        Кого хотелось бы найти:
                       </p>
-                      {datingGoalLabel && (
-                        <div className="space-y-1.5 pt-1">
-                          <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-gold-soft/60">
-                            Зачем хотите познакомиться
-                          </p>
-                          <div className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-gold/20 bg-gold/10 px-3 py-1.5 text-xs font-medium text-gold-soft">
-                            <HeartHandshake size={14} />
-                            {datingGoalLabel}
-                          </div>
-                        </div>
-                      )}
                       {profile.looking_for?.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5">
-                          {profile.looking_for.map((v) => {
+                        <div className="space-y-1.5">
+                          <p className="text-xs font-normal text-slate-400">С кем хотите познакомиться:</p>
+                          <div className="flex flex-wrap gap-1.5">{profile.looking_for.map((v) => {
                             const label = LOOKING_FOR_OPTIONS.find((o) => o.value === v)?.label ?? v;
                             return <Tag key={v} label={label} showHash={false} />;
-                          })}
+                          })}</div>
                         </div>
                       )}
                       {agePrefLabel && (
-                        <p className="text-xs text-slate-400">{agePrefLabel}</p>
+                        <p className="text-xs font-normal text-slate-400">Возраст тех, с кем Вы хотите познакомиться: <span className="text-slate-300">{agePrefLabel}</span></p>
                       )}
                       {profile.meeting_place?.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5">
-                          {profile.meeting_place.map((v) => {
+                        <div className="space-y-1.5">
+                          <p className="text-xs font-normal text-slate-400">Предпочтительное место для встречи:</p>
+                          <div className="flex flex-wrap gap-1.5">{profile.meeting_place.map((v) => {
                             const label = MEETING_PLACE_OPTIONS.find((o) => o.value === v)?.label ?? v;
                             return <Tag key={v} label={label} showHash={false} />;
-                          })}
+                          })}</div>
                         </div>
                       )}
                       {mobilityLabel && (
-                        <p className="text-xs text-slate-400">{mobilityLabel}</p>
+                        <p className="text-xs font-normal text-slate-400">Степень вашей мобильности: <span className="text-slate-300">{mobilityLabel}</span></p>
                       )}
                     </div>
                   )}
 
-                  {(profile.height ||
+                  {(profile.orientation_roles?.length > 0 ||
+                    profile.height ||
                     profile.weight ||
                     profile.smoking_attitude ||
                     profile.drinking_attitude) && (
                     <div className="order-3 mt-0 w-full space-y-2 rounded-t-2xl border border-gold/10 bg-base-800/45 p-3.5 sm:p-5">
                       <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-gold-soft/60">
-                        Внешность и личные данные
+                        Личные данные:
                       </p>
-                      <div className="flex flex-wrap gap-3 text-xs text-slate-400">
-                        {profile.height && <span>Рост: {profile.height} см</span>}
-                        {profile.weight && <span>Вес: {profile.weight} кг</span>}
-                      </div>
-                      {smokingLabel && <p className="text-xs text-slate-400">{smokingLabel}</p>}
-                      {drinkingLabel && <p className="text-xs text-slate-400">{drinkingLabel}</p>}
-                    </div>
-                  )}
-
-                  {profile.orientation_roles?.length > 0 && (
-                    <div className="order-4 mt-0 w-full space-y-2 border-x border-t border-gold/10 bg-base-800/45 p-3.5 sm:p-5">
-                      <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-gold-soft/60">
-                        Ориентация
-                      </p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {profile.orientation_roles.map((v) => {
-                          const label = ORIENTATION_ROLES.find((o) => o.value === v)?.label ?? v;
-                          return <Tag key={v} label={label} showHash={false} />;
-                        })}
-                      </div>
+                      {profile.orientation_roles?.length > 0 && <div className="space-y-1.5"><p className="text-xs font-normal text-slate-400">Ориентация:</p><div className="flex flex-wrap gap-1.5">{profile.orientation_roles.map((v) => { const label = ORIENTATION_ROLES.find((o) => o.value === v)?.label ?? v; return <Tag key={v} label={label} showHash={false} />; })}</div></div>}
+                      {profile.height && <p className="text-xs font-normal text-slate-400">Рост: <span className="text-slate-300">{profile.height} см</span></p>}
+                      {profile.weight && <p className="text-xs font-normal text-slate-400">Вес: <span className="text-slate-300">{profile.weight} кг</span></p>}
+                      {smokingLabel && <p className="text-xs font-normal text-slate-400">Отношение к курению: <span className="text-slate-300">{smokingLabel}</span></p>}
+                      {drinkingLabel && <p className="text-xs font-normal text-slate-400">Отношение к алкоголю: <span className="text-slate-300">{drinkingLabel}</span></p>}
                     </div>
                   )}
 
