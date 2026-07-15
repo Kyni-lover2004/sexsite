@@ -7,6 +7,8 @@ interface Props {
   params: { id: string };
 }
 
+export const dynamic = "force-dynamic";
+
 export default async function UserProfilePage({ params }: Props) {
   const supabase = createClient();
   const { data: auth } = await supabase.auth.getUser();
@@ -20,13 +22,17 @@ export default async function UserProfilePage({ params }: Props) {
   if (!profile) notFound();
 
   if (auth.user && auth.user.id !== params.id) {
-    await (supabase as any).from("profile_visits").upsert({
-      profile_id: params.id,
-      visitor_id: auth.user.id,
-      visited_at: new Date().toISOString()
-    }, {
-      onConflict: "profile_id,visitor_id"
-    });
+    try {
+      await (supabase as any).from("profile_visits").upsert({
+        profile_id: params.id,
+        visitor_id: auth.user.id,
+        visited_at: new Date().toISOString()
+      }, {
+        onConflict: "profile_id,visitor_id"
+      });
+    } catch (err) {
+      console.error("Failed to log profile visit:", err);
+    }
   }
 
   const { data: photos } = await (supabase as any)

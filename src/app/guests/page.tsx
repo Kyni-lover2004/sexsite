@@ -4,6 +4,8 @@ import { AppShell } from "@/components/layout/AppShell";
 import { Avatar } from "@/components/ui/Avatar";
 import { createClient } from "@/lib/supabase/server";
 
+export const dynamic = "force-dynamic";
+
 export default async function GuestsPage() {
   const supabase = createClient();
   const { data: auth } = await supabase.auth.getUser();
