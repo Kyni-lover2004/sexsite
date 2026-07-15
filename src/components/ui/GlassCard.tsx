@@ -20,15 +20,16 @@ export const GlassCard = forwardRef<HTMLDivElement, GlassCardProps>(
     <motion.div
       ref={ref}
       className={cn(
-        "relative rounded-2xl backdrop-blur-xl",
-        "bg-base-800/62 border border-gold/10",
+        // Lighter blur on mobile — backdrop-filter is expensive on phones.
+        "relative rounded-2xl backdrop-blur-md md:backdrop-blur-xl",
+        "bg-base-800/70 border border-gold/10 md:bg-base-800/62",
         "shadow-glass shadow-inner-glow",
         premium && "glass-premium",
         interactive && [
           "transition-all duration-300",
           "hover:border-gold/30 hover:shadow-glow-accent",
           "hover:bg-base-800/75",
-          "hover:-translate-y-0.5",
+          "md:hover:-translate-y-0.5",
         ],
         className
       )}

@@ -20,12 +20,12 @@ export function TopicCard({ topic, index, onLike }: TopicCardProps) {
   const author = topic.author;
   return (
     <motion.article
-      initial={{ opacity: 0, y: 20, scale: 0.98 }}
-      whileInView={{ opacity: 1, y: 0, scale: 1 }}
-      viewport={{ once: true, margin: "-40px" }}
+      initial={{ opacity: 0, y: 10 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-24px" }}
       transition={{
-        duration: 0.5,
-        delay: Math.min(index * 0.06, 0.3),
+        duration: 0.28,
+        delay: Math.min(index * 0.03, 0.15),
         ease: [0.22, 1, 0.36, 1],
       }}
     >

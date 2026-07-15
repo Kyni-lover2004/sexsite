@@ -4,7 +4,20 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Crown, Eye, Headphones, Images, LogOut, Menu, MessageSquare, MessagesSquare, User, UserRoundCheck, Users, X } from "lucide-react";
+import {
+  Crown,
+  Eye,
+  Headphones,
+  Images,
+  LogOut,
+  Menu,
+  MessageSquare,
+  MessagesSquare,
+  User,
+  UserRoundCheck,
+  Users,
+  X,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { BrandLogo } from "@/components/ui/BrandLogo";
@@ -13,15 +26,17 @@ import { ThemeToggle } from "./ThemeToggle";
 interface NavItem {
   href: string;
   label: string;
+  /** Shorter label for the cramped mobile tab bar. */
+  shortLabel?: string;
   icon: React.ComponentType<{ className?: string }>;
 }
 
 const NAV: NavItem[] = [
-  { href: "/profile", label: "Анкета", icon: User },
-  { href: "/chat", label: "Сообщения", icon: MessagesSquare },
-  { href: "/guests", label: "Гости", icon: Eye },
-  { href: "/people", label: "Поиск", icon: Users },
-  { href: "/", label: "Обсуждения", icon: MessageSquare },
+  { href: "/profile", label: "Анкета", shortLabel: "Профиль", icon: User },
+  { href: "/chat", label: "Сообщения", shortLabel: "Чаты", icon: MessagesSquare },
+  { href: "/guests", label: "Гости", shortLabel: "Гости", icon: Eye },
+  { href: "/people", label: "Поиск", shortLabel: "Люди", icon: Users },
+  { href: "/", label: "Обсуждения", shortLabel: "Форум", icon: MessageSquare },
 ];
 
 const PERSONAL_NAV: NavItem[] = [
@@ -51,12 +66,13 @@ export function AppShell({
     href === "/" ? pathname === "/" : pathname.startsWith(href);
 
   return (
-    <div className="relative min-h-svh overflow-hidden">
+    <div className="relative min-h-svh overflow-x-hidden">
+      {/* ---------- Desktop sidebar ---------- */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-gold/10 bg-base-950/98 px-4 py-6 shadow-[18px_0_60px_rgba(0,0,0,0.34)] md:flex">
         <Link href="/" className="group mb-9 flex items-center gap-3 px-2">
           <motion.span
-            whileHover={{ scale: 1.06, rotate: 2 }}
-            transition={{ type: "spring", stiffness: 400, damping: 15 }}
+            whileHover={{ scale: 1.05 }}
+            transition={{ type: "spring", stiffness: 400, damping: 18 }}
             className="shrink-0"
           >
             <BrandLogo size={40} priority />
@@ -97,7 +113,8 @@ export function AppShell({
                   <item.icon
                     className={cn(
                       "h-5 w-5 transition-colors",
-                      active && "text-gold-soft drop-shadow-[0_0_8px_rgb(var(--gold-glow)/0.42)]"
+                      active &&
+                        "text-gold-soft drop-shadow-[0_0_8px_rgb(var(--gold-glow)/0.42)]"
                     )}
                   />
                   {item.label}
@@ -120,7 +137,9 @@ export function AppShell({
                 href={item.href}
                 className={cn(
                   "flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium transition-colors",
-                  active ? "bg-gold/10 text-warm-100" : "text-slate-500 hover:bg-gold/[0.05] hover:text-warm-100"
+                  active
+                    ? "bg-gold/10 text-warm-100"
+                    : "text-slate-500 hover:bg-gold/[0.05] hover:text-warm-100"
                 )}
               >
                 <item.icon className="h-4 w-4" />
@@ -134,7 +153,9 @@ export function AppShell({
           href={PREMIUM.href}
           className={cn(
             "mb-1 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
-            isActive(PREMIUM.href) ? "bg-gold/10 text-warm-100" : "text-slate-500 hover:bg-gold/[0.05] hover:text-warm-100"
+            isActive(PREMIUM.href)
+              ? "bg-gold/10 text-warm-100"
+              : "text-slate-500 hover:bg-gold/[0.05] hover:text-warm-100"
           )}
         >
           <PREMIUM.icon className="h-5 w-5" />
@@ -154,7 +175,9 @@ export function AppShell({
         </Link>
         <div className="mx-3 mb-3 h-px bg-gradient-to-r from-transparent via-black/70 to-transparent dark:via-black" />
         <div className="flex items-center justify-between px-3">
-          <p className="text-[10px] uppercase tracking-[0.18em] text-gold-soft/35">v0.1 · E2EE ready</p>
+          <p className="text-[10px] uppercase tracking-[0.18em] text-gold-soft/35">
+            v0.1 · E2EE ready
+          </p>
           <div className="flex items-center gap-2">
             <LogoutButton />
             <ThemeToggle />
@@ -162,85 +185,147 @@ export function AppShell({
         </div>
       </aside>
 
-      <main className={cn(
-        "relative z-10 flex flex-col md:pl-64 min-w-0",
-        noPadding ? "h-svh pb-[calc(4.75rem+env(safe-area-inset-bottom))] md:pb-0" : "pb-[calc(6.5rem+env(safe-area-inset-bottom))] md:pb-0"
-      )}>
+      {/* ---------- Main content (pads around mobile chrome) ---------- */}
+      {/*
+        Mobile chrome:
+          top bar  = 3.5rem + safe-area-top
+          tab bar  = 4.25rem + safe-area-bottom
+        Content must clear both so the tab bar never covers text.
+      */}
+      <main
+        className={cn(
+          "relative z-10 flex min-w-0 flex-col md:pl-64",
+          noPadding
+            ? "h-svh min-h-0 max-md:pt-[calc(3.5rem+env(safe-area-inset-top))] max-md:pb-[calc(4.25rem+env(safe-area-inset-bottom))]"
+            : "max-md:pt-[calc(3.5rem+env(safe-area-inset-top)+0.75rem)] max-md:pb-[calc(4.25rem+env(safe-area-inset-bottom)+1.25rem)]"
+        )}
+      >
         {noPadding ? (
-          <div className="w-full flex-1 flex flex-col min-h-0">
-            {children}
-          </div>
+          <div className="flex w-full min-h-0 flex-1 flex-col">{children}</div>
         ) : (
-          <div className="mx-auto w-full max-w-4xl px-4 pb-6 pt-20 md:px-8 md:py-10">
+          <div className="mx-auto w-full max-w-4xl px-4 pb-2 md:px-8 md:py-10">
             {children}
           </div>
         )}
       </main>
 
-      <button
-        type="button"
-        onClick={() => setMobileMenuOpen(true)}
-        className="fixed left-4 top-[calc(1rem+env(safe-area-inset-top))] z-30 grid h-11 w-11 place-items-center rounded-xl border border-gold/20 bg-base-950/95 text-warm-100 backdrop-blur md:hidden"
-        aria-label="Открыть личные разделы"
+      {/* ---------- Mobile top bar (left: logo + menu) ---------- */}
+      <header
+        className="fixed inset-x-0 top-0 z-40 border-b border-gold/10 bg-base-950/92 backdrop-blur-xl md:hidden"
+        style={{ paddingTop: "env(safe-area-inset-top)" }}
       >
-        <Menu size={19} />
-      </button>
-      <div className="fixed right-4 top-[calc(1rem+env(safe-area-inset-top))] z-30 flex items-center gap-2 md:hidden">
-        <ThemeToggle />
-        <Link
-          href="/"
-          className="grid h-11 w-11 place-items-center"
-          aria-label="Desire Privé — на главную"
-        >
-          <BrandLogo size={44} priority />
-        </Link>
-      </div>
+        <div className="flex h-14 items-center justify-between gap-2 px-3">
+          <div className="flex min-w-0 items-center gap-2">
+            <Link
+              href="/"
+              className="shrink-0"
+              aria-label="Desire Privé — на главную"
+            >
+              <BrandLogo size={36} priority />
+            </Link>
+            <span className="truncate font-display text-sm font-bold tracking-tight text-gradient">
+              Desire Privé
+            </span>
+          </div>
+          <div className="flex shrink-0 items-center gap-1.5">
+            <ThemeToggle className="!h-10 !w-10" />
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen(true)}
+              className="grid h-10 w-10 place-items-center rounded-xl border border-gold/20 bg-base-900/70 text-warm-100"
+              aria-label="Открыть меню"
+            >
+              <Menu size={18} />
+            </button>
+          </div>
+        </div>
+      </header>
 
+      {/* ---------- Mobile drawer ---------- */}
       {mobileMenuOpen && (
-        <div className="fixed inset-0 z-50 bg-black/45 md:hidden" onClick={() => setMobileMenuOpen(false)}>
-          <div className="h-full w-[min(82vw,20rem)] border-r border-gold/15 bg-base-950 p-4 pt-[calc(1rem+env(safe-area-inset-top))]" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm md:hidden"
+          onClick={() => setMobileMenuOpen(false)}
+        >
+          <div
+            className="flex h-full w-[min(84vw,20rem)] flex-col border-r border-gold/15 bg-base-950 p-4 shadow-2xl"
+            style={{ paddingTop: "calc(1rem + env(safe-area-inset-top))" }}
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="mb-6 flex items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-2.5">
                 <BrandLogo size={36} />
-                <p className="font-display text-lg font-bold text-warm-100">Личные разделы</p>
+                <div className="min-w-0">
+                  <p className="font-display text-base font-bold text-warm-100">
+                    Desire Privé
+                  </p>
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-gold-soft/50">
+                    меню
+                  </p>
+                </div>
               </div>
-              <button onClick={() => setMobileMenuOpen(false)} className="grid h-11 w-11 place-items-center rounded-xl text-slate-400" aria-label="Закрыть меню"><X size={20}/></button>
+              <button
+                onClick={() => setMobileMenuOpen(false)}
+                className="grid h-11 w-11 place-items-center rounded-xl text-slate-400 hover:bg-base-800"
+                aria-label="Закрыть меню"
+              >
+                <X size={20} />
+              </button>
             </div>
-            <nav className="space-y-1">
-              {[...PERSONAL_NAV, PREMIUM, SUPPORT].map((item) => <Link key={item.href} href={item.href} onClick={() => setMobileMenuOpen(false)} className="flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm font-medium text-slate-300 hover:bg-gold/10 hover:text-white"><item.icon className="h-5 w-5"/>{item.label}</Link>)}
+            <nav className="flex-1 space-y-1">
+              {[...PERSONAL_NAV, PREMIUM, SUPPORT].map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={cn(
+                    "flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm font-medium transition-colors",
+                    isActive(item.href)
+                      ? "bg-gold/10 text-warm-100"
+                      : "text-slate-300 hover:bg-gold/10 hover:text-white"
+                  )}
+                >
+                  <item.icon className="h-5 w-5 shrink-0" />
+                  {item.label}
+                </Link>
+              ))}
             </nav>
+            <div className="mt-4 border-t border-gold/10 pt-3">
+              <LogoutButton wide />
+            </div>
           </div>
         </div>
       )}
 
-      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-gold/15 bg-base-950/98 px-1 pb-[calc(0.35rem+env(safe-area-inset-bottom))] shadow-[0_-10px_30px_rgba(0,0,0,0.32)] md:hidden">
-        <div className="mx-auto grid max-w-lg grid-cols-6 items-stretch">
-          {[...NAV, PREMIUM].map((item) => {
+      {/* ---------- Mobile bottom tab bar (5 items, short labels) ---------- */}
+      <nav
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-gold/12 bg-base-950/94 backdrop-blur-xl md:hidden"
+        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      >
+        <div className="mx-auto grid h-[4.25rem] max-w-lg grid-cols-5 items-stretch px-1">
+          {NAV.map((item) => {
             const active = isActive(item.href);
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "relative flex min-h-[3.75rem] min-w-0 touch-manipulation flex-col items-center justify-center gap-1 overflow-hidden px-0.5 pt-2 text-[10px] font-medium leading-none transition-all duration-200",
+                  "relative flex min-w-0 touch-manipulation flex-col items-center justify-center gap-1 px-0.5 pt-1 text-[10px] font-medium leading-none transition-colors",
                   active ? "text-gold-soft" : "text-slate-500"
                 )}
               >
                 {active && (
-                  <motion.span
-                    layoutId="mobilenav-active"
-                    className="absolute top-0 h-[2px] w-10 rounded-full bg-gold-gradient shadow-[0_0_10px_rgb(var(--gold-glow)/0.45)]"
-                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                  />
+                  <span className="absolute top-0 h-[2px] w-8 rounded-full bg-gold-gradient shadow-[0_0_10px_rgb(var(--gold-glow)/0.45)]" />
                 )}
                 <item.icon
                   className={cn(
-                    "h-5 w-5 shrink-0",
-                    active && "drop-shadow-[0_0_8px_rgb(var(--gold-glow)/0.42)]"
+                    "h-[1.35rem] w-[1.35rem] shrink-0",
+                    active &&
+                      "drop-shadow-[0_0_8px_rgb(var(--gold-glow)/0.42)]"
                   )}
                 />
                 <span className="block max-w-full truncate text-center">
-                  {item.label}
+                  {item.shortLabel ?? item.label}
                 </span>
               </Link>
             );
@@ -251,7 +336,7 @@ export function AppShell({
   );
 }
 
-function LogoutButton() {
+function LogoutButton({ wide = false }: { wide?: boolean }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
@@ -269,16 +354,22 @@ function LogoutButton() {
       disabled={loading}
       title="Выйти из аккаунта"
       className={cn(
-        "grid h-8 w-8 place-items-center rounded-lg text-slate-500 transition-all duration-200",
+        "text-slate-500 transition-all duration-200",
         "hover:bg-red-500/10 hover:text-red-400",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/40",
-        loading && "pointer-events-none opacity-50"
+        loading && "pointer-events-none opacity-50",
+        wide
+          ? "flex min-h-12 w-full items-center gap-3 rounded-xl px-3 text-sm font-medium"
+          : "grid h-8 w-8 place-items-center rounded-lg"
       )}
     >
       {loading ? (
         <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-slate-500/30 border-t-slate-500" />
       ) : (
-        <LogOut size={15} />
+        <>
+          <LogOut size={wide ? 18 : 15} />
+          {wide && <span>Выйти</span>}
+        </>
       )}
     </button>
   );
