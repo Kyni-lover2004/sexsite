@@ -135,6 +135,15 @@ create table if not exists public.profile_videos (
 create index if not exists profile_videos_user_idx
   on public.profile_videos (user_id, created_at desc);
 
+create table if not exists public.profile_wall_posts (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid not null references public.profiles (id) on delete cascade,
+  author_id  uuid not null references public.profiles (id) on delete cascade,
+  body       text not null check (char_length(body) between 1 and 2000),
+  created_at timestamptz not null default now()
+);
+create index if not exists profile_wall_posts_idx on public.profile_wall_posts (user_id, created_at desc);
+
 -- =============================================================
 --  ENCRYPTION KEYS  (E2EE)
 --  Only the PUBLIC key lives on the server. The private key never
@@ -453,6 +462,7 @@ alter table public.profile_photos  enable row level security;
 alter table public.profile_visits  enable row level security;
 alter table public.friendships     enable row level security;
 alter table public.profile_videos  enable row level security;
+alter table public.profile_wall_posts enable row level security;
 alter table public.encryption_keys enable row level security;
 alter table public.topics          enable row level security;
 alter table public.comments        enable row level security;
@@ -516,6 +526,16 @@ create policy profile_videos_select on public.profile_videos
 drop policy if exists profile_videos_write on public.profile_videos;
 create policy profile_videos_write on public.profile_videos
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+drop policy if exists profile_wall_posts_select on public.profile_wall_posts;
+create policy profile_wall_posts_select on public.profile_wall_posts
+  for select using (auth.role() = 'authenticated');
+drop policy if exists profile_wall_posts_insert on public.profile_wall_posts;
+create policy profile_wall_posts_insert on public.profile_wall_posts
+  for insert with check (auth.uid() = author_id and auth.uid() = user_id);
+drop policy if exists profile_wall_posts_delete on public.profile_wall_posts;
+create policy profile_wall_posts_delete on public.profile_wall_posts
+  for delete using (auth.uid() = user_id or auth.uid() = author_id);
 
 -- Encryption keys: public keys readable by all (needed to encrypt TO a user),
 -- but only the owner may write their own key.

@@ -28,6 +28,8 @@ import { Input, Textarea } from "@/components/ui/Input";
 import { Tag } from "@/components/ui/Badge";
 import { AvatarCropper } from "@/components/ui/AvatarCropper";
 import { PhotoLightbox } from "@/components/ui/PhotoLightbox";
+import { ProfileHeader } from "@/components/profile/ProfileHeader";
+import { ProfileWall } from "@/components/profile/ProfileWall";
 import { usePhotoViewLimit } from "@/hooks/usePhotoViewLimit";
 import { ageFromBirthDate, isOnline, timeAgo } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
@@ -471,7 +473,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
   }
 
   return (
-    <div className="profile-no-shadows w-full min-w-0 space-y-5 overflow-x-hidden">
+    <div className="profile-no-shadows w-full min-w-0 space-y-5 overflow-x-clip">
       <AvatarCropper
         open={cropperOpen}
         imageSrc={cropperSrc}
@@ -486,6 +488,8 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
         onClose={() => setLightboxOpen(false)}
       />
 
+      {!editing && <ProfileHeader profile={profile} isOwn={isOwn} available={available} onToggleAvailable={toggleAvailable} onEdit={() => setEditing(true)} />}
+
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
         <GlassCard
           className={editing
@@ -493,15 +497,8 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
             : "relative overflow-visible border-0 bg-transparent p-4 shadow-none backdrop-blur-none sm:p-6"
           }
         >
-          {!editing && (
-            <>
-              <div className="absolute inset-x-0 top-0 h-[17rem] rounded-2xl border border-gold/10 bg-gradient-to-br from-gold/20 via-accent-deep/10 to-gold/10 sm:h-[10.125rem]" />
-              <div className="absolute inset-x-4 top-[17rem] h-px bg-gradient-to-r from-transparent via-gold/25 to-transparent sm:inset-x-6 sm:top-[10.125rem]" />
-            </>
-          )}
-
           <div className="relative flex flex-col gap-3 pt-5 sm:flex-row sm:items-start sm:gap-4 sm:pt-7">
-            <div className="relative group w-fit shrink-0">
+            <div className={editing ? "relative group w-fit shrink-0" : "hidden"}>
               <Avatar
                 src={profile.avatar_url}
                 name={profile.display_name ?? profile.username}
@@ -945,7 +942,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                 </div>
               ) : (
                 <div className="flex flex-col">
-                   <div className="order-1 flex min-w-0 items-start justify-between gap-2">
+                   <div className="hidden">
                     <div className="min-w-0">
                       <h1 className="flex min-w-0 flex-wrap items-center gap-1.5 break-words font-display text-lg font-bold leading-tight text-gradient sm:gap-2 sm:text-xl">
                         {(profile.display_name ?? profile.username).slice(0, 10)}
@@ -999,7 +996,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                     )}
                   </div>
 
-                  <div className="order-2 mt-3 flex flex-wrap gap-x-3 gap-y-2 text-xs text-slate-500 sm:gap-x-4">
+                  <div className="hidden">
                     {profile.gender && profile.gender !== "prefer_not_to_say" && (
                       <span className="flex items-center gap-1">
                         {profile.gender === "male"
@@ -1033,7 +1030,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                     </span>
                   </div>
 
-                  <section className="order-5 mt-0 w-full space-y-2 border-x border-t border-gold/10 bg-base-800/45 p-3.5 sm:-ml-24 sm:w-[calc(100%+6rem)] sm:p-5">
+                  <section className="order-5 mt-0 w-full space-y-2 border-x border-t border-gold/10 bg-base-800/45 p-3.5 sm:p-5">
                     <h2 className="text-[11px] font-bold uppercase tracking-[0.14em] text-gold-soft/60">
                       О себе
                     </h2>
@@ -1046,7 +1043,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                   </section>
 
                   {profile.interests.length > 0 && (
-                    <div className="order-7 mt-0 w-full space-y-3 rounded-b-2xl border border-t-0 border-gold/10 bg-base-800/45 p-3.5 sm:-ml-24 sm:w-[calc(100%+6rem)] sm:p-5">
+                    <div className="order-7 mt-0 w-full space-y-3 rounded-b-2xl border border-t-0 border-gold/10 bg-base-800/45 p-3.5 sm:p-5">
                       {INTEREST_SECTIONS.map((section) => {
                         const sectionTags = profile.interests.filter((i) =>
                           (section.items as unknown as string[]).includes(i)
@@ -1094,7 +1091,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                     profile.age_preference ||
                     profile.meeting_place?.length > 0 ||
                     profile.mobility) && (
-                    <div className="order-6 mt-0 w-full space-y-2 border-x border-t border-gold/10 bg-base-800/45 p-3.5 sm:-ml-24 sm:w-[calc(100%+6rem)] sm:p-5">
+                    <div className="order-6 mt-0 w-full space-y-2 border-x border-t border-gold/10 bg-base-800/45 p-3.5 sm:p-5">
                       <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-gold-soft/60">
                         Кого хотелось бы найти и где
                       </p>
@@ -1138,7 +1135,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                     profile.weight ||
                     profile.smoking_attitude ||
                     profile.drinking_attitude) && (
-                    <div className="order-3 mt-20 w-full space-y-2 rounded-t-2xl border border-gold/10 bg-base-800/45 p-3.5 sm:-ml-24 sm:mt-8 sm:w-[calc(100%+6rem)] sm:p-5">
+                    <div className="order-3 mt-0 w-full space-y-2 rounded-t-2xl border border-gold/10 bg-base-800/45 p-3.5 sm:p-5">
                       <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-gold-soft/60">
                         Внешность и личные данные
                       </p>
@@ -1152,7 +1149,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                   )}
 
                   {profile.orientation_roles?.length > 0 && (
-                    <div className="order-4 mt-0 w-full space-y-2 border-x border-t border-gold/10 bg-base-800/45 p-3.5 sm:-ml-24 sm:w-[calc(100%+6rem)] sm:p-5">
+                    <div className="order-4 mt-0 w-full space-y-2 border-x border-t border-gold/10 bg-base-800/45 p-3.5 sm:p-5">
                       <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-gold-soft/60">
                         Ориентация
                       </p>
@@ -1184,6 +1181,8 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
           </div>
         </GlassCard>
       </motion.div>
+
+      {!editing && <ProfileWall profileId={profile.id} isOwn={isOwn} />}
 
       <GlassCard className="p-5">
         <div className="mb-4 flex flex-col gap-3 min-[420px]:flex-row min-[420px]:items-center min-[420px]:justify-between">
