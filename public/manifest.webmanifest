@@ -12,19 +12,19 @@
   "categories": ["social", "lifestyle"],
   "icons": [
     {
-      "src": "/icon-192.jpg",
+      "src": "/icon-192.jpg?v=2",
       "sizes": "192x192",
       "type": "image/jpeg",
       "purpose": "any"
     },
     {
-      "src": "/icon-512.jpg",
+      "src": "/icon-512.jpg?v=2",
       "sizes": "512x512",
       "type": "image/jpeg",
       "purpose": "any"
     },
     {
-      "src": "/icon-512.jpg",
+      "src": "/icon-512.jpg?v=2",
       "sizes": "512x512",
       "type": "image/jpeg",
       "purpose": "maskable"

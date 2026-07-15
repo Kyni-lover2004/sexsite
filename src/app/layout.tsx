@@ -34,11 +34,16 @@ export const metadata: Metadata = {
     title: "Desire Privé",
   },
   icons: {
+    // Cache-bust so browsers pick up the new cameo mark (not old lips)
     icon: [
-      { url: "/icon-192.jpg", sizes: "192x192", type: "image/jpeg" },
-      { url: "/icon-512.jpg", sizes: "512x512", type: "image/jpeg" },
+      { url: "/icon-192.jpg?v=2", sizes: "192x192", type: "image/jpeg" },
+      { url: "/icon-512.jpg?v=2", sizes: "512x512", type: "image/jpeg" },
+      { url: "/favicon.ico?v=2", sizes: "32x32", type: "image/x-icon" },
     ],
-    apple: [{ url: "/apple-touch-icon.jpg", sizes: "180x180", type: "image/jpeg" }],
+    apple: [
+      { url: "/apple-touch-icon.jpg?v=2", sizes: "180x180", type: "image/jpeg" },
+    ],
+    shortcut: ["/favicon.ico?v=2"],
   },
   formatDetection: {
     telephone: false,
