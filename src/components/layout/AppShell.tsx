@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Crown, Headphones, LogOut, MessageSquare, MessagesSquare, User, Users } from "lucide-react";
+import { Crown, Eye, Headphones, Images, LogOut, Menu, MessageSquare, MessagesSquare, User, UserRoundCheck, Users, Video, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { ThemeToggle } from "./ThemeToggle";
@@ -16,12 +16,20 @@ interface NavItem {
 }
 
 const NAV: NavItem[] = [
-  { href: "/profile", label: "Профиль", icon: User },
-  { href: "/chat", label: "Чаты", icon: MessagesSquare },
+  { href: "/profile", label: "Анкета", icon: User },
+  { href: "/chat", label: "Сообщения", icon: MessagesSquare },
+  { href: "/guests", label: "Гости", icon: Eye },
   { href: "/people", label: "Поиск", icon: Users },
   { href: "/", label: "Обсуждения", icon: MessageSquare },
-  { href: "/premium", label: "Премиум", icon: Crown },
 ];
+
+const PERSONAL_NAV: NavItem[] = [
+  { href: "/friends", label: "Мои друзья", icon: UserRoundCheck },
+  { href: "/my-videos", label: "Мои видео", icon: Video },
+  { href: "/my-photos", label: "Мои фото", icon: Images },
+];
+
+const PREMIUM: NavItem = { href: "/premium", label: "Премиум", icon: Crown };
 
 const SUPPORT: NavItem = {
   href: "/support",
@@ -37,6 +45,7 @@ export function AppShell({
   noPadding?: boolean;
 }) {
   const pathname = usePathname();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
@@ -102,8 +111,35 @@ export function AppShell({
               </div>
             );
           })}
+          <div className="my-2 h-px bg-gradient-to-r from-transparent via-black/70 to-transparent dark:via-black" />
+          {PERSONAL_NAV.map((item) => {
+            const active = isActive(item.href);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium transition-colors",
+                  active ? "bg-gold/10 text-warm-100" : "text-slate-500 hover:bg-gold/[0.05] hover:text-warm-100"
+                )}
+              >
+                <item.icon className="h-4 w-4" />
+                {item.label}
+              </Link>
+            );
+          })}
         </nav>
 
+        <Link
+          href={PREMIUM.href}
+          className={cn(
+            "mb-1 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
+            isActive(PREMIUM.href) ? "bg-gold/10 text-warm-100" : "text-slate-500 hover:bg-gold/[0.05] hover:text-warm-100"
+          )}
+        >
+          <PREMIUM.icon className="h-5 w-5" />
+          {PREMIUM.label}
+        </Link>
         <Link
           href={SUPPORT.href}
           className={cn(
@@ -135,19 +171,41 @@ export function AppShell({
             {children}
           </div>
         ) : (
-          <div className="mx-auto w-full max-w-4xl px-4 py-6 md:px-8 md:py-10">
+          <div className="mx-auto w-full max-w-4xl px-4 pb-6 pt-20 md:px-8 md:py-10">
             {children}
           </div>
         )}
       </main>
 
+      <button
+        type="button"
+        onClick={() => setMobileMenuOpen(true)}
+        className="fixed left-4 top-[calc(1rem+env(safe-area-inset-top))] z-30 grid h-11 w-11 place-items-center rounded-xl border border-gold/20 bg-base-950/95 text-warm-100 backdrop-blur md:hidden"
+        aria-label="Открыть личные разделы"
+      >
+        <Menu size={19} />
+      </button>
       <div className="fixed right-4 top-[calc(1rem+env(safe-area-inset-top))] z-30 md:hidden">
         <ThemeToggle />
       </div>
 
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 z-50 bg-black/45 md:hidden" onClick={() => setMobileMenuOpen(false)}>
+          <div className="h-full w-[min(82vw,20rem)] border-r border-gold/15 bg-base-950 p-4 pt-[calc(1rem+env(safe-area-inset-top))]" onClick={(e) => e.stopPropagation()}>
+            <div className="mb-6 flex items-center justify-between">
+              <p className="font-display text-lg font-bold text-warm-100">Личные разделы</p>
+              <button onClick={() => setMobileMenuOpen(false)} className="grid h-11 w-11 place-items-center rounded-xl text-slate-400" aria-label="Закрыть меню"><X size={20}/></button>
+            </div>
+            <nav className="space-y-1">
+              {[...PERSONAL_NAV, PREMIUM, SUPPORT].map((item) => <Link key={item.href} href={item.href} onClick={() => setMobileMenuOpen(false)} className="flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm font-medium text-slate-300 hover:bg-gold/10 hover:text-white"><item.icon className="h-5 w-5"/>{item.label}</Link>)}
+            </nav>
+          </div>
+        </div>
+      )}
+
       <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-gold/15 bg-base-950/98 px-1 pb-[calc(0.35rem+env(safe-area-inset-bottom))] shadow-[0_-10px_30px_rgba(0,0,0,0.32)] md:hidden">
         <div className="mx-auto grid max-w-lg grid-cols-6 items-stretch">
-          {[...NAV, SUPPORT].map((item) => {
+          {[...NAV, PREMIUM].map((item) => {
             const active = isActive(item.href);
             return (
               <Link

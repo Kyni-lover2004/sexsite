@@ -102,6 +102,39 @@ create table if not exists public.profile_photos (
 create index if not exists profile_photos_user_idx
   on public.profile_photos (user_id, sort_order, created_at desc);
 
+-- Profile visits shown only to the owner of the visited profile.
+create table if not exists public.profile_visits (
+  id          uuid primary key default gen_random_uuid(),
+  profile_id  uuid not null references public.profiles (id) on delete cascade,
+  visitor_id  uuid not null references public.profiles (id) on delete cascade,
+  visited_at  timestamptz not null default now(),
+  constraint profile_visits_not_self check (profile_id <> visitor_id)
+);
+create index if not exists profile_visits_owner_idx
+  on public.profile_visits (profile_id, visited_at desc);
+
+create table if not exists public.friendships (
+  id           uuid primary key default gen_random_uuid(),
+  requester_id uuid not null references public.profiles (id) on delete cascade,
+  addressee_id uuid not null references public.profiles (id) on delete cascade,
+  status       text not null default 'pending' check (status in ('pending', 'accepted', 'declined')),
+  created_at   timestamptz not null default now(),
+  updated_at   timestamptz not null default now(),
+  unique (requester_id, addressee_id),
+  constraint friendships_not_self check (requester_id <> addressee_id)
+);
+
+create table if not exists public.profile_videos (
+  id           uuid primary key default gen_random_uuid(),
+  user_id      uuid not null references public.profiles (id) on delete cascade,
+  url          text not null,
+  storage_path text not null,
+  caption      text,
+  created_at   timestamptz not null default now()
+);
+create index if not exists profile_videos_user_idx
+  on public.profile_videos (user_id, created_at desc);
+
 -- =============================================================
 --  ENCRYPTION KEYS  (E2EE)
 --  Only the PUBLIC key lives on the server. The private key never
@@ -417,6 +450,9 @@ create trigger on_auth_user_created after insert on auth.users
 -- =============================================================
 alter table public.profiles        enable row level security;
 alter table public.profile_photos  enable row level security;
+alter table public.profile_visits  enable row level security;
+alter table public.friendships     enable row level security;
+alter table public.profile_videos  enable row level security;
 alter table public.encryption_keys enable row level security;
 alter table public.topics          enable row level security;
 alter table public.comments        enable row level security;
@@ -450,6 +486,36 @@ create policy profile_photos_update on public.profile_photos
 drop policy if exists profile_photos_delete on public.profile_photos;
 create policy profile_photos_delete on public.profile_photos
   for delete using (auth.uid() = user_id);
+
+-- Visits: visitors record their own visits; only the profile owner reads them.
+drop policy if exists profile_visits_select on public.profile_visits;
+create policy profile_visits_select on public.profile_visits
+  for select using (auth.uid() = profile_id);
+drop policy if exists profile_visits_insert on public.profile_visits;
+create policy profile_visits_insert on public.profile_visits
+  for insert with check (auth.uid() = visitor_id and visitor_id <> profile_id);
+
+-- Friend requests are visible and manageable only by their participants.
+drop policy if exists friendships_select on public.friendships;
+create policy friendships_select on public.friendships
+  for select using (auth.uid() = requester_id or auth.uid() = addressee_id);
+drop policy if exists friendships_insert on public.friendships;
+create policy friendships_insert on public.friendships
+  for insert with check (auth.uid() = requester_id);
+drop policy if exists friendships_update on public.friendships;
+create policy friendships_update on public.friendships
+  for update using (auth.uid() = requester_id or auth.uid() = addressee_id);
+drop policy if exists friendships_delete on public.friendships;
+create policy friendships_delete on public.friendships
+  for delete using (auth.uid() = requester_id or auth.uid() = addressee_id);
+
+-- Videos are publicly visible to members and managed by their owner.
+drop policy if exists profile_videos_select on public.profile_videos;
+create policy profile_videos_select on public.profile_videos
+  for select using (auth.role() = 'authenticated');
+drop policy if exists profile_videos_write on public.profile_videos;
+create policy profile_videos_write on public.profile_videos
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 -- Encryption keys: public keys readable by all (needed to encrypt TO a user),
 -- but only the owner may write their own key.
@@ -658,6 +724,10 @@ set allowed_mime_types = array['image/png', 'image/jpeg', 'image/webp', 'image/g
 where id = 'profile-photos';
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('profile-videos', 'profile-videos', true, 104857600, array['video/mp4', 'video/webm', 'video/quicktime'])
+on conflict (id) do nothing;
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values ('support-attachments', 'support-attachments', true, 10485760, array['image/png', 'image/jpeg', 'image/webp', 'image/gif'])
 on conflict (id) do nothing;
 
@@ -707,15 +777,25 @@ create policy "Profile photo read" on storage.objects
 
 drop policy if exists "Profile photo write" on storage.objects;
 create policy "Profile photo write" on storage.objects
-  for insert with check (bucket_id = 'profile-photos' and auth.role() = 'authenticated');
+  for insert with check (bucket_id = 'profile-photos' and (storage.foldername(name))[1] = auth.uid()::text);
 
 drop policy if exists "Profile photo update" on storage.objects;
 create policy "Profile photo update" on storage.objects
-  for update using (bucket_id = 'profile-photos' and auth.role() = 'authenticated');
+  for update using (bucket_id = 'profile-photos' and (storage.foldername(name))[1] = auth.uid()::text);
 
 drop policy if exists "Profile photo delete" on storage.objects;
 create policy "Profile photo delete" on storage.objects
-  for delete using (bucket_id = 'profile-photos' and auth.role() = 'authenticated');
+  for delete using (bucket_id = 'profile-photos' and (storage.foldername(name))[1] = auth.uid()::text);
+
+drop policy if exists "Profile video read" on storage.objects;
+create policy "Profile video read" on storage.objects
+  for select using (bucket_id = 'profile-videos');
+drop policy if exists "Profile video write" on storage.objects;
+create policy "Profile video write" on storage.objects
+  for insert with check (bucket_id = 'profile-videos' and (storage.foldername(name))[1] = auth.uid()::text);
+drop policy if exists "Profile video delete" on storage.objects;
+create policy "Profile video delete" on storage.objects
+  for delete using (bucket_id = 'profile-videos' and (storage.foldername(name))[1] = auth.uid()::text);
 
 -- Storage RLS: support-attachments — authenticated users can read/upload support images.
 drop policy if exists "Support attachment read" on storage.objects;

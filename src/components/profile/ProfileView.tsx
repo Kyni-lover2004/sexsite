@@ -69,6 +69,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
   const [photoError, setPhotoError] = useState("");
   const [localPhotos, setLocalPhotos] = useState(photos);
   const [available, setAvailable] = useState(profile.available_for_chat);
+  const [friendSent, setFriendSent] = useState(false);
 
   const [cropperOpen, setCropperOpen] = useState(false);
   const [cropperSrc, setCropperSrc] = useState("");
@@ -296,6 +297,25 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
     } else {
       router.refresh();
     }
+  }
+
+  async function sendFriendRequest() {
+    const { data: auth } = await supabase.auth.getUser();
+    if (!auth.user || isOwn) return;
+    const { data: existing } = await (supabase as any)
+      .from("friendships")
+      .select("id,status")
+      .or(`and(requester_id.eq.${auth.user.id},addressee_id.eq.${profile.id}),and(requester_id.eq.${profile.id},addressee_id.eq.${auth.user.id})`)
+      .maybeSingle();
+    if (existing) {
+      setFriendSent(true);
+      return;
+    }
+    const { error } = await (supabase as any).from("friendships").insert({
+      requester_id: auth.user.id,
+      addressee_id: profile.id,
+    });
+    if (!error || error.code === "23505") setFriendSent(true);
   }
 
   async function handleSave() {
@@ -1146,13 +1166,16 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                   )}
 
                   {!isOwn && (
-                    <div className="order-8 mt-4">
+                    <div className="order-8 mt-4 flex flex-wrap gap-2">
                       <Link href={`/chat/${profile.id}`}>
                         <Button size="sm">
                           <MessageCircle size={14} />
                           Написать сообщение
                         </Button>
                       </Link>
+                      <Button variant="outline" size="sm" onClick={sendFriendRequest} disabled={friendSent}>
+                        {friendSent ? "Заявка отправлена" : "Добавить в друзья"}
+                      </Button>
                     </div>
                   )}
                 </div>

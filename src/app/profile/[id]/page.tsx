@@ -19,6 +19,13 @@ export default async function UserProfilePage({ params }: Props) {
 
   if (!profile) notFound();
 
+  if (auth.user && auth.user.id !== params.id) {
+    await (supabase as any).from("profile_visits").insert({
+      profile_id: params.id,
+      visitor_id: auth.user.id,
+    });
+  }
+
   const { data: photos } = await (supabase as any)
     .from("profile_photos")
     .select("*")
