@@ -17,7 +17,7 @@ export async function getTopics(
     .from("topics")
     .select(
       `id, author_id, title, body, tags, media, status, view_count, like_count,
-       comment_count, created_at, updated_at,
+       comment_count, type, created_at, updated_at,
        author:profiles!topics_author_id_fkey (
          id, username, display_name, avatar_url, last_seen, premium_until
        )`

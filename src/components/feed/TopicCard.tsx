@@ -2,11 +2,11 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { Crown, Eye, Heart, Image as ImageIcon, MessageCircle } from "lucide-react";
+import { Crown, Eye, Heart, Image as ImageIcon, MessageCircle, Sparkles } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { Tag } from "@/components/ui/Badge";
 import { GlassCard } from "@/components/ui/GlassCard";
-import { timeAgo } from "@/lib/utils";
+import { cn, timeAgo } from "@/lib/utils";
 import type { TopicWithAuthor } from "@/lib/types";
 
 interface TopicCardProps {
@@ -29,8 +29,22 @@ export function TopicCard({ topic, index, onLike }: TopicCardProps) {
         ease: [0.22, 1, 0.36, 1],
       }}
     >
-      <GlassCard interactive className="group relative overflow-hidden p-5">
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-soft/55 to-transparent" />
+      <GlassCard
+        interactive
+        className={cn(
+          "group relative overflow-hidden p-5",
+          topic.type === "news" && "border-rose-500/20 bg-rose-950/5",
+          topic.type === "promo" && "border-amber-500/20 bg-amber-950/5"
+        )}
+      >
+        <div
+          className={cn(
+            "absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent to-transparent",
+            topic.type === "news" && "via-rose-500/50",
+            topic.type === "promo" && "via-amber-500/50",
+            (topic.type === "discussion" || !topic.type) && "via-gold-soft/55"
+          )}
+        />
         <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent_0%,rgb(var(--gold-glow)/0.035)_42%,transparent_58%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
 
         <div className="relative flex items-center gap-3">
@@ -49,10 +63,24 @@ export function TopicCard({ topic, index, onLike }: TopicCardProps) {
               @{author?.username ?? "unknown"} · {timeAgo(topic.created_at)}
             </p>
           </div>
-          <span className="ml-auto hidden items-center gap-1 rounded-full border border-gold/15 bg-gold/[0.06] px-2 py-1 text-[10px] uppercase tracking-[0.16em] text-gold-soft/70 sm:flex">
-            <Crown size={11} />
-            live
-          </span>
+          {topic.type === "news" && (
+            <span className="ml-auto flex items-center gap-1 rounded-full border border-rose-500/30 bg-rose-500/10 px-2 py-1 text-[10px] uppercase tracking-[0.16em] font-semibold text-rose-400 shadow-[0_0_12px_rgba(244,63,94,0.15)] animate-pulse-glow">
+              <Sparkles size={11} />
+              Новость
+            </span>
+          )}
+          {topic.type === "promo" && (
+            <span className="ml-auto flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[10px] uppercase tracking-[0.16em] font-semibold text-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.15)]">
+              <Crown size={11} />
+              Промо
+            </span>
+          )}
+          {(topic.type === "discussion" || !topic.type) && (
+            <span className="ml-auto hidden items-center gap-1 rounded-full border border-gold/15 bg-gold/[0.06] px-2 py-1 text-[10px] uppercase tracking-[0.16em] text-gold-soft/70 sm:flex">
+              <Crown size={11} />
+              live
+            </span>
+          )}
         </div>
 
         <Link href={`/topic/${topic.id}`} className="relative mt-4 block">

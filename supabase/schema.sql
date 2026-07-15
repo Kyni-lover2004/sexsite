@@ -130,6 +130,7 @@ create table if not exists public.topics (
   view_count     bigint not null default 0,
   like_count     integer not null default 0,   -- denormalised (kept via triggers)
   comment_count  integer not null default 0,   -- denormalised
+  type           text not null default 'discussion' check (type in ('discussion', 'promo', 'news')),
   created_at     timestamptz default now(),
   updated_at     timestamptz default now()
 );

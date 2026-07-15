@@ -3,12 +3,12 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { ArrowLeft, Heart, Eye, MessageCircle, Pencil, X } from "lucide-react";
+import { ArrowLeft, Heart, Eye, MessageCircle, Pencil, X, Sparkles, Crown } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { Tag } from "@/components/ui/Badge";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { Button } from "@/components/ui/Button";
-import { timeAgo } from "@/lib/utils";
+import { cn, timeAgo } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { CommentSection } from "./CommentSection";
 import type { TopicWithAuthor } from "@/lib/types";
@@ -82,8 +82,22 @@ export function TopicDetail({
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        <GlassCard premium className="relative overflow-hidden p-6">
-          <div className="absolute inset-y-0 left-0 w-[2px] bg-gradient-to-b from-accent via-accent-deep to-gold/60" />
+        <GlassCard
+          premium
+          className={cn(
+            "relative overflow-hidden p-6",
+            topicData.type === "news" && "border-rose-500/20 bg-rose-950/5",
+            topicData.type === "promo" && "border-amber-500/20 bg-amber-950/5"
+          )}
+        >
+          <div
+            className={cn(
+              "absolute inset-y-0 left-0 w-[2px]",
+              topicData.type === "news" && "bg-rose-500 shadow-[0_0_12px_rgba(244,63,94,0.5)]",
+              topicData.type === "promo" && "bg-amber-500 shadow-[0_0_12px_rgba(245,158,11,0.5)]",
+              (topicData.type === "discussion" || !topicData.type) && "bg-gradient-to-b from-accent via-accent-deep to-gold/60"
+            )}
+          />
 
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
@@ -95,9 +109,23 @@ export function TopicDetail({
                 size="md"
               />
               <div>
-                <p className="text-sm font-medium text-white">
-                  {author?.display_name ?? author?.username ?? "Аноним"}
-                </p>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="text-sm font-medium text-white">
+                    {author?.display_name ?? author?.username ?? "Аноним"}
+                  </p>
+                  {topicData.type === "news" && (
+                    <span className="flex items-center gap-1 rounded-full border border-rose-500/30 bg-rose-500/10 px-2 py-0.5 text-[9px] uppercase tracking-[0.12em] font-semibold text-rose-400 shadow-[0_0_10px_rgba(244,63,94,0.1)]">
+                      <Sparkles size={9} />
+                      Новость
+                    </span>
+                  )}
+                  {topicData.type === "promo" && (
+                    <span className="flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[9px] uppercase tracking-[0.12em] font-semibold text-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.1)]">
+                      <Crown size={9} />
+                      Промо
+                    </span>
+                  )}
+                </div>
                 <p className="text-xs text-slate-500">
                   @{author?.username} · {timeAgo(topicData.created_at)}
                 </p>

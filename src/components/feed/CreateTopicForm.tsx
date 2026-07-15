@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { ArrowLeft, Send, AlertCircle, Sparkles, Image as ImageIcon, X, Loader2 } from "lucide-react";
@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { Input, Textarea } from "@/components/ui/Input";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { createClient } from "@/lib/supabase/client";
+import { cn } from "@/lib/utils";
 import type { TopicMedia } from "@/lib/types";
 
 export function CreateTopicForm() {
@@ -20,7 +21,26 @@ export function CreateTopicForm() {
   const [tags, setTags] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [topicType, setTopicType] = useState<"discussion" | "promo" | "news">("discussion");
   const [media, setMedia] = useState<{ file: File; preview: string; uploading: boolean }[]>([]);
+
+  useEffect(() => {
+    async function checkRole() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", user.id)
+          .maybeSingle();
+        if (profile?.role === "admin") {
+          setIsAdmin(true);
+        }
+      }
+    }
+    checkRole();
+  }, [supabase]);
 
   async function handleMediaSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
@@ -101,6 +121,7 @@ export function CreateTopicForm() {
         body: body.trim(),
         tags: tagsList,
         media: uploadedMedia.length > 0 ? uploadedMedia : [],
+        type: topicType,
       })
       .select("id")
       .single();
@@ -228,6 +249,33 @@ export function CreateTopicForm() {
                 placeholder="технологии, дизайн, жизнь"
               />
             </div>
+
+            {isAdmin && (
+              <div className="space-y-1.5">
+                <label className="block text-xs font-medium text-slate-400">
+                  Тип публикации (Только для администраторов)
+                </label>
+                <div className="flex gap-2">
+                  {(["discussion", "news", "promo"] as const).map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => setTopicType(t)}
+                      className={cn(
+                        "px-3.5 py-2 text-xs rounded-xl border font-medium transition-all duration-200",
+                        topicType === t
+                          ? "bg-gold-gradient text-white border-gold/30 shadow-glow-gold"
+                          : "bg-base-900/60 border-gold/15 text-slate-400 hover:border-gold/30 hover:text-white"
+                      )}
+                    >
+                      {t === "discussion" && "Обсуждение"}
+                      {t === "news" && "Новость"}
+                      {t === "promo" && "Реклама / Промо"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="flex justify-end pt-2">
               <Button type="submit" disabled={saving || !title.trim()}>

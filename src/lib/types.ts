@@ -98,6 +98,7 @@ export interface Topic {
   view_count: number;
   like_count: number;
   comment_count: number;
+  type: "discussion" | "promo" | "news";
   created_at: string;
   updated_at: string;
 }
