@@ -263,6 +263,11 @@ export function PeopleGrid({
     const liked = !!target?.iLiked;
 
     haptic(liked ? "selection" : "success");
+    if (!liked) {
+      void import("@/lib/analytics").then(({ trackEvent }) =>
+        trackEvent("first_like", { to_id: userId })
+      );
+    }
 
     // Optimistic
     setUsers((prev) =>
@@ -327,18 +332,27 @@ export function PeopleGrid({
 
   return (
     <div>
-      <div className="mb-5">
-        <motion.h1
-          initial={{ opacity: 0, x: -10 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="font-display text-2xl font-bold text-gradient"
+      <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <motion.h1
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="font-display text-2xl font-bold text-gradient"
+          >
+            Люди
+          </motion.h1>
+          <p className="text-sm text-slate-500">
+            Интерес без чата · взаимно — особый статус
+            {viewerCity ? ` · рядом: ${viewerCity}` : ""}
+          </p>
+        </div>
+        <Link
+          href="/people/swipe"
+          className="inline-flex items-center gap-2 rounded-xl border border-gold/25 bg-gold/10 px-3 py-2 text-sm font-medium text-gold-soft transition hover:bg-gold/15"
         >
-          Люди
-        </motion.h1>
-        <p className="text-sm text-slate-500">
-          Интерес без чата · взаимно — особый статус
-          {viewerCity ? ` · рядом: ${viewerCity}` : ""}
-        </p>
+          <Sparkles size={16} />
+          Свайпы
+        </Link>
       </div>
 
       {/* Tabs */}
