@@ -7,24 +7,28 @@
   --font-display: "Space Grotesk", system-ui, sans-serif;
   color-scheme: light;
 
-  /* Champagne ivory premium light theme */
-  --base-950: 252 248 243;
+  /*
+   * Light: Pearl & Champagne luxury
+   * Cool-pearl surfaces + true metal gold + soft burgundy accent.
+   * Readable espresso text; no muddy beige wash.
+   */
+  --base-950: 246 242 236;
   --base-900: 255 252 248;
-  --base-800: 248 242 234;
-  --base-700: 232 220 208;
-  --base-600: 196 176 158;
-  --base-500: 148 124 108;
+  --base-800: 250 245 238;
+  --base-700: 230 220 208;
+  --base-600: 176 160 142;
+  --base-500: 120 104 90;
 
-  --accent: 184 122 98;
-  --accent-soft: 156 96 78;
-  --accent-deep: 132 78 62;
-  --accent-muted: 168 128 112;
-  --gold: 176 132 96;
-  --gold-soft: 140 96 72;
-  --gold-deep: 120 78 56;
-  --gold-glow: 232 204 176;
-  --warm-100: 28 22 18;
-  --warm-200: 72 56 48;
+  --accent: 168 72 82;
+  --accent-soft: 196 108 112;
+  --accent-deep: 128 48 58;
+  --accent-muted: 176 120 118;
+  --gold: 196 154 78;
+  --gold-soft: 168 122 48;
+  --gold-deep: 130 92 34;
+  --gold-glow: 242 220 168;
+  --warm-100: 26 22 18;
+  --warm-200: 62 50 42;
 }
 
 .dark {
@@ -63,8 +67,14 @@ body {
   @apply bg-base-950 text-slate-800 antialiased dark:text-slate-100;
   min-height: 100vh;
   min-height: -webkit-fill-available;
+  /* Light: soft pearl wash with champagne lift */
   background-image:
-    linear-gradient(165deg, rgb(var(--base-900)) 0%, rgb(var(--base-950)) 42%, rgb(var(--base-800)) 100%);
+    linear-gradient(
+      165deg,
+      rgb(255 253 250) 0%,
+      rgb(var(--base-950)) 38%,
+      rgb(242 232 222) 100%
+    );
   background-attachment: fixed;
   min-height: 100vh;
   position: relative;
@@ -82,11 +92,12 @@ body::before {
   inset: 0;
   pointer-events: none;
   z-index: 0;
-  opacity: 0.4;
+  opacity: 0.55;
   background-image:
-    radial-gradient(ellipse 80% 50% at 15% 0%, rgb(var(--gold-glow) / 0.35) 0%, transparent 55%),
-    radial-gradient(ellipse 60% 40% at 90% 100%, rgb(var(--gold) / 0.18) 0%, transparent 50%),
-    radial-gradient(circle at 50% 40%, rgb(var(--accent) / 0.06) 0%, transparent 45%);
+    radial-gradient(ellipse 70% 45% at 12% -5%, rgb(var(--gold-glow) / 0.55) 0%, transparent 58%),
+    radial-gradient(ellipse 50% 40% at 92% 8%, rgb(var(--accent-soft) / 0.12) 0%, transparent 52%),
+    radial-gradient(ellipse 55% 50% at 78% 100%, rgb(var(--gold) / 0.14) 0%, transparent 55%),
+    radial-gradient(circle at 48% 42%, rgb(255 255 255 / 0.35) 0%, transparent 48%);
 }
 
 .dark body::before,
@@ -97,17 +108,34 @@ html.dark body::before {
     radial-gradient(circle at 80% 80%, rgb(var(--gold) / 0.08) 0%, transparent 60%);
 }
 
-/* Light premium surfaces */
+/* Light premium surfaces — porcelain glass + soft gold depth */
 .light .glass,
 .light .glass-strong,
 .light .glass-premium {
+  background-color: rgb(255 252 248 / 0.78) !important;
   box-shadow:
-    0 1px 0 rgb(255 255 255 / 0.65) inset,
-    0 18px 40px rgb(80 50 30 / 0.08);
+    0 1px 0 rgb(255 255 255 / 0.85) inset,
+    0 12px 32px rgb(80 55 30 / 0.07),
+    0 2px 8px rgb(120 80 40 / 0.04);
+}
+
+.light .bg-base-800\/70,
+.light .bg-base-800\/62,
+.light .bg-base-800\/60,
+.light .bg-base-800\/80,
+.light .md\:bg-base-800\/62,
+.light .hover\:bg-base-800\/75:hover {
+  background-color: rgb(255 252 248 / 0.82) !important;
 }
 
 .light [class*="border-gold"] {
-  border-color: rgb(var(--gold) / 0.22);
+  border-color: rgb(var(--gold) / 0.28);
+}
+
+.light .shadow-glass {
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.7) inset,
+    0 14px 36px rgb(70 45 25 / 0.08);
 }
 
 /* Prefer reduced motion — snappier / less GPU thrash on low-end phones */
@@ -139,23 +167,23 @@ body::after {
 }
 
 .light .text-slate-200 {
-  color: rgb(56 44 40 / 0.94);
+  color: rgb(42 34 30 / 0.95);
 }
 
 .light .text-slate-300 {
-  color: rgb(70 55 49 / 0.9);
+  color: rgb(58 46 40 / 0.9);
 }
 
 .light .text-slate-400 {
-  color: rgb(90 72 64 / 0.84);
+  color: rgb(88 72 60 / 0.82);
 }
 
 .light .text-slate-500 {
-  color: rgb(105 86 78 / 0.78);
+  color: rgb(110 92 78 / 0.76);
 }
 
 .light .text-slate-600 {
-  color: rgb(122 102 94 / 0.72);
+  color: rgb(128 110 96 / 0.7);
 }
 
 /* Keep every label on accent controls readable in both themes. */
@@ -163,6 +191,9 @@ body::after {
 .light .bg-gold-gradient,
 .light .bg-accent-gradient-v {
   color: #fff !important;
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.22) inset,
+    0 10px 28px rgb(var(--gold-deep) / 0.22);
 }
 
 .light .bg-accent-gradient .text-white,
@@ -178,29 +209,79 @@ body::after {
   color: #fff !important;
 }
 
-/* Softer lavender treatment for chat notices and status pills. */
+/* Soft wine pills for chat notices on light */
 .light .chat-lavender,
 .light .chat-lavender * {
-  border-color: rgb(var(--accent-deep) / 0.28);
+  border-color: rgb(var(--accent-deep) / 0.22);
   color: #fff !important;
   box-shadow: none;
 }
 
 .light .chat-lavender {
-  background-color: rgb(var(--accent-deep) / 0.55) !important;
+  background-color: rgb(var(--accent-deep) / 0.78) !important;
 }
 
-/* Profile labels and section headings must remain solid and high-contrast. */
+/*
+ * Gold labels on light: real champagne metal, not pure black.
+ * Headings keep weight; still readable on pearl.
+ */
 .light [class*="text-gold-soft"] {
-  color: #17131d !important;
-  font-weight: 700;
+  color: rgb(var(--gold-soft)) !important;
+  font-weight: 650;
+}
+
+.light .text-gold,
+.light [class*="text-gold"]:not([class*="text-gold-soft"]):not([class*="text-gold-deep"]) {
+  color: rgb(var(--gold)) !important;
 }
 
 .light .text-gradient,
 .light .text-gradient-gold {
-  background-image: none;
-  color: #17131d !important;
-  -webkit-text-fill-color: #17131d;
+  background-image: linear-gradient(
+    125deg,
+    rgb(var(--gold-deep)) 0%,
+    rgb(var(--gold-soft)) 42%,
+    rgb(var(--accent-deep)) 100%
+  ) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+  font-weight: 700;
+}
+
+/* Nav / chrome on light — porcelain bar, soft gold edge */
+.light aside,
+.light header.fixed,
+.light nav.fixed {
+  background-color: rgb(255 252 248 / 0.92) !important;
+  border-color: rgb(var(--gold) / 0.18) !important;
+  backdrop-filter: blur(18px);
+}
+
+.light aside {
+  box-shadow: 12px 0 40px rgb(80 50 25 / 0.06);
+}
+
+.light header.fixed,
+.light nav.fixed {
+  box-shadow: 0 8px 28px rgb(80 50 25 / 0.05);
+}
+
+/* Inputs on light */
+.light input,
+.light textarea,
+.light select {
+  background-color: rgb(255 255 255 / 0.88) !important;
+  border-color: rgb(var(--gold) / 0.22) !important;
+  color: rgb(var(--warm-100)) !important;
+}
+
+.light input:focus,
+.light textarea:focus,
+.light select:focus {
+  border-color: rgb(var(--gold) / 0.45) !important;
+  box-shadow: 0 0 0 3px rgb(var(--gold-glow) / 0.35);
 }
 
 .dark [class*="text-gold-soft"] {
@@ -233,11 +314,29 @@ body::after {
 }
 
 .light .placeholder\:text-slate-500::placeholder {
-  color: rgb(117 98 90 / 0.7);
+  color: rgb(130 112 96 / 0.65);
 }
 
 .light .border-white\/\[0\.08\] {
-  border-color: rgb(var(--gold) / 0.18);
+  border-color: rgb(var(--gold) / 0.2);
+}
+
+/* Outline buttons: soft gold rim on pearl */
+.light button.border-gold\/35,
+.light button[class*="border-gold"] {
+  background-color: rgb(255 255 255 / 0.55) !important;
+}
+
+.light .bg-base-900\/70,
+.light .bg-base-900\/60,
+.light .bg-base-900\/40,
+.light .bg-base-900\/35 {
+  background-color: rgb(255 252 248 / 0.75) !important;
+}
+
+.light .bg-base-950,
+.light .bg-base-950\/98 {
+  background-color: rgb(var(--base-950)) !important;
 }
 
 /* ------------------------------------------------------------------ */
