@@ -28,14 +28,19 @@ export function CreateTopicForm() {
   useEffect(() => {
     async function checkRole() {
       const { data: { user } } = await supabase.auth.getUser();
+      console.log("Auth user checking role:", user);
       if (user) {
-        const { data: profile } = await supabase
+        const { data: profile, error } = await supabase
           .from("profiles")
           .select("role")
           .eq("id", user.id)
           .maybeSingle();
+        console.log("Profile check result:", { profile, error });
         if (profile?.role === "admin") {
+          console.log("User is admin! Showing post type selector.");
           setIsAdmin(true);
+        } else {
+          console.log("User is not admin. Role is:", profile?.role);
         }
       }
     }
