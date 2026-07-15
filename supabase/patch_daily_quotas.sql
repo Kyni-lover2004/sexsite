@@ -360,7 +360,7 @@ $$;
 
 grant execute on function public.record_profile_open(uuid) to authenticated;
 
--- ---------- Swipes (free 10 / premium 100 / admin unlimited) ----------
+-- ---------- Swipe likes (free 10 / premium 100 / admin unlimited; pass free) ----------
 create or replace function public.consume_swipe_quota()
 returns jsonb
 language plpgsql
@@ -449,6 +449,17 @@ begin
 
   v_tier := public.viewer_access_tier(me);
 
+  -- Pass is free and unlimited — does not burn daily like quota
+  if p_action = 'pass' then
+    delete from public.profile_likes
+    where from_id = me and to_id = p_to_id and source = 'swipe';
+    insert into public.profile_passes (from_id, to_id)
+    values (me, p_to_id)
+    on conflict do nothing;
+    return jsonb_build_object('ok', true, 'action', 'pass', 'mutual', false);
+  end if;
+
+  -- Like / superlike: free 10/day, premium 100/day, admin unlimited
   v_quota := public.consume_swipe_quota();
   if coalesce((v_quota->>'allowed')::boolean, false) is not true then
     return jsonb_build_object('ok', false, 'error', 'swipe_daily_limit', 'quota', v_quota);
@@ -462,15 +473,6 @@ begin
     where from_id = me and to_id = p_to_id and source = 'swipe'
   ), false)
   into v_had_like, v_was_super;
-
-  if p_action = 'pass' then
-    delete from public.profile_likes
-    where from_id = me and to_id = p_to_id and source = 'swipe';
-    insert into public.profile_passes (from_id, to_id)
-    values (me, p_to_id)
-    on conflict do nothing;
-    return jsonb_build_object('ok', true, 'action', 'pass', 'mutual', false, 'quota', v_quota);
-  end if;
 
   delete from public.profile_passes where from_id = me and to_id = p_to_id;
 
