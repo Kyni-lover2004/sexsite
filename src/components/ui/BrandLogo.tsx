@@ -11,7 +11,7 @@ type BrandLogoProps = {
 };
 
 /**
- * Official Desire Privé mark — sensual private-club emblem (not a generic crown icon).
+ * Official Desire Privé mark — luxury cameo private-club emblem.
  */
 export function BrandLogo({
   size = 40,
@@ -22,7 +22,7 @@ export function BrandLogo({
   return (
     <span
       className={cn(
-        "relative inline-grid shrink-0 place-items-center overflow-hidden rounded-xl border border-gold/30 bg-base-950",
+        "relative inline-grid shrink-0 place-items-center overflow-hidden rounded-xl border border-gold/35 bg-base-950 ring-1 ring-gold/15",
         glow && "shadow-glow-gold",
         className
       )}
@@ -34,7 +34,7 @@ export function BrandLogo({
         width={size}
         height={size}
         priority={priority}
-        className="h-full w-full object-cover"
+        className="h-full w-full scale-110 object-cover object-center"
       />
     </span>
   );
