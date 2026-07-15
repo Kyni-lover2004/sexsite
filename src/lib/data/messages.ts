@@ -17,10 +17,13 @@ interface ConversationWithProfile {
   } | null;
   lastMessage: {
     ciphertext: string;
+    iv: string;
     created_at: string;
     sender_id: string;
     metadata: { type: string } | null;
   } | null;
+  /** Peer public key for client-side last-message decrypt in inbox. */
+  peerPublicKey: JsonWebKey | null;
 }
 
 /**
@@ -48,25 +51,34 @@ export async function getConversations(
   ) as string[];
   const convIds = convs.map((c: any) => c.id) as string[];
 
-  // Parallel batch: all peer profiles + a window of recent messages.
-  const [{ data: profiles }, { data: recentMsgs }] = await Promise.all([
-    supa
-      .from("profiles")
-      .select(
-        "id, username, display_name, avatar_url, last_seen, premium_until"
-      )
-      .in("id", otherIds),
-    supa
-      .from("messages")
-      .select("conversation_id, ciphertext, created_at, sender_id, metadata")
-      .in("conversation_id", convIds)
-      .order("created_at", { ascending: false })
-      // Enough headroom so quieter chats still get a last-message preview.
-      .limit(Math.min(Math.max(convIds.length * 8, 80), 400)),
-  ]);
+  // Parallel batch: profiles + keys + recent messages window.
+  const [{ data: profiles }, { data: keys }, { data: recentMsgs }] =
+    await Promise.all([
+      supa
+        .from("profiles")
+        .select(
+          "id, username, display_name, avatar_url, last_seen, premium_until"
+        )
+        .in("id", otherIds),
+      supa
+        .from("encryption_keys")
+        .select("user_id, public_key")
+        .in("user_id", otherIds),
+      supa
+        .from("messages")
+        .select(
+          "conversation_id, ciphertext, iv, created_at, sender_id, metadata"
+        )
+        .in("conversation_id", convIds)
+        .order("created_at", { ascending: false })
+        .limit(Math.min(Math.max(convIds.length * 8, 80), 400)),
+    ]);
 
   const profileById = new Map<string, any>(
     (profiles ?? []).map((p: any) => [p.id, p])
+  );
+  const keyByUser = new Map<string, JsonWebKey>(
+    (keys ?? []).map((k: any) => [k.user_id, k.public_key as JsonWebKey])
   );
 
   const lastByConv = new Map<string, any>();
@@ -82,9 +94,11 @@ export async function getConversations(
     return {
       ...c,
       otherUser: profileById.get(otherId) ?? null,
+      peerPublicKey: keyByUser.get(otherId) ?? null,
       lastMessage: last
         ? {
             ciphertext: last.ciphertext,
+            iv: last.iv,
             created_at: last.created_at,
             sender_id: last.sender_id,
             metadata: last.metadata,

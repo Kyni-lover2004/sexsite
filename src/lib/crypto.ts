@@ -3,8 +3,9 @@
 //
 //  Scheme:
 //   - Each user owns a long-term ECDH key pair (P-256).
-//   - The PRIVATE key never leaves the device (stored in IndexedDB,
-//     non-extractable where possible).
+//   - The PRIVATE key lives only on this device (IndexedDB).
+//     Keys are extractable so the user can export a passphrase-
+//     encrypted backup (new browser otherwise = lost history).
 //   - The PUBLIC key (JWK) is published to the server so others can
 //     derive a shared secret to encrypt messages TO this user.
 //   - Per message we derive an AES-GCM key via ECDH (sender private +
@@ -17,6 +18,8 @@ const KEY_ALGO: EcKeyGenParams = { name: "ECDH", namedCurve: "P-256" };
 const DB_NAME = "secure-messenger";
 const STORE = "keys";
 const PRIVATE_KEY_ID = "self-private-key";
+const PRIVATE_JWK_ID = "self-private-jwk";
+const BACKUP_VERSION = 1;
 
 // ---------- IndexedDB helpers (persist the private key) ----------
 
@@ -83,17 +86,27 @@ export async function ensureKeyPair(): Promise<KeyPairExport> {
   const existingPublic = await idbGet<JsonWebKey>("self-public-jwk");
 
   if (existingPrivate && existingPublic) {
+    // Backfill extractable JWK for older non-extractable keys when possible.
+    const hasJwk = await idbGet<JsonWebKey>(PRIVATE_JWK_ID);
+    if (!hasJwk) {
+      try {
+        const jwk = await crypto.subtle.exportKey("jwk", existingPrivate);
+        await idbSet(PRIVATE_JWK_ID, jwk);
+      } catch {
+        // Legacy non-extractable key — backup unavailable until re-key.
+      }
+    }
     return { publicKeyJwk: existingPublic };
   }
 
-  const pair = await crypto.subtle.generateKey(KEY_ALGO, false, [
-    "deriveKey",
-  ]);
-  // Private key is stored as a non-extractable CryptoKey — never leaves device.
+  // extractable: true so the owner can export a passphrase-encrypted backup.
+  const pair = await crypto.subtle.generateKey(KEY_ALGO, true, ["deriveKey"]);
   await idbSet(PRIVATE_KEY_ID, pair.privateKey);
 
   const publicKeyJwk = await crypto.subtle.exportKey("jwk", pair.publicKey);
+  const privateKeyJwk = await crypto.subtle.exportKey("jwk", pair.privateKey);
   await idbSet("self-public-jwk", publicKeyJwk);
+  await idbSet(PRIVATE_JWK_ID, privateKeyJwk);
 
   return { publicKeyJwk };
 }
@@ -101,6 +114,167 @@ export async function ensureKeyPair(): Promise<KeyPairExport> {
 /** True if this device already holds a private key. */
 export async function hasLocalKey(): Promise<boolean> {
   return Boolean(await idbGet<CryptoKey>(PRIVATE_KEY_ID));
+}
+
+/** Short fingerprint of the local public key (for manual verify / UI). */
+export async function publicKeyFingerprint(): Promise<string | null> {
+  const jwk = await idbGet<JsonWebKey>("self-public-jwk");
+  if (!jwk?.x || !jwk?.y) return null;
+  const raw = new TextEncoder().encode(`${jwk.x}.${jwk.y}`);
+  const hash = await crypto.subtle.digest("SHA-256", raw);
+  const bytes = new Uint8Array(hash).slice(0, 6);
+  return Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("")
+    .toUpperCase()
+    .replace(/(.{4})/g, "$1 ")
+    .trim();
+}
+
+/** Whether a passphrase-encrypted backup can be created from this device. */
+export async function canExportBackup(): Promise<boolean> {
+  if (await idbGet<JsonWebKey>(PRIVATE_JWK_ID)) return true;
+  const key = await idbGet<CryptoKey>(PRIVATE_KEY_ID);
+  if (!key) return false;
+  try {
+    await crypto.subtle.exportKey("jwk", key);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function getPrivateJwkForBackup(): Promise<JsonWebKey> {
+  const stored = await idbGet<JsonWebKey>(PRIVATE_JWK_ID);
+  if (stored) return stored;
+  const key = await idbGet<CryptoKey>(PRIVATE_KEY_ID);
+  if (!key) throw new Error("NO_LOCAL_KEY");
+  try {
+    const jwk = await crypto.subtle.exportKey("jwk", key);
+    await idbSet(PRIVATE_JWK_ID, jwk);
+    return jwk;
+  } catch {
+    throw new Error("LEGACY_NON_EXTRACTABLE");
+  }
+}
+
+async function deriveBackupKey(
+  passphrase: string,
+  salt: Uint8Array
+): Promise<CryptoKey> {
+  const base = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(passphrase),
+    "PBKDF2",
+    false,
+    ["deriveKey"]
+  );
+  return crypto.subtle.deriveKey(
+    {
+      name: "PBKDF2",
+      salt: salt as BufferSource,
+      iterations: 120_000,
+      hash: "SHA-256",
+    },
+    base,
+    { name: "AES-GCM", length: 256 },
+    false,
+    ["encrypt", "decrypt"]
+  );
+}
+
+export interface EncryptedKeyBackup {
+  v: number;
+  alg: "PBKDF2-AES-GCM";
+  salt: string;
+  iv: string;
+  ciphertext: string;
+  publicKeyJwk: JsonWebKey;
+  createdAt: string;
+}
+
+/**
+ * Passphrase-encrypted private-key backup (download / transfer to another browser).
+ */
+export async function createEncryptedBackup(
+  passphrase: string
+): Promise<EncryptedKeyBackup> {
+  if (passphrase.length < 8) throw new Error("WEAK_PASSPHRASE");
+  await ensureKeyPair();
+  const privateJwk = await getPrivateJwkForBackup();
+  const publicKeyJwk = (await idbGet<JsonWebKey>("self-public-jwk"))!;
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const key = await deriveBackupKey(passphrase, salt);
+  const plain = new TextEncoder().encode(JSON.stringify(privateJwk));
+  const cipher = await crypto.subtle.encrypt(
+    { name: "AES-GCM", iv: iv as BufferSource },
+    key,
+    plain as BufferSource
+  );
+  return {
+    v: BACKUP_VERSION,
+    alg: "PBKDF2-AES-GCM",
+    salt: bufToB64(salt.buffer),
+    iv: bufToB64(iv.buffer),
+    ciphertext: bufToB64(cipher as ArrayBuffer),
+    publicKeyJwk,
+    createdAt: new Date().toISOString(),
+  };
+}
+
+/**
+ * Restore keys from a passphrase-encrypted backup. Overwrites local keys.
+ */
+export async function restoreEncryptedBackup(
+  backup: EncryptedKeyBackup,
+  passphrase: string
+): Promise<void> {
+  if (!backup?.ciphertext || !backup.salt || !backup.iv) {
+    throw new Error("INVALID_BACKUP");
+  }
+  const salt = new Uint8Array(b64ToBuf(backup.salt));
+  const iv = new Uint8Array(b64ToBuf(backup.iv));
+  const key = await deriveBackupKey(passphrase, salt);
+  let plain: ArrayBuffer;
+  try {
+    plain = await crypto.subtle.decrypt(
+      { name: "AES-GCM", iv: iv as BufferSource },
+      key,
+      b64ToBuf(backup.ciphertext)
+    );
+  } catch {
+    throw new Error("BAD_PASSPHRASE");
+  }
+  const privateJwk = JSON.parse(
+    new TextDecoder().decode(plain)
+  ) as JsonWebKey;
+  const privateKey = await crypto.subtle.importKey(
+    "jwk",
+    privateJwk,
+    KEY_ALGO,
+    true,
+    ["deriveKey"]
+  );
+  const publicKeyJwk =
+    backup.publicKeyJwk ??
+    (await crypto.subtle.exportKey(
+      "jwk",
+      await crypto.subtle.importKey(
+        "jwk",
+        { ...privateJwk, d: undefined, key_ops: [] },
+        KEY_ALGO,
+        true,
+        []
+      )
+    ));
+
+  await idbSet(PRIVATE_KEY_ID, privateKey);
+  await idbSet(PRIVATE_JWK_ID, privateJwk);
+  await idbSet("self-public-jwk", publicKeyJwk);
+  // Clear ECDH cache — peer secrets depend on our private key.
+  sharedKeyCache.clear();
+  sharedKeyInflight.clear();
 }
 
 async function getPrivateKey(): Promise<CryptoKey> {

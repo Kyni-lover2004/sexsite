@@ -318,10 +318,17 @@ create table if not exists public.messages (
   read_at          timestamptz,
   created_at       timestamptz default now(),
   -- metadata for non-text messages (e.g. {"type":"image","storage_path":"...","file_iv":"..."})
-  metadata         jsonb
+  metadata         jsonb,
+  -- Quote/reply target (id only — body stays E2EE in ciphertext)
+  reply_to_id      uuid references public.messages (id) on delete set null
 );
 
+alter table public.messages
+  add column if not exists reply_to_id uuid references public.messages (id) on delete set null;
+
 create index if not exists messages_conversation_idx on public.messages (conversation_id, created_at);
+create index if not exists messages_reply_to_idx on public.messages (reply_to_id)
+  where reply_to_id is not null;
 
 -- =============================================================
 --  SUPPORT  (user tickets answered by admins)

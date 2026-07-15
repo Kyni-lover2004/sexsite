@@ -186,6 +186,7 @@ export interface Message {
   metadata: MessageMetadata | null;
   read_at: string | null;
   created_at: string;
+  reply_to_id?: string | null;
 }
 
 export interface ImageMessageMetadata {
@@ -196,6 +197,13 @@ export interface ImageMessageMetadata {
 }
 
 export type MessageMetadata = ImageMessageMetadata;
+
+/** Client-side decrypted message with optional quote preview. */
+export interface ChatMessage extends Message {
+  plaintext?: string;
+  imageUrl?: string;
+  replyPreview?: string | null;
+}
 
 // A message after it has been decrypted on the client.
 export interface DecryptedMessage extends Message {
