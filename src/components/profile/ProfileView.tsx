@@ -126,34 +126,48 @@ export function ProfileView({ profile, photos, albums, friendsCount, isOwn, isPr
 
   useEffect(() => {
     async function checkRoleAndFriendship() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: viewerProfile } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", user.id)
-          .maybeSingle();
-        if (viewerProfile?.role === "admin") {
-          setIsAdminViewer(true);
-        }
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
 
-        if (!isOwn) {
-          const { data: existing } = await (supabase as any)
-            .from("friendships")
-            .select("id, status, requester_id")
-            .or(`and(requester_id.eq.${user.id},addressee_id.eq.${profile.id}),and(requester_id.eq.${profile.id},addressee_id.eq.${user.id})`)
-            .maybeSingle();
-          if (existing) {
-            if (existing.status === "accepted") {
-              setFriendStatus("accepted");
-            } else if (existing.status === "pending") {
-              setFriendStatus(existing.requester_id === user.id ? "sent" : "received");
-            }
-          }
-        }
+      const { data: viewerProfile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (viewerProfile?.role === "admin") {
+        setIsAdminViewer(true);
+      }
+
+      if (isOwn) return;
+
+      // At most one row per pair (normalized unique index). Take first safely.
+      const { data: rows } = await (supabase as any)
+        .from("friendships")
+        .select("id, status, requester_id")
+        .or(
+          `and(requester_id.eq.${user.id},addressee_id.eq.${profile.id}),and(requester_id.eq.${profile.id},addressee_id.eq.${user.id})`
+        )
+        .limit(1);
+
+      const existing = rows?.[0];
+      if (!existing) {
+        setFriendStatus("none");
+        return;
+      }
+      if (existing.status === "accepted") {
+        setFriendStatus("accepted");
+      } else if (existing.status === "pending") {
+        setFriendStatus(
+          existing.requester_id === user.id ? "sent" : "received"
+        );
+      } else {
+        // declined → allow send again (RPC re-opens the pair)
+        setFriendStatus("none");
       }
     }
-    checkRoleAndFriendship();
+    void checkRoleAndFriendship();
   }, [supabase, isOwn, profile.id]);
 
   const photoLimit = usePhotoViewLimit(isOwn ? null : profile.id, isPremium);
@@ -203,38 +217,14 @@ export function ProfileView({ profile, photos, albums, friendsCount, isOwn, isPr
   }, [photos]);
 
   useEffect(() => {
-    async function logVisit() {
-      const { data: auth } = await supabase.auth.getUser();
-      if (auth?.user && auth.user.id !== profile.id) {
-        try {
-          const { data: existing } = await (supabase as any)
-            .from("profile_visits")
-            .select("id")
-            .eq("profile_id", profile.id)
-            .eq("visitor_id", auth.user.id)
-            .limit(1);
-
-          if (existing && existing.length > 0) {
-            await (supabase as any)
-              .from("profile_visits")
-              .update({ visited_at: new Date().toISOString() })
-              .eq("id", existing[0].id);
-          } else {
-            await (supabase as any)
-              .from("profile_visits")
-              .insert({
-                profile_id: profile.id,
-                visitor_id: auth.user.id,
-                visited_at: new Date().toISOString()
-              });
-          }
-        } catch (err) {
-          console.error("Failed to log profile visit from client:", err);
-        }
-      }
-    }
-    logVisit();
-  }, [profile.id, supabase]);
+    if (isOwn) return;
+    // Single RPC upsert — no duplicate rows, no client race.
+    void (supabase as any)
+      .rpc("record_profile_visit", { p_profile_id: profile.id })
+      .then(({ error }: { error: Error | null }) => {
+        if (error) console.error("Failed to log profile visit:", error);
+      });
+  }, [isOwn, profile.id, supabase]);
 
   async function handleAvatarFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -403,37 +393,63 @@ export function ProfileView({ profile, photos, albums, friendsCount, isOwn, isPr
   }
 
   async function sendFriendRequest() {
-    const { data: auth } = await supabase.auth.getUser();
-    if (!auth.user || isOwn) return;
-    const { error } = await (supabase as any).from("friendships").insert({
-      requester_id: auth.user.id,
-      addressee_id: profile.id,
+    if (isOwn) return;
+    const { data, error } = await (supabase as any).rpc("request_friendship", {
+      p_other_id: profile.id,
     });
-    if (!error || error.code === "23505") setFriendStatus("sent");
+    if (error) {
+      console.error("Friend request error:", error);
+      return;
+    }
+    // sent | accepted (mutual) | already | self | not_auth
+    if (data === "accepted" || data === "already") {
+      setFriendStatus("accepted");
+      router.refresh();
+    } else if (data === "sent") {
+      setFriendStatus("sent");
+    }
   }
 
   async function acceptFriendRequest() {
-    const { data: auth } = await supabase.auth.getUser();
-    if (!auth.user) return;
-    const { error } = await (supabase as any)
-      .from("friendships")
-      .update({ status: "accepted", updated_at: new Date().toISOString() })
-      .eq("requester_id", profile.id)
-      .eq("addressee_id", auth.user.id);
-    if (!error) {
+    const { data, error } = await (supabase as any).rpc("accept_friendship", {
+      p_other_id: profile.id,
+    });
+    if (error) {
+      console.error("Accept friendship error:", error);
+      return;
+    }
+    if (data === "accepted" || data === "already") {
       setFriendStatus("accepted");
       router.refresh();
     }
   }
 
-  async function removeFriendship() {
-    if (!confirm("Вы уверены, что хотите удалить этого пользователя из друзей?")) return;
+  async function declineFriendRequest() {
     const { data: auth } = await supabase.auth.getUser();
     if (!auth.user) return;
     const { error } = await (supabase as any)
       .from("friendships")
-      .delete()
-      .or(`and(requester_id.eq.${auth.user.id},addressee_id.eq.${profile.id}),and(requester_id.eq.${profile.id},addressee_id.eq.${auth.user.id})`);
+      .update({ status: "declined", updated_at: new Date().toISOString() })
+      .eq("requester_id", profile.id)
+      .eq("addressee_id", auth.user.id)
+      .eq("status", "pending");
+    if (!error) {
+      setFriendStatus("none");
+      router.refresh();
+    }
+  }
+
+  async function removeFriendship() {
+    if (
+      !confirm(
+        "Вы уверены, что хотите удалить этого пользователя из друзей?"
+      )
+    ) {
+      return;
+    }
+    const { error } = await (supabase as any).rpc("remove_friendship", {
+      p_other_id: profile.id,
+    });
     if (!error) {
       setFriendStatus("none");
       router.refresh();
@@ -1239,9 +1255,23 @@ export function ProfileView({ profile, photos, albums, friendsCount, isOwn, isPr
                          </Button>
                        )}
                        {friendStatus === "received" && (
-                         <Button className="border border-emerald-500/30 bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/35" size="sm" onClick={acceptFriendRequest}>
-                           Принять заявку
-                         </Button>
+                         <>
+                           <Button
+                             className="border border-emerald-500/30 bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/35"
+                             size="sm"
+                             onClick={acceptFriendRequest}
+                           >
+                             Принять заявку
+                           </Button>
+                           <Button
+                             variant="ghost"
+                             className="border border-red-500/20 text-red-400 hover:bg-red-500/10"
+                             size="sm"
+                             onClick={declineFriendRequest}
+                           >
+                             Отклонить
+                           </Button>
+                         </>
                        )}
                        {friendStatus === "accepted" && (
                          <Button variant="ghost" className="border border-red-500/20 text-red-400 hover:bg-red-500/10" size="sm" onClick={removeFriendship}>
