@@ -1,10 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Crown, Headphones, MessageSquare, MessagesSquare, User, Users } from "lucide-react";
+import { Crown, Headphones, LogOut, MessageSquare, MessagesSquare, User, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { createClient } from "@/lib/supabase/client";
 import { ThemeToggle } from "./ThemeToggle";
 
 interface NavItem {
@@ -117,7 +119,10 @@ export function AppShell({
         <div className="mx-3 mb-3 h-px bg-gradient-to-r from-transparent via-black/70 to-transparent dark:via-black" />
         <div className="flex items-center justify-between px-3">
           <p className="text-[10px] uppercase tracking-[0.18em] text-gold-soft/35">v0.1 · E2EE ready</p>
-          <ThemeToggle />
+          <div className="flex items-center gap-2">
+            <LogoutButton />
+            <ThemeToggle />
+          </div>
         </div>
       </aside>
 
@@ -175,5 +180,38 @@ export function AppShell({
         </div>
       </nav>
     </div>
+  );
+}
+
+function LogoutButton() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+
+  async function handleLogout() {
+    setLoading(true);
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/login");
+    router.refresh();
+  }
+
+  return (
+    <button
+      onClick={handleLogout}
+      disabled={loading}
+      title="Выйти из аккаунта"
+      className={cn(
+        "grid h-8 w-8 place-items-center rounded-lg text-slate-500 transition-all duration-200",
+        "hover:bg-red-500/10 hover:text-red-400",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/40",
+        loading && "pointer-events-none opacity-50"
+      )}
+    >
+      {loading ? (
+        <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-slate-500/30 border-t-slate-500" />
+      ) : (
+        <LogOut size={15} />
+      )}
+    </button>
   );
 }
