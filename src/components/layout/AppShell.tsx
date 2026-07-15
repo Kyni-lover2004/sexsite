@@ -23,6 +23,7 @@ import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { BrandLogo } from "@/components/ui/BrandLogo";
 import { NewGuestsBadge } from "./NewGuestsBadge";
+import { UnreadMessagesBadge } from "./UnreadMessagesBadge";
 import { NotificationBell } from "./NotificationBell";
 import { ThemeToggle } from "./ThemeToggle";
 
@@ -124,6 +125,8 @@ export function AppShell({
                   {item.label}
                   {item.href === "/guests" ? (
                     <NewGuestsBadge />
+                  ) : item.href === "/chat" ? (
+                    <UnreadMessagesBadge />
                   ) : (
                     active && (
                       <span className="ml-auto h-1.5 w-1.5 rounded-full bg-gold-soft shadow-neon-gold" />
@@ -340,6 +343,9 @@ export function AppShell({
                   />
                   {item.href === "/guests" && (
                     <NewGuestsBadge compact />
+                  )}
+                  {item.href === "/chat" && (
+                    <UnreadMessagesBadge compact />
                   )}
                 </span>
                 <span className="block max-w-full truncate text-center">
