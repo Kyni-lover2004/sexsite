@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowRight,
-  Crown,
   Eye,
   EyeOff,
   Lock,
@@ -21,6 +20,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { GlassCard } from "@/components/ui/GlassCard";
+import { BrandLogo } from "@/components/ui/BrandLogo";
 import { safeRedirectPath } from "@/lib/utils";
 
 /* ---------- password strength ---------- */
@@ -114,7 +114,7 @@ export function AuthForm() {
           >
             {/* Logo */}
             <motion.span
-              initial={{ scale: 0, rotate: -90 }}
+              initial={{ scale: 0, rotate: -8 }}
               animate={{ scale: 1, rotate: 0 }}
               transition={{
                 type: "spring",
@@ -122,9 +122,9 @@ export function AuthForm() {
                 damping: 20,
                 delay: 0.2,
               }}
-              className="mb-8 grid h-16 w-16 place-items-center rounded-2xl border border-gold/30 bg-gold-gradient text-white shadow-glow-gold animate-glow-breathe"
+              className="mb-8 inline-block animate-glow-breathe"
             >
-              <Crown size={30} />
+              <BrandLogo size={64} className="rounded-2xl" priority />
             </motion.span>
 
             <h1 className="font-display text-4xl font-bold leading-tight text-gradient xl:text-5xl">
@@ -174,7 +174,7 @@ export function AuthForm() {
             <div className="mb-8 text-center">
               {/* Mobile-only logo */}
               <motion.span
-                initial={{ scale: 0, rotate: -90 }}
+                initial={{ scale: 0, rotate: -8 }}
                 animate={{ scale: 1, rotate: 0 }}
                 transition={{
                   type: "spring",
@@ -182,9 +182,9 @@ export function AuthForm() {
                   damping: 20,
                   delay: 0.15,
                 }}
-                className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl border border-gold/30 bg-gold-gradient text-white shadow-glow-gold animate-glow-breathe lg:hidden"
+                className="mx-auto mb-4 inline-block animate-glow-breathe lg:hidden"
               >
-                <Crown size={26} />
+                <BrandLogo size={56} className="rounded-2xl" priority />
               </motion.span>
 
               <AnimatePresence mode="wait">

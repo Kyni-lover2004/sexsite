@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, useInView } from "framer-motion";
 import {
-  Crown,
+
   LogIn,
   MessageSquare,
   MessagesSquare,
@@ -15,6 +15,7 @@ import {
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { GlassCard } from "@/components/ui/GlassCard";
+import { BrandLogo } from "@/components/ui/BrandLogo";
 
 /* ---------- typewriter ---------- */
 const WORDS = ["обсуждения", "знакомства", "общение", "приватность"];
@@ -117,12 +118,12 @@ export function HeroLanding() {
         <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-6">
           <div className="flex items-center gap-3">
             <motion.span
-              initial={{ scale: 0, rotate: -90 }}
+              initial={{ scale: 0, rotate: -8 }}
               animate={{ scale: 1, rotate: 0 }}
               transition={{ type: "spring", stiffness: 300, damping: 20 }}
-              className="grid h-10 w-10 place-items-center rounded-xl border border-gold/30 bg-gold-gradient text-white shadow-glow-gold"
+              className="inline-block"
             >
-              <Crown size={19} />
+              <BrandLogo size={40} priority />
             </motion.span>
             <span className="font-display text-lg font-bold tracking-tight text-gradient">
               Desire Privé
@@ -270,8 +271,8 @@ export function HeroLanding() {
             transition={{ duration: 0.7 }}
           >
             <GlassCard premium className="p-10 sm:p-14">
-              <div className="mx-auto mb-4 grid h-16 w-16 place-items-center rounded-2xl border border-gold/30 bg-gold-gradient text-white shadow-glow-gold animate-glow-breathe">
-                <Crown size={28} />
+              <div className="mx-auto mb-4 inline-flex animate-glow-breathe">
+                <BrandLogo size={64} className="rounded-2xl" />
               </div>
               <h2 className="font-display text-2xl font-bold text-gradient sm:text-3xl">
                 Готовы присоединиться?

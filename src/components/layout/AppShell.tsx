@@ -4,9 +4,10 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Crown, Eye, Headphones, Images, LogOut, Menu, MessageSquare, MessagesSquare, User, UserRoundCheck, Users, Video, X } from "lucide-react";
+import { Crown, Eye, Headphones, Images, LogOut, Menu, MessageSquare, MessagesSquare, User, UserRoundCheck, Users, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
+import { BrandLogo } from "@/components/ui/BrandLogo";
 import { ThemeToggle } from "./ThemeToggle";
 
 interface NavItem {
@@ -54,11 +55,11 @@ export function AppShell({
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-gold/10 bg-base-950/98 px-4 py-6 shadow-[18px_0_60px_rgba(0,0,0,0.34)] md:flex">
         <Link href="/" className="group mb-9 flex items-center gap-3 px-2">
           <motion.span
-            whileHover={{ scale: 1.1, rotate: 5 }}
+            whileHover={{ scale: 1.06, rotate: 2 }}
             transition={{ type: "spring", stiffness: 400, damping: 15 }}
-            className="grid h-10 w-10 place-items-center rounded-xl border border-gold/30 bg-gold-gradient text-white shadow-glow-gold"
+            className="shrink-0"
           >
-            <Crown size={19} />
+            <BrandLogo size={40} priority />
           </motion.span>
           <span>
             <span className="block font-display text-xl font-bold tracking-tight text-gradient">
@@ -184,15 +185,25 @@ export function AppShell({
       >
         <Menu size={19} />
       </button>
-      <div className="fixed right-4 top-[calc(1rem+env(safe-area-inset-top))] z-30 md:hidden">
+      <div className="fixed right-4 top-[calc(1rem+env(safe-area-inset-top))] z-30 flex items-center gap-2 md:hidden">
         <ThemeToggle />
+        <Link
+          href="/"
+          className="grid h-11 w-11 place-items-center"
+          aria-label="Desire Privé — на главную"
+        >
+          <BrandLogo size={44} priority />
+        </Link>
       </div>
 
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-50 bg-black/45 md:hidden" onClick={() => setMobileMenuOpen(false)}>
           <div className="h-full w-[min(82vw,20rem)] border-r border-gold/15 bg-base-950 p-4 pt-[calc(1rem+env(safe-area-inset-top))]" onClick={(e) => e.stopPropagation()}>
-            <div className="mb-6 flex items-center justify-between">
-              <p className="font-display text-lg font-bold text-warm-100">Личные разделы</p>
+            <div className="mb-6 flex items-center justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-2.5">
+                <BrandLogo size={36} />
+                <p className="font-display text-lg font-bold text-warm-100">Личные разделы</p>
+              </div>
               <button onClick={() => setMobileMenuOpen(false)} className="grid h-11 w-11 place-items-center rounded-xl text-slate-400" aria-label="Закрыть меню"><X size={20}/></button>
             </div>
             <nav className="space-y-1">
