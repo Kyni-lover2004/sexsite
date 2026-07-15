@@ -1,6 +1,6 @@
 "use client";
 
-import { useDeferredValue, useEffect, useMemo, useState, useTransition } from "react";
+import { useDeferredValue, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Crown, Flame, PenLine, Search, Sparkles } from "lucide-react";
 import Link from "next/link";
@@ -25,8 +25,15 @@ export function Feed({ initialTopics, currentUserId }: FeedProps) {
   const [loading, setLoading] = useState(false);
   const deferredQuery = useDeferredValue(query);
   const [, startTransition] = useTransition();
+  // Skip the first "new" fetch — server already sent initialTopics.
+  const skipInitialNewFetch = useRef(true);
 
   useEffect(() => {
+    if (tab === "new" && skipInitialNewFetch.current) {
+      skipInitialNewFetch.current = false;
+      return;
+    }
+
     let active = true;
     setLoading(true);
 
@@ -38,7 +45,7 @@ export function Feed({ initialTopics, currentUserId }: FeedProps) {
     supa
       .from("topics")
       .select(
-        "*, author:profiles!topics_author_id_fkey(id,username,display_name,avatar_url,last_seen,premium_until)"
+        "id, author_id, title, body, tags, media, status, view_count, like_count, comment_count, type, created_at, updated_at, author:profiles!topics_author_id_fkey(id,username,display_name,avatar_url,last_seen,premium_until)"
       )
       .eq("status", "active")
       .order(order.column, { ascending: order.ascending })
@@ -54,7 +61,10 @@ export function Feed({ initialTopics, currentUserId }: FeedProps) {
             .select("topic_id")
             .eq("user_id", currentUserId)
             .eq("emoji", "👍")
-            .in("topic_id", rows.map((r) => r.id));
+            .in(
+              "topic_id",
+              rows.map((r) => r.id)
+            );
 
           if (reactions) {
             likedTopicIds = new Set(reactions.map((r: any) => r.topic_id));

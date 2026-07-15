@@ -23,11 +23,14 @@ export async function getTopics(
        )`
     )
     .eq("status", "active")
-    .limit(30);
+    .limit(40);
 
   if (search && search.trim()) {
-    const q = search.trim();
-    query = query.or(`title.ilike.%${q}%,tags.cs.{${q}}`);
+    // Strip PostgREST filter metacharacters to avoid filter injection / broken queries.
+    const q = search.trim().replace(/[%_,.()"'\\]/g, "").slice(0, 80);
+    if (q) {
+      query = query.or(`title.ilike.%${q}%,tags.cs.{${q}}`);
+    }
   }
 
   query =

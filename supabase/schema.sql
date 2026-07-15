@@ -256,6 +256,10 @@ create table if not exists public.conversations (
 
 create index if not exists conversations_user_a_idx on public.conversations (user_a);
 create index if not exists conversations_user_b_idx on public.conversations (user_b);
+create index if not exists conversations_initiator_created_idx
+  on public.conversations (initiator_id, created_at desc);
+create index if not exists conversations_updated_idx
+  on public.conversations (updated_at desc);
 
 create table if not exists public.messages (
   id               uuid primary key default gen_random_uuid(),
@@ -329,8 +333,9 @@ create index if not exists support_messages_ticket_idx
 
 -- Helper: check if the current user is admin. Defined early because profile
 -- guards and RLS policies both depend on it.
+-- search_path is pinned so SECURITY DEFINER cannot be hijacked via path tricks.
 create or replace function public.is_admin()
-returns boolean language sql stable security definer as $$
+returns boolean language sql stable security definer set search_path = public as $$
   select coalesce(
     (select role = 'admin' from public.profiles where id = auth.uid()),
     false
@@ -583,13 +588,18 @@ drop policy if exists reactions_write on public.reactions;
 create policy reactions_write on public.reactions
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
--- Conversations: only the two participants
+-- Conversations: participants always; admins for moderation panel
 drop policy if exists conversations_select on public.conversations;
 create policy conversations_select on public.conversations
-  for select using (auth.uid() = user_a or auth.uid() = user_b);
+  for select using (
+    auth.uid() = user_a or auth.uid() = user_b or public.is_admin()
+  );
 drop policy if exists conversations_insert on public.conversations;
 create policy conversations_insert on public.conversations
-  for insert with check (auth.uid() = user_a or auth.uid() = user_b);
+  for insert with check (
+    (auth.uid() = user_a or auth.uid() = user_b)
+    and (initiator_id is null or initiator_id = auth.uid())
+  );
 
 -- Messages: only participants of the parent conversation
 drop policy if exists messages_select on public.messages;
@@ -621,21 +631,136 @@ create policy messages_update on public.messages
     )
   );
 
--- Helper: increment view_count atomically (used by the topic page)
+-- Unique topic views: one counted view per authenticated user per topic.
+create table if not exists public.topic_views (
+  topic_id   uuid not null references public.topics (id) on delete cascade,
+  user_id    uuid not null references public.profiles (id) on delete cascade,
+  viewed_at  timestamptz not null default now(),
+  primary key (topic_id, user_id)
+);
+create index if not exists topic_views_user_idx on public.topic_views (user_id);
+
+alter table public.topic_views enable row level security;
+drop policy if exists topic_views_select on public.topic_views;
+create policy topic_views_select on public.topic_views
+  for select using (auth.uid() = user_id or public.is_admin());
+-- Inserts go only through the SECURITY DEFINER RPC below.
+
+-- Helper: count a view once per user (idempotent; no-op for anonymous).
 create or replace function public.increment_view_count(topic_id uuid)
-returns void language plpgsql security definer as $$
+returns void language plpgsql security definer set search_path = public as $$
 begin
-  update public.topics set view_count = view_count + 1 where id = topic_id;
+  if auth.uid() is null then
+    return;
+  end if;
+
+  insert into public.topic_views (topic_id, user_id)
+  values (topic_id, auth.uid())
+  on conflict (topic_id, user_id) do nothing;
+
+  if found then
+    update public.topics
+    set view_count = view_count + 1
+    where id = topic_id;
+  end if;
 end $$;
 
--- Helper: check if the current user is admin
+-- Helper: check if the current user is admin (re-assert search_path)
 create or replace function public.is_admin()
-returns boolean language sql stable security definer as $$
+returns boolean language sql stable security definer set search_path = public as $$
   select coalesce(
     (select role = 'admin' from public.profiles where id = auth.uid()),
     false
   );
 $$;
+
+-- Free users: max 2 new conversations per UTC day (premium + admin unlimited).
+-- Forces initiator_id = auth.uid() so the limit cannot be spoofed.
+create or replace function public.guard_conversation_daily_limit()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  v_role text;
+  v_premium_until timestamptz;
+  v_count integer;
+begin
+  new.initiator_id := coalesce(new.initiator_id, auth.uid());
+
+  if auth.uid() is null then
+    return new;
+  end if;
+
+  -- Always attribute the create action to the authenticated caller.
+  new.initiator_id := auth.uid();
+
+  select role, premium_until
+    into v_role, v_premium_until
+  from public.profiles
+  where id = auth.uid();
+
+  if v_role = 'admin'
+     or (v_premium_until is not null and v_premium_until > now()) then
+    return new;
+  end if;
+
+  select count(*)::integer into v_count
+  from public.conversations
+  where initiator_id = auth.uid()
+    and created_at >= date_trunc('day', timezone('utc', now()));
+
+  if v_count >= 2 then
+    raise exception 'LIMIT_REACHED'
+      using errcode = 'P0001';
+  end if;
+
+  return new;
+end $$;
+
+drop trigger if exists trg_guard_conversation_daily_limit on public.conversations;
+create trigger trg_guard_conversation_daily_limit
+  before insert on public.conversations
+  for each row execute function public.guard_conversation_daily_limit();
+
+-- Only admins may create promo/news topics; regular users stay on discussion.
+create or replace function public.guard_topic_type()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if new.type is distinct from 'discussion' and not public.is_admin() then
+    new.type := 'discussion';
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists trg_guard_topic_type on public.topics;
+create trigger trg_guard_topic_type
+  before insert or update of type on public.topics
+  for each row execute function public.guard_topic_type();
+
+-- Users (and the app shell) may clear only their own *expired* temporary ban.
+-- Permanent bans (banned_until IS NULL) are never auto-cleared.
+create or replace function public.clear_expired_ban()
+returns boolean language plpgsql security definer set search_path = public as $$
+declare
+  n integer := 0;
+begin
+  if auth.uid() is null then
+    return false;
+  end if;
+
+  update public.profiles
+  set
+    is_banned = false,
+    banned_until = null,
+    ban_reason = null,
+    banned_by = null,
+    banned_at = null
+  where id = auth.uid()
+    and is_banned = true
+    and banned_until is not null
+    and banned_until <= now();
+
+  get diagnostics n = row_count;
+  return n > 0;
+end $$;
 
 -- Support: users manage their own tickets; admins manage all tickets.
 drop policy if exists support_tickets_select on public.support_tickets;
@@ -768,24 +893,46 @@ update storage.buckets
 set allowed_mime_types = array['image/png', 'image/jpeg', 'image/webp', 'image/gif']
 where id = 'support-attachments';
 
--- Storage RLS: avatars — authenticated users can read/upload
+-- Storage RLS helpers: path must start with the caller's uid folder.
+-- Admins may delete moderation content across users.
+
+-- Storage RLS: avatars — own folder only
 drop policy if exists "Avatar read" on storage.objects;
 create policy "Avatar read" on storage.objects
   for select using (bucket_id = 'avatars');
 
 drop policy if exists "Avatar write" on storage.objects;
 create policy "Avatar write" on storage.objects
-  for insert with check (bucket_id = 'avatars' and auth.uid() is not null);
+  for insert with check (
+    bucket_id = 'avatars'
+    and auth.uid() is not null
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
 
 drop policy if exists "Avatar update" on storage.objects;
 create policy "Avatar update" on storage.objects
-  for update using (bucket_id = 'avatars' and auth.uid() is not null);
+  for update using (
+    bucket_id = 'avatars'
+    and auth.uid() is not null
+    and (
+      (storage.foldername(name))[1] = auth.uid()::text
+      or public.is_admin()
+    )
+  );
 
 drop policy if exists "Avatar delete" on storage.objects;
 create policy "Avatar delete" on storage.objects
-  for delete using (bucket_id = 'avatars' and auth.uid() is not null);
+  for delete using (
+    bucket_id = 'avatars'
+    and auth.uid() is not null
+    and (
+      (storage.foldername(name))[1] = auth.uid()::text
+      or public.is_admin()
+    )
+  );
 
--- Storage RLS: chat-images — authenticated users can read/upload (files are E2EE-encrypted)
+-- Storage RLS: chat-images — encrypted blobs; any authed user may upload.
+-- Reads still require auth (bucket is not public for casual browsing).
 drop policy if exists "Chat image read" on storage.objects;
 create policy "Chat image read" on storage.objects
   for select using (bucket_id = 'chat-images' and auth.uid() is not null);
@@ -794,50 +941,93 @@ drop policy if exists "Chat image write" on storage.objects;
 create policy "Chat image write" on storage.objects
   for insert with check (bucket_id = 'chat-images' and auth.uid() is not null);
 
--- Storage RLS: topic-media — authenticated can upload, all authenticated can read
+-- Storage RLS: topic-media — own folder only
 drop policy if exists "Topic media read" on storage.objects;
 create policy "Topic media read" on storage.objects
   for select using (bucket_id = 'topic-media');
 
 drop policy if exists "Topic media write" on storage.objects;
 create policy "Topic media write" on storage.objects
-  for insert with check (bucket_id = 'topic-media' and auth.uid() is not null);
+  for insert with check (
+    bucket_id = 'topic-media'
+    and auth.uid() is not null
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
 
--- Storage RLS: profile-photos — authenticated can read/upload/manage.
+drop policy if exists "Topic media delete" on storage.objects;
+create policy "Topic media delete" on storage.objects
+  for delete using (
+    bucket_id = 'topic-media'
+    and auth.uid() is not null
+    and (
+      (storage.foldername(name))[1] = auth.uid()::text
+      or public.is_admin()
+    )
+  );
+
+-- Storage RLS: profile-photos — own folder; admins can delete for moderation.
 drop policy if exists "Profile photo read" on storage.objects;
 create policy "Profile photo read" on storage.objects
   for select using (bucket_id = 'profile-photos');
 
 drop policy if exists "Profile photo write" on storage.objects;
 create policy "Profile photo write" on storage.objects
-  for insert with check (bucket_id = 'profile-photos' and (storage.foldername(name))[1] = auth.uid()::text);
+  for insert with check (
+    bucket_id = 'profile-photos'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
 
 drop policy if exists "Profile photo update" on storage.objects;
 create policy "Profile photo update" on storage.objects
-  for update using (bucket_id = 'profile-photos' and (storage.foldername(name))[1] = auth.uid()::text);
+  for update using (
+    bucket_id = 'profile-photos'
+    and (
+      (storage.foldername(name))[1] = auth.uid()::text
+      or public.is_admin()
+    )
+  );
 
 drop policy if exists "Profile photo delete" on storage.objects;
 create policy "Profile photo delete" on storage.objects
-  for delete using (bucket_id = 'profile-photos' and (storage.foldername(name))[1] = auth.uid()::text);
+  for delete using (
+    bucket_id = 'profile-photos'
+    and (
+      (storage.foldername(name))[1] = auth.uid()::text
+      or public.is_admin()
+    )
+  );
 
 drop policy if exists "Profile video read" on storage.objects;
 create policy "Profile video read" on storage.objects
   for select using (bucket_id = 'profile-videos');
 drop policy if exists "Profile video write" on storage.objects;
 create policy "Profile video write" on storage.objects
-  for insert with check (bucket_id = 'profile-videos' and (storage.foldername(name))[1] = auth.uid()::text);
+  for insert with check (
+    bucket_id = 'profile-videos'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
 drop policy if exists "Profile video delete" on storage.objects;
 create policy "Profile video delete" on storage.objects
-  for delete using (bucket_id = 'profile-videos' and (storage.foldername(name))[1] = auth.uid()::text);
+  for delete using (
+    bucket_id = 'profile-videos'
+    and (
+      (storage.foldername(name))[1] = auth.uid()::text
+      or public.is_admin()
+    )
+  );
 
--- Storage RLS: support-attachments — authenticated users can read/upload support images.
+-- Storage RLS: support-attachments — own folder only
 drop policy if exists "Support attachment read" on storage.objects;
 create policy "Support attachment read" on storage.objects
   for select using (bucket_id = 'support-attachments' and auth.uid() is not null);
 
 drop policy if exists "Support attachment write" on storage.objects;
 create policy "Support attachment write" on storage.objects
-  for insert with check (bucket_id = 'support-attachments' and auth.uid() is not null);
+  for insert with check (
+    bucket_id = 'support-attachments'
+    and auth.uid() is not null
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
 
 -- =============================================================
 --  REALTIME — broadcast message + typing changes

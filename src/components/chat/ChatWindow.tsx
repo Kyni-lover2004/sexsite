@@ -85,21 +85,30 @@ export function ChatWindow({
         setDecryptError(true);
       }
 
+      // Load only the recent window — full history is rarely needed on open.
       const { data: msgs } = await supa
         .from("messages")
-        .select("*")
+        .select(
+          "id, conversation_id, sender_id, ciphertext, iv, ephemeral_key, metadata, read_at, created_at"
+        )
         .eq("conversation_id", conversationId)
-        .order("created_at", { ascending: true });
+        .order("created_at", { ascending: false })
+        .limit(120);
 
       if (!active) return;
 
+      const chronological = [...(msgs ?? [])].reverse();
+      const peerJwk = keyData
+        ? ((keyData as any).public_key as JsonWebKey)
+        : null;
+
       const resolved = await Promise.all(
-        (msgs ?? []).map(async (msg: any) => {
-          if (keyData) {
+        chronological.map(async (msg: any) => {
+          if (peerJwk) {
             try {
               const plain = await decryptMessage(
                 { ciphertext: msg.ciphertext, iv: msg.iv },
-                (keyData as any).public_key as JsonWebKey
+                peerJwk
               );
               return { ...msg, plaintext: plain };
             } catch {
@@ -174,20 +183,32 @@ export function ChatWindow({
   useEffect(() => {
     if (!peerKey) return;
 
+    const pending = messages.filter(
+      (msg) =>
+        msg.metadata?.type === "image" && !msg.imageUrl && msg.plaintext
+    );
+    if (pending.length === 0) return;
+
+    let cancelled = false;
+
     (async () => {
-      for (const msg of messages) {
-        if (msg.metadata?.type === "image" && !msg.imageUrl && msg.plaintext) {
+      // Decrypt images in parallel (capped concurrency via Promise.all on batch).
+      const updates = await Promise.all(
+        pending.map(async (msg) => {
           try {
-            const meta: ImageMessageMetadata = JSON.parse(msg.plaintext);
+            const meta: ImageMessageMetadata = JSON.parse(msg.plaintext!);
             const { data } = await (supabase as any).storage
               .from("chat-images")
               .download(meta.storage_path);
 
-            if (!data) continue;
+            if (!data) return null;
 
             const encrypted = await data.arrayBuffer();
             const decrypted = await decryptFile(
-              { ciphertext: encrypted, iv: new Uint8Array(b64ToBuf(meta.file_iv)) },
+              {
+                ciphertext: encrypted,
+                iv: new Uint8Array(b64ToBuf(meta.file_iv)),
+              },
               peerKey
             );
 
@@ -196,18 +217,31 @@ export function ChatWindow({
             });
             const url = URL.createObjectURL(blob);
             objectUrlsRef.current.add(url);
-
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.id === msg.id ? { ...m, imageUrl: url } : m
-              )
-            );
+            return { id: msg.id, url };
           } catch (err) {
             console.error("Image decrypt error:", err);
+            return null;
           }
-        }
-      }
+        })
+      );
+
+      if (cancelled) return;
+
+      const byId = new Map(
+        updates.filter(Boolean).map((u) => [u!.id, u!.url] as const)
+      );
+      if (byId.size === 0) return;
+
+      setMessages((prev) =>
+        prev.map((m) =>
+          byId.has(m.id) ? { ...m, imageUrl: byId.get(m.id) } : m
+        )
+      );
     })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [messages, peerKey, supabase]);
 
 

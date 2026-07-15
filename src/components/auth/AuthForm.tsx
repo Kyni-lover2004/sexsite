@@ -21,6 +21,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { GlassCard } from "@/components/ui/GlassCard";
+import { safeRedirectPath } from "@/lib/utils";
 
 /* ---------- password strength ---------- */
 function getPasswordStrength(pw: string): {
@@ -89,7 +90,8 @@ export function AuthForm() {
       return;
     }
 
-    router.push("/");
+    const next = safeRedirectPath(searchParams.get("next"), "/");
+    router.push(next);
     router.refresh();
   }
 

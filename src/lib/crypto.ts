@@ -113,21 +113,44 @@ async function importPublicKey(jwk: JsonWebKey): Promise<CryptoKey> {
   return crypto.subtle.importKey("jwk", jwk, KEY_ALGO, false, []);
 }
 
+/** Cache ECDH-derived AES keys per peer so history decrypt is O(n) crypto, not O(n) key agreement. */
+const sharedKeyCache = new Map<string, CryptoKey>();
+const sharedKeyInflight = new Map<string, Promise<CryptoKey>>();
+
+function peerKeyCacheId(jwk: JsonWebKey): string {
+  return `${jwk.crv ?? ""}:${jwk.x ?? ""}:${jwk.y ?? ""}`;
+}
+
 /**
  * Derives a shared AES-GCM key between our private key and the peer's
  * public key. ECDH is symmetric: both sides derive the same secret.
+ * Results are memoized for the lifetime of the page.
  */
 async function deriveSharedKey(peerPublicJwk: JsonWebKey): Promise<CryptoKey> {
-  const privateKey = await getPrivateKey();
-  const peerPublic = await importPublicKey(peerPublicJwk);
+  const cacheId = peerKeyCacheId(peerPublicJwk);
+  const cached = sharedKeyCache.get(cacheId);
+  if (cached) return cached;
 
-  return crypto.subtle.deriveKey(
-    { name: "ECDH", public: peerPublic },
-    privateKey,
-    { name: "AES-GCM", length: 256 },
-    false,
-    ["encrypt", "decrypt"]
-  );
+  const inflight = sharedKeyInflight.get(cacheId);
+  if (inflight) return inflight;
+
+  const promise = (async () => {
+    const privateKey = await getPrivateKey();
+    const peerPublic = await importPublicKey(peerPublicJwk);
+    const key = await crypto.subtle.deriveKey(
+      { name: "ECDH", public: peerPublic },
+      privateKey,
+      { name: "AES-GCM", length: 256 },
+      false,
+      ["encrypt", "decrypt"]
+    );
+    sharedKeyCache.set(cacheId, key);
+    sharedKeyInflight.delete(cacheId);
+    return key;
+  })();
+
+  sharedKeyInflight.set(cacheId, promise);
+  return promise;
 }
 
 // ---------- message encryption ----------

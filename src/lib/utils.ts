@@ -69,3 +69,25 @@ export function initials(name: string | null | undefined): string {
 export function orderedPair(a: string, b: string): [string, string] {
   return a < b ? [a, b] : [b, a];
 }
+
+/**
+ * Safe in-app redirect path. Rejects protocol-relative and absolute URLs
+ * so auth callbacks cannot open-redirect to an external site.
+ */
+export function safeRedirectPath(
+  next: string | null | undefined,
+  fallback = "/"
+): string {
+  if (!next) return fallback;
+  if (!next.startsWith("/") || next.startsWith("//")) return fallback;
+  // Block backslash tricks and encoded schemes
+  if (next.includes("\\") || /^\/[a-z]+:/i.test(next)) return fallback;
+  return next;
+}
+
+/** Active premium: expiry in the future. */
+export function isPremiumActive(
+  premiumUntil: string | null | undefined
+): boolean {
+  return !!premiumUntil && new Date(premiumUntil) > new Date();
+}

@@ -81,12 +81,18 @@ export default async function RootLayout({
     const bannedUntil = profile?.banned_until
       ? new Date(profile.banned_until)
       : null;
+    const banStillActive =
+      !!profile?.is_banned &&
+      (!bannedUntil || bannedUntil.getTime() > Date.now());
 
-    if (profile?.is_banned && (!bannedUntil || bannedUntil > new Date())) {
+    if (banStillActive) {
       activeBan = {
         banned_until: profile.banned_until,
         ban_reason: profile.ban_reason,
       };
+    } else if (profile?.is_banned && bannedUntil && bannedUntil.getTime() <= Date.now()) {
+      // Temporary ban expired — clear via SECURITY DEFINER RPC (bypasses admin-field trigger).
+      await (supabase as any).rpc("clear_expired_ban");
     }
   }
 

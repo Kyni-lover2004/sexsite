@@ -97,6 +97,9 @@ export function CreateTopicForm({ isAdmin = false }: { isAdmin?: boolean }) {
       .map((t) => t.trim())
       .filter(Boolean);
 
+    // Non-admins cannot create promo/news (also enforced by DB trigger).
+    const safeType = isAdmin ? topicType : "discussion";
+
     const { data, error: insertError } = await supa
       .from("topics")
       .insert({
@@ -105,7 +108,7 @@ export function CreateTopicForm({ isAdmin = false }: { isAdmin?: boolean }) {
         body: body.trim(),
         tags: tagsList,
         media: uploadedMedia.length > 0 ? uploadedMedia : [],
-        type: topicType,
+        type: safeType,
       })
       .select("id")
       .single();

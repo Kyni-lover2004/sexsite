@@ -23,6 +23,10 @@ interface ConversationWithProfile {
   } | null;
 }
 
+/**
+ * Inbox list without N+1: one query for conversations, one for profiles,
+ * one for recent messages (reduced to last-per-conversation in memory).
+ */
 export async function getConversations(
   userId: string
 ): Promise<ConversationWithProfile[]> {
@@ -30,38 +34,64 @@ export async function getConversations(
 
   const { data: convs } = await supa
     .from("conversations")
-    .select("*")
+    .select("id, user_a, user_b, created_at, updated_at")
     .or(`user_a.eq.${userId},user_b.eq.${userId}`)
     .order("updated_at", { ascending: false })
     .limit(50);
 
-  if (!convs) return [];
+  if (!convs?.length) return [];
 
-  const enriched: ConversationWithProfile[] = await Promise.all(
-    convs.map(async (c: any) => {
-      const otherId = c.user_a === userId ? c.user_b : c.user_a;
-      const { data: profile } = await supa
-        .from("profiles")
-        .select("id, username, display_name, avatar_url, last_seen, premium_until")
-        .eq("id", otherId)
-        .single();
+  const otherIds = Array.from(
+    new Set(
+      convs.map((c: any) => (c.user_a === userId ? c.user_b : c.user_a))
+    )
+  ) as string[];
+  const convIds = convs.map((c: any) => c.id) as string[];
 
-      const { data: msgs } = await supa
-        .from("messages")
-        .select("ciphertext, created_at, sender_id, metadata")
-        .eq("conversation_id", c.id)
-        .order("created_at", { ascending: false })
-        .limit(1);
+  // Parallel batch: all peer profiles + a window of recent messages.
+  const [{ data: profiles }, { data: recentMsgs }] = await Promise.all([
+    supa
+      .from("profiles")
+      .select(
+        "id, username, display_name, avatar_url, last_seen, premium_until"
+      )
+      .in("id", otherIds),
+    supa
+      .from("messages")
+      .select("conversation_id, ciphertext, created_at, sender_id, metadata")
+      .in("conversation_id", convIds)
+      .order("created_at", { ascending: false })
+      // Enough headroom so quieter chats still get a last-message preview.
+      .limit(Math.min(Math.max(convIds.length * 8, 80), 400)),
+  ]);
 
-      return {
-        ...c,
-        otherUser: profile ?? null,
-        lastMessage: msgs?.[0] ?? null,
-      };
-    })
+  const profileById = new Map<string, any>(
+    (profiles ?? []).map((p: any) => [p.id, p])
   );
 
-  return enriched;
+  const lastByConv = new Map<string, any>();
+  for (const msg of recentMsgs ?? []) {
+    if (!lastByConv.has(msg.conversation_id)) {
+      lastByConv.set(msg.conversation_id, msg);
+    }
+  }
+
+  return convs.map((c: any) => {
+    const otherId = c.user_a === userId ? c.user_b : c.user_a;
+    const last = lastByConv.get(c.id);
+    return {
+      ...c,
+      otherUser: profileById.get(otherId) ?? null,
+      lastMessage: last
+        ? {
+            ciphertext: last.ciphertext,
+            created_at: last.created_at,
+            sender_id: last.sender_id,
+            metadata: last.metadata,
+          }
+        : null,
+    };
+  });
 }
 
 export async function getOrCreateConversation(
@@ -117,7 +147,15 @@ export async function getOrCreateConversation(
     .single();
 
   if (insertError) {
-    console.error("Error creating conversation in getOrCreateConversation:", insertError);
+    // DB trigger also enforces the daily limit (cannot be bypassed via API).
+    const msg = String(insertError.message ?? "");
+    if (msg.includes("LIMIT_REACHED") || insertError.code === "P0001") {
+      throw new Error("LIMIT_REACHED");
+    }
+    console.error(
+      "Error creating conversation in getOrCreateConversation:",
+      insertError
+    );
   }
 
   return data?.id ?? null;

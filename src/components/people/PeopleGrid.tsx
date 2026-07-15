@@ -30,11 +30,21 @@ import {
 import { getCountries, getRegions, getCities } from "@/lib/data/locations";
 import type { Profile } from "@/lib/types";
 
-export function PeopleGrid({ currentUserId }: { currentUserId: string | null }) {
+/** Columns needed for cards + filters (avoid select *). Keep in sync with people page. */
+const PEOPLE_SELECT =
+  "id, username, display_name, avatar_url, status, bio, interests, dating_goal, dating_goals, country, region, city, birth_date, gender, available_for_chat, last_seen, role, premium_until, looking_for, created_at";
+
+export function PeopleGrid({
+  currentUserId,
+  initialUsers = [],
+}: {
+  currentUserId: string | null;
+  initialUsers?: Profile[];
+}) {
   const supabase = useMemo(() => createClient(), []);
   const supa = supabase as any;
-  const [users, setUsers] = useState<(Profile & { available_for_chat: boolean })[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [users, setUsers] = useState<Profile[]>(initialUsers);
+  const [loading, setLoading] = useState(initialUsers.length === 0);
   const [query, setQuery] = useState("");
   const deferredQuery = useDeferredValue(query);
   const [showFilters, setShowFilters] = useState(false);
@@ -52,22 +62,32 @@ export function PeopleGrid({ currentUserId }: { currentUserId: string | null }) 
   });
 
   useEffect(() => {
+    // Server already hydrated the list — no client waterfall on first paint.
+    if (initialUsers.length > 0) return;
+
     let active = true;
     setLoading(true);
 
-    supa
+    let q = supa
       .from("profiles")
-      .select("*")
-      .neq("id", currentUserId)
-      .limit(50)
-      .then(({ data }: any) => {
-        if (!active) return;
-        setUsers((data ?? []) as Profile[]);
-        setLoading(false);
-      });
+      .select(PEOPLE_SELECT)
+      .order("last_seen", { ascending: false })
+      .limit(60);
 
-    return () => { active = false; };
-  }, [currentUserId, supa]);
+    if (currentUserId) {
+      q = q.neq("id", currentUserId);
+    }
+
+    q.then(({ data }: any) => {
+      if (!active) return;
+      setUsers((data ?? []) as Profile[]);
+      setLoading(false);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [currentUserId, initialUsers.length, supa]);
 
   const countries = useMemo(() => getCountries(), []);
   const regions = useMemo(() => getRegions(filters.country), [filters.country]);

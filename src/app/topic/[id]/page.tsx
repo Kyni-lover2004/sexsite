@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getComments } from "@/lib/data/comments";
+import { getComments, incrementViewCount } from "@/lib/data/comments";
 import { AppShell } from "@/components/layout/AppShell";
 import { TopicDetail } from "@/components/feed/TopicDetail";
 
@@ -25,7 +25,10 @@ export default async function TopicPage({ params }: Props) {
 
   const comments = await getComments(params.id);
 
-  (supabase as any).rpc("increment_view_count", { topic_id: params.id }).then();
+  // Unique per-user view (DB-backed via topic_views); no-op if anonymous.
+  if (auth.user) {
+    void incrementViewCount(params.id);
+  }
 
   const author = Array.isArray(topic.author) ? topic.author[0] ?? null : topic.author;
   const typed = { ...topic, author };
