@@ -47,6 +47,18 @@ export default async function AdminPage() {
     ),
   }));
 
+  const { data: conversations } = await (supabase as any)
+    .from("conversations")
+    .select("*")
+    .order("updated_at", { ascending: false })
+    .limit(100);
+
+  const conversationsWithUsers = (conversations ?? []).map((c: any) => ({
+    ...c,
+    user_a_profile: (users ?? []).find((u: any) => u.id === c.user_a) ?? null,
+    user_b_profile: (users ?? []).find((u: any) => u.id === c.user_b) ?? null,
+  }));
+
   return (
     <AppShell>
       <AdminPanel
@@ -54,6 +66,7 @@ export default async function AdminPage() {
         users={(users ?? []) as any}
         topics={(topics ?? []) as any}
         supportTickets={supportWithMessages as any}
+        conversations={conversationsWithUsers}
       />
     </AppShell>
   );

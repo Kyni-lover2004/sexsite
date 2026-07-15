@@ -74,6 +74,24 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
   const [cropperSrc, setCropperSrc] = useState("");
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [isAdminViewer, setIsAdminViewer] = useState(false);
+
+  useEffect(() => {
+    async function checkRole() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: viewerProfile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", user.id)
+          .maybeSingle();
+        if (viewerProfile?.role === "admin") {
+          setIsAdminViewer(true);
+        }
+      }
+    }
+    checkRole();
+  }, [supabase]);
 
   const photoLimit = usePhotoViewLimit(isOwn ? null : profile.id, isPremium);
 
@@ -1264,7 +1282,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                         </div>
                       )}
                     </button>
-                    {isOwn && (
+                    {(isOwn || isAdminViewer) && (
                       <button
                         type="button"
                         onClick={() => deleteProfilePhoto(photo)}

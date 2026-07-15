@@ -32,7 +32,7 @@ import type {
   TopicWithAuthor,
 } from "@/lib/types";
 
-type Tab = "users" | "topics" | "support";
+type Tab = "users" | "topics" | "support" | "chats";
 type BanDuration = "30d" | "90d" | "365d" | "permanent";
 type PremiumDuration = "7d" | "30d" | "90d" | "365d" | "permanent";
 
@@ -41,6 +41,7 @@ interface AdminPanelProps {
   users: Profile[];
   topics: TopicWithAuthor[];
   supportTickets: SupportTicketWithMessages[];
+  conversations: any[];
 }
 
 const BAN_DURATIONS: { value: BanDuration; label: string }[] = [
@@ -82,6 +83,7 @@ export function AdminPanel({
   users,
   topics,
   supportTickets,
+  conversations = [],
 }: AdminPanelProps) {
   const supabase = createClient();
   const supa = supabase as any;
@@ -257,6 +259,16 @@ export function AdminPanel({
     router.refresh();
   }
 
+  async function deleteConversation(conversationId: string) {
+    if (!confirm("Вы уверены, что хотите полностью удалить этот чат? Все зашифрованные сообщения участников будут стерты.")) return;
+    setActionLoading(conversationId);
+    const { error } = await supa.from("conversations").delete().match({ id: conversationId });
+    if (error) alert(`Ошибка удаления чата: ${error.message}`);
+    setActionLoading(null);
+    setConfirmDelete(null);
+    router.refresh();
+  }
+
   async function replyToTicket(ticketId: string) {
     const draft = replyDrafts[ticketId]?.trim();
     const files = replyFiles[ticketId] ?? [];
@@ -333,6 +345,16 @@ export function AdminPanel({
     );
   });
 
+  const filteredConversations = conversations.filter((c) => {
+    if (!q) return true;
+    return (
+      c.user_a_profile?.username.toLowerCase().includes(q) ||
+      c.user_a_profile?.display_name?.toLowerCase().includes(q) ||
+      c.user_b_profile?.username.toLowerCase().includes(q) ||
+      c.user_b_profile?.display_name?.toLowerCase().includes(q)
+    );
+  });
+
   const activeBans = users.filter(
     (user) =>
       user.is_banned &&
@@ -381,6 +403,10 @@ export function AdminPanel({
         <TabButton active={tab === "support"} onClick={() => setTab("support")}>
           <Headphones size={16} />
           Поддержка
+        </TabButton>
+        <TabButton active={tab === "chats"} onClick={() => setTab("chats")}>
+          <MessageSquare size={16} />
+          Модерация чатов
         </TabButton>
       </div>
 
@@ -758,6 +784,70 @@ export function AdminPanel({
                       }
                       inputId={`admin-support-files-${ticket.id}`}
                     />
+                  </div>
+                </GlassCard>
+              ))
+            )}
+          </motion.div>
+        )}
+
+        {tab === "chats" && (
+          <motion.div
+            key="chats"
+            initial={{ opacity: 0, x: -18 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 18 }}
+            className="space-y-3"
+          >
+            {filteredConversations.length === 0 ? (
+              <GlassCard className="p-8 text-center text-slate-400">
+                Активных чатов не найдено
+              </GlassCard>
+            ) : (
+              filteredConversations.map((c) => (
+                <GlassCard key={c.id} className="p-4 flex items-center justify-between gap-4">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-white">
+                        {c.user_a_profile?.display_name ?? c.user_a_profile?.username ?? "unknown"}
+                      </span>
+                      <span className="text-xs text-slate-500">↔</span>
+                      <span className="text-sm font-semibold text-white">
+                        {c.user_b_profile?.display_name ?? c.user_b_profile?.username ?? "unknown"}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs text-slate-500">
+                      ID чата: {c.id} · Обновлен {new Date(c.updated_at).toLocaleString("ru-RU")}
+                    </p>
+                  </div>
+                  <div className="shrink-0">
+                    {confirmDelete === c.id ? (
+                      <div className="flex items-center gap-1.5">
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          onClick={() => deleteConversation(c.id)}
+                          disabled={actionLoading === c.id}
+                        >
+                          Да, удалить
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setConfirmDelete(null)}
+                        >
+                          Отмена
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setConfirmDelete(c.id)}
+                      >
+                        <Trash2 size={14} className="text-red-400" />
+                      </Button>
+                    )}
                   </div>
                 </GlassCard>
               ))

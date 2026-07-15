@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { MessageCircle, Heart, Send } from "lucide-react";
@@ -28,6 +28,33 @@ export function CommentSection({
   const [text, setText] = useState("");
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    async function checkRole() {
+      if (!currentUserId) return;
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", currentUserId)
+        .maybeSingle();
+      if (profile?.role === "admin") {
+        setIsAdmin(true);
+      }
+    }
+    checkRole();
+  }, [currentUserId, supabase]);
+
+  async function handleDelete(commentId: string) {
+    if (!confirm("Вы уверены, что хотите удалить этот комментарий?")) return;
+    const { error } = await supa.from("comments").delete().eq("id", commentId);
+    if (error) {
+      alert(`Ошибка удаления комментария: ${error.message}`);
+    } else {
+      setComments((prev) => prev.filter((c) => c.id !== commentId));
+      router.refresh();
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -107,6 +134,8 @@ export function CommentSection({
             replies={replies(comment.id)}
             currentUserId={currentUserId}
             onReply={(id) => setReplyTo(id)}
+            isAdmin={isAdmin}
+            onDelete={handleDelete}
           />
         ))}
         {topLevel.length === 0 && (
@@ -125,12 +154,16 @@ function CommentItem({
   replies,
   currentUserId,
   onReply,
+  isAdmin,
+  onDelete,
 }: {
   comment: CommentWithAuthor;
   index: number;
   replies: CommentWithAuthor[];
   currentUserId: string | null;
   onReply: (id: string) => void;
+  isAdmin: boolean;
+  onDelete: (id: string) => void;
 }) {
   const author = comment.author;
   return (
@@ -161,14 +194,24 @@ function CommentItem({
               </span>
             </div>
             <p className="mt-1 text-sm text-slate-300">{comment.body}</p>
-            {currentUserId && (
-              <button
-                onClick={() => onReply(comment.id)}
-                className="mt-2 text-xs text-slate-500 transition-colors hover:text-gold-soft"
-              >
-                Ответить
-              </button>
-            )}
+            <div className="mt-2 flex items-center gap-3">
+              {currentUserId && (
+                <button
+                  onClick={() => onReply(comment.id)}
+                  className="text-xs text-slate-500 transition-colors hover:text-gold-soft"
+                >
+                  Ответить
+                </button>
+              )}
+              {isAdmin && (
+                <button
+                  onClick={() => onDelete(comment.id)}
+                  className="text-xs font-medium text-rose-400 transition-colors hover:text-rose-500"
+                >
+                  Удалить
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </GlassCard>
@@ -183,6 +226,8 @@ function CommentItem({
               replies={[]}
               currentUserId={currentUserId}
               onReply={onReply}
+              isAdmin={isAdmin}
+              onDelete={onDelete}
             />
           ))}
         </div>
