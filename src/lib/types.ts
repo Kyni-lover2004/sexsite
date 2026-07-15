@@ -120,9 +120,25 @@ export interface Topic {
   like_count: number;
   comment_count: number;
   type: "discussion" | "promo" | "news";
+  is_pinned?: boolean;
   created_at: string;
   updated_at: string;
 }
+
+export interface FeedPerson {
+  id: string;
+  username: string;
+  display_name: string | null;
+  avatar_url: string | null;
+  last_seen: string;
+  city: string | null;
+  premium_until: string | null;
+  available_for_chat?: boolean;
+}
+
+export type ContentReportTarget =
+  | { topicId: string; commentId?: never }
+  | { commentId: string; topicId?: never };
 
 export interface TopicMedia {
   type: "image" | "video";
@@ -211,4 +227,4 @@ export interface DecryptedMessage extends Message {
   decryptError?: boolean;
 }
 
-export type FeedTab = "new" | "popular";
+export type FeedTab = "new" | "popular" | "interests";

@@ -23,15 +23,21 @@ export default async function TopicPage({ params }: Props) {
   const topic = raw as any;
   if (!topic) notFound();
 
-  const comments = await getComments(params.id);
-
-  // Unique per-user view (DB-backed via topic_views); no-op if anonymous.
+  let isAdmin = false;
   if (auth.user) {
     void incrementViewCount(params.id);
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", auth.user.id)
+      .maybeSingle();
+    isAdmin = profile?.role === "admin";
   }
 
+  const comments = await getComments(params.id);
+
   const author = Array.isArray(topic.author) ? topic.author[0] ?? null : topic.author;
-  const typed = { ...topic, author };
+  const typed = { ...topic, is_pinned: !!topic.is_pinned, author };
 
   return (
     <AppShell>
@@ -39,6 +45,7 @@ export default async function TopicPage({ params }: Props) {
         topic={typed}
         initialComments={comments}
         currentUserId={auth.user?.id ?? null}
+        isAdmin={isAdmin}
       />
     </AppShell>
   );

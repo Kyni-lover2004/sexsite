@@ -2,10 +2,11 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { Crown, Eye, Heart, Image as ImageIcon, MessageCircle, Sparkles } from "lucide-react";
+import { Crown, Eye, Heart, Image as ImageIcon, MessageCircle, Pin, Sparkles } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { Tag } from "@/components/ui/Badge";
 import { GlassCard } from "@/components/ui/GlassCard";
+import { ReportButton } from "@/components/feed/ReportButton";
 import { cn, timeAgo } from "@/lib/utils";
 import type { TopicWithAuthor } from "@/lib/types";
 
@@ -13,10 +14,18 @@ interface TopicCardProps {
   topic: TopicWithAuthor;
   index: number;
   onLike?: (id: string) => void;
+  currentUserId?: string | null;
+  onTagClick?: (tag: string) => void;
 }
 
 /** A single discussion card with premium gold accents and animated entry. */
-export function TopicCard({ topic, index, onLike }: TopicCardProps) {
+export function TopicCard({
+  topic,
+  index,
+  onLike,
+  currentUserId,
+  onTagClick,
+}: TopicCardProps) {
   const author = topic.author;
   return (
     <motion.article
@@ -33,6 +42,7 @@ export function TopicCard({ topic, index, onLike }: TopicCardProps) {
         interactive
         className={cn(
           "group relative overflow-hidden p-5",
+          topic.is_pinned && "border-gold/30 bg-gold/[0.04] ring-1 ring-gold/15",
           topic.type === "news" && "border-rose-500/20 bg-rose-950/5",
           topic.type === "promo" && "border-amber-500/20 bg-amber-950/5"
         )}
@@ -63,24 +73,26 @@ export function TopicCard({ topic, index, onLike }: TopicCardProps) {
               @{author?.username ?? "unknown"} · {timeAgo(topic.created_at)}
             </p>
           </div>
-          {topic.type === "news" && (
-            <span className="ml-auto flex items-center gap-1 rounded-full border border-rose-500/30 bg-rose-500/10 px-2 py-1 text-[10px] uppercase tracking-[0.16em] font-semibold text-rose-400 shadow-[0_0_12px_rgba(244,63,94,0.15)] animate-pulse-glow">
-              <Sparkles size={11} />
-              Новость
-            </span>
-          )}
-          {topic.type === "promo" && (
-            <span className="ml-auto flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[10px] uppercase tracking-[0.16em] font-semibold text-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.15)]">
-              <Crown size={11} />
-              Промо
-            </span>
-          )}
-          {(topic.type === "discussion" || !topic.type) && (
-            <span className="ml-auto hidden items-center gap-1 rounded-full border border-gold/15 bg-gold/[0.06] px-2 py-1 text-[10px] uppercase tracking-[0.16em] text-gold-soft/70 sm:flex">
-              <Crown size={11} />
-              live
-            </span>
-          )}
+          <div className="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-1">
+            {topic.is_pinned && (
+              <span className="flex items-center gap-1 rounded-full border border-gold/35 bg-gold/15 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-gold-soft">
+                <Pin size={11} />
+                Закреп
+              </span>
+            )}
+            {topic.type === "news" && (
+              <span className="flex items-center gap-1 rounded-full border border-rose-500/30 bg-rose-500/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-rose-400">
+                <Sparkles size={11} />
+                Новость
+              </span>
+            )}
+            {topic.type === "promo" && (
+              <span className="flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-400">
+                <Crown size={11} />
+                Промо
+              </span>
+            )}
+          </div>
         </div>
 
         <Link href={`/topic/${topic.id}`} className="relative mt-4 block">
@@ -96,9 +108,20 @@ export function TopicCard({ topic, index, onLike }: TopicCardProps) {
 
         {topic.tags.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-1.5">
-            {topic.tags.slice(0, 5).map((tag) => (
-              <Tag key={tag} label={tag} />
-            ))}
+            {topic.tags.slice(0, 5).map((tag) =>
+              onTagClick ? (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() => onTagClick(tag)}
+                  className="transition-opacity hover:opacity-80"
+                >
+                  <Tag label={tag} />
+                </button>
+              ) : (
+                <Tag key={tag} label={tag} />
+              )
+            )}
           </div>
         )}
 
@@ -135,6 +158,13 @@ export function TopicCard({ topic, index, onLike }: TopicCardProps) {
           <span className="flex items-center gap-1.5">
             <Eye size={16} />
             {topic.view_count}
+          </span>
+          <span className="ml-auto">
+            <ReportButton
+              topicId={topic.id}
+              currentUserId={currentUserId ?? null}
+              compact
+            />
           </span>
         </div>
         <div className="pointer-events-none absolute inset-0 bg-card-shine opacity-0 transition-opacity duration-500 group-hover:opacity-100" />

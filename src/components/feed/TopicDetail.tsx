@@ -3,11 +3,12 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { ArrowLeft, Heart, Eye, MessageCircle, Pencil, X, Sparkles, Crown } from "lucide-react";
+import { ArrowLeft, Heart, Eye, MessageCircle, Pencil, X, Sparkles, Crown, Pin } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { Tag } from "@/components/ui/Badge";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { Button } from "@/components/ui/Button";
+import { ReportButton } from "@/components/feed/ReportButton";
 import { cn, timeAgo } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { CommentSection } from "./CommentSection";
@@ -18,10 +19,12 @@ export function TopicDetail({
   topic,
   initialComments,
   currentUserId,
+  isAdmin = false,
 }: {
   topic: TopicWithAuthor;
   initialComments: CommentWithAuthor[];
   currentUserId: string | null;
+  isAdmin?: boolean;
 }) {
   const supabase = createClient();
   const author = topic.author;
@@ -32,6 +35,23 @@ export function TopicDetail({
   const [editBody, setEditBody] = useState(topic.body);
   const [editTags, setEditTags] = useState(topic.tags.join(", "));
   const [saving, setSaving] = useState(false);
+  const [pinning, setPinning] = useState(false);
+
+  async function togglePin() {
+    if (!isAdmin) return;
+    setPinning(true);
+    const next = !topicData.is_pinned;
+    const { error } = await (supabase as any)
+      .from("topics")
+      .update({ is_pinned: next })
+      .eq("id", topicData.id);
+    setPinning(false);
+    if (error) {
+      alert(error.message);
+      return;
+    }
+    setTopicData((prev) => ({ ...prev, is_pinned: next }));
+  }
 
   const handleSave = async () => {
     if (!editTitle.trim()) return;
@@ -132,15 +152,38 @@ export function TopicDetail({
               </div>
             </div>
 
-            {!isEditing && currentUserId === topicData.author_id && (
-              <button
-                onClick={() => setIsEditing(true)}
-                className="flex items-center gap-1.5 rounded-xl border border-gold/15 bg-base-800/40 px-3 py-1.5 text-xs font-medium text-slate-300 hover:border-gold/30 hover:text-white transition-all duration-300"
-              >
-                <Pencil size={13} />
-                Редактировать
-              </button>
-            )}
+            <div className="flex flex-wrap items-center gap-2">
+              {topicData.is_pinned && (
+                <span className="flex items-center gap-1 rounded-full border border-gold/30 bg-gold/10 px-2 py-0.5 text-[10px] font-semibold uppercase text-gold-soft">
+                  <Pin size={10} />
+                  Закреп
+                </span>
+              )}
+              {isAdmin && (
+                <button
+                  type="button"
+                  onClick={togglePin}
+                  disabled={pinning}
+                  className="flex items-center gap-1.5 rounded-xl border border-gold/15 bg-base-800/40 px-3 py-1.5 text-xs font-medium text-slate-300 hover:border-gold/30 hover:text-white"
+                >
+                  <Pin size={13} />
+                  {topicData.is_pinned ? "Открепить" : "Закрепить"}
+                </button>
+              )}
+              {!isEditing && currentUserId === topicData.author_id && (
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="flex items-center gap-1.5 rounded-xl border border-gold/15 bg-base-800/40 px-3 py-1.5 text-xs font-medium text-slate-300 hover:border-gold/30 hover:text-white transition-all duration-300"
+                >
+                  <Pencil size={13} />
+                  Редактировать
+                </button>
+              )}
+              <ReportButton
+                topicId={topicData.id}
+                currentUserId={currentUserId}
+              />
+            </div>
           </div>
 
           {isEditing ? (

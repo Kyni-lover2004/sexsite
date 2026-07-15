@@ -8,6 +8,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { Textarea } from "@/components/ui/Input";
+import { ReportButton } from "@/components/feed/ReportButton";
 import { timeAgo } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import type { CommentWithAuthor } from "@/lib/data/comments";
@@ -194,7 +195,7 @@ function CommentItem({
               </span>
             </div>
             <p className="mt-1 text-sm text-slate-300">{comment.body}</p>
-            <div className="mt-2 flex items-center gap-3">
+            <div className="mt-2 flex flex-wrap items-center gap-3">
               {currentUserId && (
                 <button
                   onClick={() => onReply(comment.id)}
@@ -211,6 +212,11 @@ function CommentItem({
                   Удалить
                 </button>
               )}
+              <ReportButton
+                commentId={comment.id}
+                currentUserId={currentUserId}
+                compact
+              />
             </div>
           </div>
         </div>
