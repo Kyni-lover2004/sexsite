@@ -20,9 +20,12 @@ export default async function UserProfilePage({ params }: Props) {
   if (!profile) notFound();
 
   if (auth.user && auth.user.id !== params.id) {
-    await (supabase as any).from("profile_visits").insert({
+    await (supabase as any).from("profile_visits").upsert({
       profile_id: params.id,
       visitor_id: auth.user.id,
+      visited_at: new Date().toISOString()
+    }, {
+      onConflict: "profile_id,visitor_id"
     });
   }
 

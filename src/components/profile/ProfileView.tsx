@@ -70,7 +70,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
   const [photoError, setPhotoError] = useState("");
   const [localPhotos, setLocalPhotos] = useState(photos);
   const [available, setAvailable] = useState(profile.available_for_chat);
-  const [friendSent, setFriendSent] = useState(false);
+  const [friendStatus, setFriendStatus] = useState<"none" | "sent" | "received" | "accepted">("none");
 
   const [cropperOpen, setCropperOpen] = useState(false);
   const [cropperSrc, setCropperSrc] = useState("");
@@ -79,7 +79,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
   const [isAdminViewer, setIsAdminViewer] = useState(false);
 
   useEffect(() => {
-    async function checkRole() {
+    async function checkRoleAndFriendship() {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         const { data: viewerProfile } = await supabase
@@ -90,10 +90,25 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
         if (viewerProfile?.role === "admin") {
           setIsAdminViewer(true);
         }
+
+        if (!isOwn) {
+          const { data: existing } = await (supabase as any)
+            .from("friendships")
+            .select("id, status, requester_id")
+            .or(`and(requester_id.eq.${user.id},addressee_id.eq.${profile.id}),and(requester_id.eq.${profile.id},addressee_id.eq.${user.id})`)
+            .maybeSingle();
+          if (existing) {
+            if (existing.status === "accepted") {
+              setFriendStatus("accepted");
+            } else if (existing.status === "pending") {
+              setFriendStatus(existing.requester_id === user.id ? "sent" : "received");
+            }
+          }
+        }
       }
     }
-    checkRole();
-  }, [supabase]);
+    checkRoleAndFriendship();
+  }, [supabase, isOwn, profile.id]);
 
   const photoLimit = usePhotoViewLimit(isOwn ? null : profile.id, isPremium);
 
@@ -303,20 +318,39 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
   async function sendFriendRequest() {
     const { data: auth } = await supabase.auth.getUser();
     if (!auth.user || isOwn) return;
-    const { data: existing } = await (supabase as any)
-      .from("friendships")
-      .select("id,status")
-      .or(`and(requester_id.eq.${auth.user.id},addressee_id.eq.${profile.id}),and(requester_id.eq.${profile.id},addressee_id.eq.${auth.user.id})`)
-      .maybeSingle();
-    if (existing) {
-      setFriendSent(true);
-      return;
-    }
     const { error } = await (supabase as any).from("friendships").insert({
       requester_id: auth.user.id,
       addressee_id: profile.id,
     });
-    if (!error || error.code === "23505") setFriendSent(true);
+    if (!error || error.code === "23505") setFriendStatus("sent");
+  }
+
+  async function acceptFriendRequest() {
+    const { data: auth } = await supabase.auth.getUser();
+    if (!auth.user) return;
+    const { error } = await (supabase as any)
+      .from("friendships")
+      .update({ status: "accepted", updated_at: new Date().toISOString() })
+      .eq("requester_id", profile.id)
+      .eq("addressee_id", auth.user.id);
+    if (!error) {
+      setFriendStatus("accepted");
+      router.refresh();
+    }
+  }
+
+  async function removeFriendship() {
+    if (!confirm("Вы уверены, что хотите удалить этого пользователя из друзей?")) return;
+    const { data: auth } = await supabase.auth.getUser();
+    if (!auth.user) return;
+    const { error } = await (supabase as any)
+      .from("friendships")
+      .delete()
+      .or(`and(requester_id.eq.${auth.user.id},addressee_id.eq.${profile.id}),and(requester_id.eq.${profile.id},addressee_id.eq.${auth.user.id})`);
+    if (!error) {
+      setFriendStatus("none");
+      router.refresh();
+    }
   }
 
   async function handleSave() {
@@ -1156,9 +1190,26 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
                           Написать сообщение
                         </Button>
                       </Link>
-                      <Button variant="outline" size="sm" onClick={sendFriendRequest} disabled={friendSent}>
-                        {friendSent ? "Заявка отправлена" : "Добавить в друзья"}
-                      </Button>
+                       {friendStatus === "none" && (
+                         <Button variant="outline" size="sm" onClick={sendFriendRequest}>
+                           Добавить в друзья
+                         </Button>
+                       )}
+                       {friendStatus === "sent" && (
+                         <Button variant="outline" size="sm" disabled>
+                           Заявка отправлена
+                         </Button>
+                       )}
+                       {friendStatus === "received" && (
+                         <Button className="border border-emerald-500/30 bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/35" size="sm" onClick={acceptFriendRequest}>
+                           Принять заявку
+                         </Button>
+                       )}
+                       {friendStatus === "accepted" && (
+                         <Button variant="ghost" className="border border-red-500/20 text-red-400 hover:bg-red-500/10" size="sm" onClick={removeFriendship}>
+                           Удалить из друзей
+                         </Button>
+                       )}
                     </div>
                   )}
                 </div>
