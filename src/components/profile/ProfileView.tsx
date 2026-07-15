@@ -149,6 +149,26 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
     setLocalPhotos(photos);
   }, [photos]);
 
+  useEffect(() => {
+    async function logVisit() {
+      const { data: auth } = await supabase.auth.getUser();
+      if (auth?.user && auth.user.id !== profile.id) {
+        try {
+          await (supabase as any).from("profile_visits").upsert({
+            profile_id: profile.id,
+            visitor_id: auth.user.id,
+            visited_at: new Date().toISOString()
+          }, {
+            onConflict: "profile_id,visitor_id"
+          });
+        } catch (err) {
+          console.error("Failed to log profile visit from client:", err);
+        }
+      }
+    }
+    logVisit();
+  }, [profile.id, supabase]);
+
   async function handleAvatarFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
