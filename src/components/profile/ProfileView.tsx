@@ -1343,47 +1343,9 @@ export function ProfileView({ profile, photos, albums, friendsCount, isOwn, isPr
             )}
 
             {viewAlbumId === "main" && albums && albums.length > 0 && (
-              <div className="mb-6">
-                <h3 className="mb-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Фотоальбомы</h3>
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                  {albums.map((album: any) => {
-                    const albumPhotos = localPhotos.filter(p => p.album_id === album.id);
-                    return (
-                      <button
-                        key={album.id}
-                        onClick={() => setViewAlbumId(album.id)}
-                        className="group relative overflow-hidden rounded-xl border border-gold/10 bg-base-900 text-left transition-all hover:border-gold/30 hover:shadow-lg hover:shadow-gold/5"
-                      >
-                        <div className="aspect-[4/3] grid grid-cols-2 gap-[1px] bg-base-800 p-[1px]">
-                          {albumPhotos.slice(0, 4).map((p, i) => (
-                            <img 
-                              key={p.id} 
-                              src={p.url} 
-                              alt="" 
-                              className={`h-full w-full object-cover ${albumPhotos.length === 1 ? 'col-span-2 row-span-2' : albumPhotos.length === 2 ? 'row-span-2' : albumPhotos.length === 3 && i === 0 ? 'col-span-2' : ''}`} 
-                            />
-                          ))}
-                          {albumPhotos.length === 0 && (
-                            <div className="col-span-2 row-span-2 flex items-center justify-center bg-base-900">
-                              <Folder className="opacity-20" size={32} />
-                            </div>
-                          )}
-                        </div>
-                        <div className="p-3">
-                          <p className="font-semibold text-warm-100 truncate">{album.name}</p>
-                          <p className="text-xs text-slate-500 mt-0.5">{albumPhotos.length} фото</p>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-            
-            {viewAlbumId === "main" && albums && albums.length > 0 && (
               <h3 className="mb-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Основная страница</h3>
             )}
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 mb-8">
               {(viewAlbumId === "main" 
                   ? localPhotos.filter(p => !p.album_id) 
                   : localPhotos.filter(p => p.album_id === viewAlbumId)
@@ -1446,6 +1408,44 @@ export function ProfileView({ profile, photos, albums, friendsCount, isOwn, isPr
                   </div>
               ))}
             </div>
+
+            {viewAlbumId === "main" && albums && albums.length > 0 && (
+              <div className="mb-6 border-t border-gold/10 pt-6">
+                <h3 className="mb-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Фотоальбомы</h3>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  {albums.map((album: any) => {
+                    const albumPhotos = localPhotos.filter(p => p.album_id === album.id);
+                    return (
+                      <button
+                        key={album.id}
+                        onClick={() => setViewAlbumId(album.id)}
+                        className="group relative overflow-hidden rounded-xl border border-gold/10 bg-base-900 text-left transition-all hover:border-gold/30 hover:shadow-lg hover:shadow-gold/5"
+                      >
+                        <div className="aspect-[4/3] grid grid-cols-2 gap-[1px] bg-base-800 p-[1px]">
+                          {albumPhotos.slice(0, 4).map((p, i) => (
+                            <img 
+                              key={p.id} 
+                              src={p.url} 
+                              alt="" 
+                              className={`h-full w-full object-cover ${albumPhotos.length === 1 ? 'col-span-2 row-span-2' : albumPhotos.length === 2 ? 'row-span-2' : albumPhotos.length === 3 && i === 0 ? 'col-span-2' : ''}`} 
+                            />
+                          ))}
+                          {albumPhotos.length === 0 && (
+                            <div className="col-span-2 row-span-2 flex items-center justify-center bg-base-900">
+                              <Folder className="opacity-20" size={32} />
+                            </div>
+                          )}
+                        </div>
+                        <div className="p-3">
+                          <p className="font-semibold text-warm-100 truncate">{album.name}</p>
+                          <p className="text-xs text-slate-500 mt-0.5">{albumPhotos.length} фото</p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </>
         )}
       </GlassCard>
