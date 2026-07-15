@@ -844,3 +844,28 @@ create policy "Support attachment write" on storage.objects
 -- =============================================================
 alter publication supabase_realtime add table public.messages;
 alter publication supabase_realtime add table public.conversations;
+
+create table if not exists public.profile_albums (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  name text not null,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+alter table public.profile_photos
+  add column if not exists album_id uuid references public.profile_albums(id) on delete set null;
+
+alter table public.profile_albums enable row level security;
+
+create policy profile_albums_select on public.profile_albums
+  for select using (true);
+
+create policy profile_albums_insert on public.profile_albums
+  for insert with check (auth.uid() = user_id);
+
+create policy profile_albums_update on public.profile_albums
+  for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+create policy profile_albums_delete on public.profile_albums
+  for delete using (auth.uid() = user_id);

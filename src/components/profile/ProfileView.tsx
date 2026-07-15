@@ -64,6 +64,8 @@ import type { Profile, ProfilePhoto } from "@/lib/types";
 interface ProfileViewProps {
   profile: Profile;
   photos: ProfilePhoto[];
+  albums: any[];
+  friendsCount: number;
   isOwn: boolean;
   isPremium?: boolean;
 }
@@ -98,7 +100,7 @@ function InlineChoices({
   );
 }
 
-export function ProfileView({ profile, photos, isOwn, isPremium = false }: ProfileViewProps) {
+export function ProfileView({ profile, photos, albums, friendsCount, isOwn, isPremium = false }: ProfileViewProps) {
   const supabase = createClient();
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -636,7 +638,7 @@ export function ProfileView({ profile, photos, isOwn, isPremium = false }: Profi
       />
 
       {!editing && <>
-        <ProfileHeader profile={profile} isOwn={isOwn} available={available} onToggleAvailable={toggleAvailable} onEdit={() => setEditing(true)} />
+        <ProfileHeader profile={profile} isOwn={isOwn} available={available} friendsCount={friendsCount} onToggleAvailable={toggleAvailable} onEdit={() => setEditing(true)} />
         <div className="h-[13rem] sm:h-[10rem]" aria-hidden="true" />
       </>}
 

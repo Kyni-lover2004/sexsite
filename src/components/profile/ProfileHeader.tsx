@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/Button";
 import type { Profile } from "@/lib/types";
 import { ageFromBirthDate, isOnline, timeAgo } from "@/lib/utils";
 
-export function ProfileHeader({ profile, isOwn, available, onToggleAvailable, onEdit }: { profile: Profile; isOwn: boolean; available: boolean; onToggleAvailable: () => void; onEdit: () => void }) {
+export function ProfileHeader({ profile, isOwn, available, friendsCount, onToggleAvailable, onEdit }: { profile: Profile; isOwn: boolean; available: boolean; friendsCount: number; onToggleAvailable: () => void; onEdit: () => void }) {
   const online = isOnline(profile.last_seen);
   const age = ageFromBirthDate(profile.birth_date);
   const gender = profile.gender === "male" ? "👨 Мужчина" : profile.gender === "female" ? "👩 Женщина" : profile.gender === "couple_mf" ? "👫 Пара МЖ" : null;
@@ -37,7 +37,7 @@ export function ProfileHeader({ profile, isOwn, available, onToggleAvailable, on
             ) : <span className="inline-flex min-h-8 items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 text-[10px] font-semibold text-emerald-500"><CheckCircle2 size={12} />Готов(а) общаться</span>)}
           </div>
           <p className="mt-1 truncate text-sm text-slate-500">@{profile.username}</p>
-          <div className="mt-3 flex flex-wrap gap-x-3 gap-y-2 text-xs text-slate-400">{gender && <span>{gender}</span>}{profile.city && <span>{profile.city}</span>}{age && <span>{age} лет</span>}<span>{online ? "● В сети" : `Был(а) ${timeAgo(profile.last_seen)}`}</span></div>
+          <div className="mt-3 flex flex-wrap gap-x-3 gap-y-2 text-xs text-slate-400">{gender && <span>{gender}</span>}{profile.city && <span>{profile.city}</span>}{age && <span>{age} лет</span>}<span>{online ? "● В сети" : `Был(а) ${timeAgo(profile.last_seen)}`}</span><span>Друзей: {friendsCount}</span></div>
         </div>
         {isOwn && <Button variant="ghost" size="icon" onClick={onEdit} className="shrink-0"><Pencil size={16} /></Button>}
       </div>
