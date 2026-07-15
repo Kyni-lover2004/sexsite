@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
 import { Avatar } from "@/components/ui/Avatar";
 import { createClient } from "@/lib/supabase/server";
+import { noIndexMetadata } from "@/lib/seo";
 
 type FriendProfile = {
   id: string;
@@ -88,6 +89,7 @@ async function removeFriend(formData: FormData) {
 }
 
 export const dynamic = "force-dynamic";
+export const metadata = noIndexMetadata;
 
 export default async function FriendsPage() {
   const supabase = createClient();

@@ -311,8 +311,62 @@ export interface Database {
         >;
         Relationships: [];
       };
+      gallery_photo_views: {
+        Row: {
+          viewer_id: string;
+          photo_id: string;
+          profile_id: string;
+          viewed_at: string;
+        };
+        Insert: {
+          viewer_id: string;
+          photo_id: string;
+          profile_id: string;
+          viewed_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["gallery_photo_views"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      rate_limits: {
+        Row: {
+          key: string;
+          window_start: string;
+          hit_count: number;
+        };
+        Insert: {
+          key: string;
+          window_start?: string;
+          hit_count?: number;
+        };
+        Update: Partial<Database["public"]["Tables"]["rate_limits"]["Insert"]>;
+        Relationships: [];
+      };
+      analytics_events: {
+        Row: {
+          id: string;
+          user_id: string | null;
+          event: string;
+          props: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string | null;
+          event: string;
+          props?: Json;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["analytics_events"]["Insert"]
+        >;
+        Relationships: [];
+      };
     };
-    Views: Record<string, never>;
+    Views: {
+      [_ in never]: never;
+    };
     Functions: {
       increment_view_count: {
         Args: { topic_id: string };
@@ -331,11 +385,37 @@ export interface Database {
         };
         Returns: number;
       };
+      record_gallery_photo_view: {
+        Args: { p_photo_id: string; p_profile_id: string };
+        Returns: Json;
+      };
+      count_gallery_photo_views: {
+        Args: { p_profile_id: string };
+        Returns: Json;
+      };
+      check_rate_limit: {
+        Args: {
+          p_bucket: string;
+          p_max: number;
+          p_window_seconds: number;
+        };
+        Returns: boolean;
+      };
+      heartbeat: {
+        Args: Record<string, never>;
+        Returns: string;
+      };
+      track_event: {
+        Args: { p_event: string; p_props?: Json };
+        Returns: undefined;
+      };
     };
     Enums: {
       gender: Gender;
       topic_status: TopicStatus;
     };
-    CompositeTypes: Record<string, never>;
+    CompositeTypes: {
+      [_ in never]: never;
+    };
   };
 }

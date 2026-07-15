@@ -439,9 +439,23 @@ export function ChatWindow({
         setText("");
         setReplyTo(null);
         setSendError("");
+        // Funnel: first outbound message (best-effort once per browser)
+        try {
+          if (!sessionStorage.getItem("dp_first_msg")) {
+            sessionStorage.setItem("dp_first_msg", "1");
+            void import("@/lib/analytics").then(({ trackEvent }) =>
+              trackEvent("first_message_sent", {
+                conversation_id: conversationId,
+              })
+            );
+          }
+        } catch {
+          /* ignore */
+        }
       } else if (error) {
+        const msg = String(error.message ?? "");
         // Column may be missing before migration — retry without reply_to.
-        if (replyId && String(error.message).includes("reply_to")) {
+        if (replyId && msg.includes("reply_to")) {
           const retry = await supa
             .from("messages")
             .insert({
@@ -463,6 +477,11 @@ export function ChatWindow({
           } else {
             setSendError("Не удалось отправить сообщение");
           }
+        } else if (
+          msg.includes("RATE_LIMIT_MESSAGES") ||
+          msg.includes("RATE_LIMIT")
+        ) {
+          setSendError("Слишком много сообщений. Подождите минуту.");
         } else {
           setSendError("Не удалось отправить сообщение");
         }

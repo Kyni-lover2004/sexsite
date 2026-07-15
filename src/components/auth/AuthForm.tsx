@@ -85,6 +85,10 @@ export function AuthForm() {
     }
 
     if (mode === "register") {
+      // Funnel: registration attempted/completed (email may need confirm)
+      void import("@/lib/analytics").then(({ trackEvent }) =>
+        trackEvent("signup_completed")
+      );
       setMode("login");
       setError("Проверьте почту для подтверждения регистрации");
       return;

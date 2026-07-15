@@ -3,7 +3,10 @@ import { AppShell } from "@/components/layout/AppShell";
 import { MediaLibrary } from "@/components/profile/MediaLibrary";
 import { createClient } from "@/lib/supabase/server";
 
+import { noIndexMetadata } from "@/lib/seo";
+
 export const dynamic = "force-dynamic";
+export const metadata = noIndexMetadata;
 
 export default async function MyPhotosPage() {
   const supabase = createClient();

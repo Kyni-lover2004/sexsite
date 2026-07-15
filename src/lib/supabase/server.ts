@@ -10,6 +10,7 @@ export const supabaseConfigured = !!(url && key);
 /**
  * Server Supabase client. Returns a stub when env vars are missing
  * so the app never crashes — data functions return empty results.
+ * Untyped by design (see client.ts); use Row<> helpers for safety.
  */
 export function createClient() {
   if (!url || !key) {
@@ -19,8 +20,11 @@ export function createClient() {
           eq: () => ({
             single: async () => ({ data: null, error: null }),
             maybeSingle: async () => ({ data: null, error: null }),
-            order: () => ({ limit: () => Promise.resolve({ data: null, error: null }) }),
-            then: (cb: Function) => cb({ data: null, error: null }),
+            order: () => ({
+              limit: () => Promise.resolve({ data: null, error: null }),
+            }),
+            then: (cb: (v: unknown) => unknown) =>
+              cb({ data: null, error: null }),
           }),
           limit: () => Promise.resolve({ data: null, error: null }),
           order: () => ({
@@ -54,12 +58,14 @@ export function createClient() {
       }),
       auth: {
         getUser: async () => ({ data: { user: null }, error: null }),
+        getSession: async () => ({ data: { session: null }, error: null }),
         signInWithPassword: async () => ({ error: null }),
         signUp: async () => ({ error: null }),
         signInWithOAuth: async () => ({}),
         exchangeCodeForSession: async () => ({ error: null }),
+        signOut: async () => ({ error: null }),
       },
-      rpc: () => ({ then: (cb: Function) => cb(null) }),
+      rpc: () => ({ then: (cb: (v: unknown) => unknown) => cb(null) }),
       channel: () => ({
         on: () => ({ subscribe: () => ({ unsubscribe: () => {} }) }),
       }),
@@ -74,7 +80,7 @@ export function createClient() {
       getAll() {
         return cookieStore.getAll();
       },
-      setAll(cookiesToSet: any[]) {
+      setAll(cookiesToSet: { name: string; value: string; options?: object }[]) {
         try {
           cookiesToSet.forEach(({ name, value, options }) =>
             cookieStore.set(name, value, options)

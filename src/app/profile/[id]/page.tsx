@@ -2,12 +2,16 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/components/layout/AppShell";
 import { ProfileView } from "@/components/profile/ProfileView";
+import { noIndexMetadata } from "@/lib/seo";
 
 interface Props {
   params: { id: string };
 }
 
 export const dynamic = "force-dynamic";
+
+/** Private club — profiles should not be indexed. */
+export const metadata = noIndexMetadata;
 
 export default async function UserProfilePage({ params }: Props) {
   const supabase = createClient();
@@ -33,9 +37,11 @@ export default async function UserProfilePage({ params }: Props) {
     .select("requester_id, addressee_id")
     .or(`requester_id.eq.${params.id},addressee_id.eq.${params.id}`)
     .eq("status", "accepted");
-    
+
   const uniqueFriends = new Set(
-    friendsData?.map((f: any) => f.requester_id === params.id ? f.addressee_id : f.requester_id)
+    friendsData?.map((f: any) =>
+      f.requester_id === params.id ? f.addressee_id : f.requester_id
+    )
   );
   const friendsCount = uniqueFriends.size;
 
@@ -45,8 +51,20 @@ export default async function UserProfilePage({ params }: Props) {
     .eq("user_id", params.id)
     .order("created_at", { ascending: false });
 
-  const isPremium =
-    profile.premium_until && new Date(profile.premium_until) > new Date();
+  const profileIsPremium =
+    !!(profile as any).premium_until &&
+    new Date((profile as any).premium_until) > new Date();
+
+  let viewerIsPremium = false;
+  if (auth.user) {
+    const { data: me } = await supabase
+      .from("profiles")
+      .select("premium_until")
+      .eq("id", auth.user.id)
+      .maybeSingle();
+    viewerIsPremium =
+      !!me?.premium_until && new Date(me.premium_until) > new Date();
+  }
 
   return (
     <AppShell>
@@ -56,7 +74,8 @@ export default async function UserProfilePage({ params }: Props) {
         albums={(albums ?? []) as any}
         friendsCount={friendsCount || 0}
         isOwn={auth.user?.id === params.id}
-        isPremium={isPremium}
+        isPremium={profileIsPremium}
+        viewerIsPremium={viewerIsPremium}
       />
     </AppShell>
   );

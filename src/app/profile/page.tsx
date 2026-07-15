@@ -2,6 +2,9 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
 import { ProfileView } from "@/components/profile/ProfileView";
+import { noIndexMetadata } from "@/lib/seo";
+
+export const metadata = noIndexMetadata;
 
 export default async function MyProfilePage() {
   const supabase = createClient();
@@ -38,8 +41,9 @@ export default async function MyProfilePage() {
     .eq("user_id", auth.user.id)
     .order("created_at", { ascending: false });
 
-  const isPremium =
-    profile?.premium_until && new Date(profile.premium_until) > new Date();
+  const isPremium = !!(
+    profile?.premium_until && new Date(profile.premium_until) > new Date()
+  );
 
   return (
     <AppShell>
@@ -51,6 +55,7 @@ export default async function MyProfilePage() {
           friendsCount={friendsCount || 0}
           isOwn
           isPremium={isPremium}
+          viewerIsPremium={isPremium}
         />
       ) : (
         <p className="text-slate-400">Профиль не найден</p>

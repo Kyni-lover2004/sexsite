@@ -1,5 +1,5 @@
 "use client";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ImagePlus, Loader2, Trash2, Upload, Video, Plus, Folder } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
@@ -13,12 +13,14 @@ export function MediaLibrary({ kind, userId, initialItems, initialAlbums = [] }:
   const supabase = createClient();
   const table = kind === "photo" ? "profile_photos" : "profile_videos";
   const bucket = kind === "photo" ? "profile-photos" : "profile-videos";
-  
+
   // Album states
   const [selectedAlbumId, setSelectedAlbumId] = useState<string>("main");
   const [newAlbumName, setNewAlbumName] = useState("");
   const [creatingAlbum, setCreatingAlbum] = useState(false);
-  
+  const [newAlbumPrivate, setNewAlbumPrivate] = useState(false);
+  const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
+
   // Filter for viewing
   const [viewAlbumId, setViewAlbumId] = useState<string>("main");
 
@@ -26,70 +28,149 @@ export function MediaLibrary({ kind, userId, initialItems, initialAlbums = [] }:
     if (!newAlbumName.trim()) return;
     setCreatingAlbum(true);
     setError("");
+    const payload: Record<string, unknown> = {
+      user_id: userId,
+      name: newAlbumName.trim(),
+    };
+    if (kind === "photo") payload.is_private = newAlbumPrivate;
+
     const { data: row, error: rowError } = await (supabase as any)
       .from("profile_albums")
-      .insert({ user_id: userId, name: newAlbumName.trim() })
+      .insert(payload)
       .select()
       .single();
-      
+
     if (row) {
       setAlbums([row, ...albums]);
       setSelectedAlbumId(row.id);
       setViewAlbumId(row.id);
       setNewAlbumName("");
+      setNewAlbumPrivate(false);
     } else {
       setError(rowError?.message ?? "Не удалось создать альбом");
     }
     setCreatingAlbum(false);
   }
 
-  async function upload(file?: File) { 
-    if (!file) return; 
-    setError(""); 
-    const limit = kind === "photo" ? 10 * 1024 * 1024 : 100 * 1024 * 1024; 
-    if (file.size > limit) { 
-      setError(`Файл больше ${kind === "photo" ? "10" : "100"} МБ`); 
-      return; 
-    } 
-    setLoading(true); 
-    const ext = file.name.split(".").pop()?.toLowerCase() || (kind === "photo" ? "jpg" : "mp4"); 
-    const path = `${userId}/${crypto.randomUUID()}.${ext}`; 
-    const { error: uploadError } = await supabase.storage.from(bucket).upload(path, file); 
-    if (!uploadError) { 
-      const { data } = supabase.storage.from(bucket).getPublicUrl(path); 
+  async function upload(file?: File) {
+    if (!file) return;
+    setError("");
+    // Soft rate limit: max 20 uploads / 10 min (RPC no-ops until SQL patch applied)
+    const { data: rlOk, error: rlErr } = await supabase.rpc(
+      "check_rate_limit" as never,
+      {
+        p_bucket: "upload",
+        p_max: 20,
+        p_window_seconds: 600,
+      } as never
+    );
+    if (!rlErr && rlOk === false) {
+      setError("Слишком много загрузок. Подождите немного.");
+      return;
+    }
+
+    const limit = kind === "photo" ? 10 * 1024 * 1024 : 100 * 1024 * 1024;
+    if (file.size > limit) {
+      setError(`Файл больше ${kind === "photo" ? "10" : "100"} МБ`);
+      return;
+    }
+    setLoading(true);
+    const ext =
+      file.name.split(".").pop()?.toLowerCase() ||
+      (kind === "photo" ? "jpg" : "mp4");
+    const path = `${userId}/${crypto.randomUUID()}.${ext}`;
+
+    const album =
+      selectedAlbumId === "main"
+        ? null
+        : albums.find((a: any) => a.id === selectedAlbumId);
+    const isPrivate = !!(kind === "photo" && album?.is_private);
+    const uploadBucket = isPrivate ? "profile-photos-private" : bucket;
+
+    const { error: uploadError } = await supabase.storage
+      .from(uploadBucket)
+      .upload(path, file);
+    if (!uploadError) {
+      let publicUrl = "";
+      if (isPrivate) {
+        const { data: signed } = await supabase.storage
+          .from(uploadBucket)
+          .createSignedUrl(path, 3600);
+        publicUrl = signed?.signedUrl ?? "";
+        // Store placeholder public path marker; display uses signed URLs
+        publicUrl =
+          publicUrl ||
+          `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${uploadBucket}/${path}`;
+      } else {
+        const { data } = supabase.storage.from(uploadBucket).getPublicUrl(path);
+        publicUrl = data.publicUrl;
+      }
+
       const { data: row, error: rowError } = await (supabase as any)
         .from(table)
-        .insert({ 
-          user_id: userId, 
-          url: data.publicUrl, 
+        .insert({
+          user_id: userId,
+          url: publicUrl,
           storage_path: path,
-          album_id: selectedAlbumId === "main" ? null : selectedAlbumId 
+          album_id: selectedAlbumId === "main" ? null : selectedAlbumId,
         })
         .select()
-        .single(); 
+        .single();
       if (row) {
-        setItems((x) => [row, ...x]); 
-      } else { 
-        await supabase.storage.from(bucket).remove([path]); 
-        setError(rowError?.message ?? "Не удалось сохранить файл"); 
-      } 
+        setItems((x) => [row, ...x]);
+        if (isPrivate && publicUrl) {
+          setSignedUrls((s) => ({ ...s, [row.id]: publicUrl }));
+        }
+      } else {
+        await supabase.storage.from(uploadBucket).remove([path]);
+        setError(rowError?.message ?? "Не удалось сохранить файл");
+      }
     } else {
-      setError(uploadError.message); 
+      setError(
+        uploadError.message.includes("Bucket not found")
+          ? "Создайте bucket profile-photos-private (SQL-патч) или снимите «приватный»."
+          : uploadError.message
+      );
     }
-    setLoading(false); 
-    if (input.current) input.current.value = ""; 
+    setLoading(false);
+    if (input.current) input.current.value = "";
   }
 
-  async function remove(item: any) { 
-    await supabase.storage.from(bucket).remove([item.storage_path]); 
-    await (supabase as any).from(table).delete().eq("id", item.id); 
-    setItems((x) => x.filter((v) => v.id !== item.id)); 
+  async function remove(item: any) {
+    const album = albums.find((a: any) => a.id === item.album_id);
+    const b = album?.is_private ? "profile-photos-private" : bucket;
+    await supabase.storage.from(b).remove([item.storage_path]);
+    await (supabase as any).from(table).delete().eq("id", item.id);
+    setItems((x) => x.filter((v) => v.id !== item.id));
   }
 
   // filter items based on viewAlbumId
-  const displayedItems = viewAlbumId === "main" 
-    ? items.filter((i: any) => !i.album_id) 
-    : items.filter((i: any) => i.album_id === viewAlbumId);
+  const displayedItems =
+    viewAlbumId === "main"
+      ? items.filter((i: any) => !i.album_id)
+      : items.filter((i: any) => i.album_id === viewAlbumId);
+
+  // Resolve signed URLs for private album photos when viewing
+  useEffect(() => {
+    if (kind !== "photo" || viewAlbumId === "main") return;
+    const album = albums.find((a: any) => a.id === viewAlbumId);
+    if (!album?.is_private) return;
+    const privateItems = items.filter((i: any) => i.album_id === viewAlbumId);
+    let cancelled = false;
+    (async () => {
+      const next: Record<string, string> = {};
+      for (const item of privateItems) {
+        const { data } = await supabase.storage
+          .from("profile-photos-private")
+          .createSignedUrl(item.storage_path, 3600);
+        if (data?.signedUrl) next[item.id] = data.signedUrl;
+      }
+      if (!cancelled) setSignedUrls((s) => ({ ...s, ...next }));
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [kind, viewAlbumId, albums, items, supabase]);
 
   return (
     <div className="space-y-6">
@@ -124,18 +205,37 @@ export function MediaLibrary({ kind, userId, initialItems, initialAlbums = [] }:
           )}
           
           {selectedAlbumId === "new" && kind === "photo" && (
-            <div className="flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
-              <input
-                type="text"
-                placeholder="Название альбома"
-                value={newAlbumName}
-                onChange={(e) => setNewAlbumName(e.target.value)}
-                className="h-9 w-full rounded-lg border border-gold/20 bg-base-900 px-3 text-sm text-slate-200 outline-none focus:border-gold/50 placeholder:text-slate-500"
-              />
-              <Button size="sm" onClick={createAlbum} disabled={!newAlbumName.trim() || creatingAlbum}>
-                {creatingAlbum ? <Loader2 className="animate-spin" size={16}/> : <Plus size={16}/>}
-                Создать
-              </Button>
+            <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  placeholder="Название альбома"
+                  value={newAlbumName}
+                  onChange={(e) => setNewAlbumName(e.target.value)}
+                  className="h-9 w-full rounded-lg border border-gold/20 bg-base-900 px-3 text-sm text-slate-200 outline-none focus:border-gold/50 placeholder:text-slate-500"
+                />
+                <Button
+                  size="sm"
+                  onClick={createAlbum}
+                  disabled={!newAlbumName.trim() || creatingAlbum}
+                >
+                  {creatingAlbum ? (
+                    <Loader2 className="animate-spin" size={16} />
+                  ) : (
+                    <Plus size={16} />
+                  )}
+                  Создать
+                </Button>
+              </div>
+              <label className="flex items-center gap-2 text-xs text-slate-400">
+                <input
+                  type="checkbox"
+                  checked={newAlbumPrivate}
+                  onChange={(e) => setNewAlbumPrivate(e.target.checked)}
+                  className="rounded border-gold/30 accent-amber-600"
+                />
+                Приватный альбом (signed URL, bucket profile-photos-private)
+              </label>
             </div>
           )}
         </div>
@@ -179,9 +279,19 @@ export function MediaLibrary({ kind, userId, initialItems, initialAlbums = [] }:
         {displayedItems.map((item) => (
           <div key={item.id} className={`group relative overflow-hidden rounded-2xl border border-gold/10 bg-base-800 ${kind === "photo" ? "aspect-[4/5]" : "aspect-video"}`}>
             {kind === "photo" ? (
-              <img src={item.url} alt="" className="h-full w-full object-cover"/>
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={signedUrls[item.id] || item.url}
+                alt=""
+                className="h-full w-full object-cover"
+              />
             ) : (
-              <video src={item.url} controls playsInline className="h-full w-full object-contain"/>
+              <video
+                src={signedUrls[item.id] || item.url}
+                controls
+                playsInline
+                className="h-full w-full object-contain"
+              />
             )}
             {kind === "photo" && item.album_id && (
               <div className="absolute bottom-2 left-2 right-2 rounded-lg bg-black/60 px-2 py-1 text-[10px] font-medium text-white backdrop-blur-md truncate">

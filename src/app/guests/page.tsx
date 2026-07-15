@@ -7,7 +7,10 @@ import {
   markGuestsSeen,
 } from "@/lib/data/guests";
 
+import { noIndexMetadata } from "@/lib/seo";
+
 export const dynamic = "force-dynamic";
+export const metadata = noIndexMetadata;
 
 export default async function GuestsPage() {
   const supabase = createClient();

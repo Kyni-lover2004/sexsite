@@ -2,7 +2,10 @@ import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/components/layout/AppShell";
 import { AdminPanel } from "@/components/admin/AdminPanel";
 
+import { noIndexMetadata } from "@/lib/seo";
+
 export const metadata = {
+  ...noIndexMetadata,
   title: "Админ-панель",
 };
 

@@ -2,11 +2,13 @@ import { redirect } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
 import { SupportCenter } from "@/components/support/SupportCenter";
 import { createClient } from "@/lib/supabase/server";
+import { noIndexMetadata } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "Поддержка",
+  ...noIndexMetadata,
 };
 
 export default async function SupportPage() {

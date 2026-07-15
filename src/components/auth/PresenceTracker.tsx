@@ -42,10 +42,14 @@ export function PresenceTracker() {
       if (!force && now - lastPresenceRef.current < PRESENCE_MIN_MS) return;
       lastPresenceRef.current = now;
 
-      await (supabase as any)
-        .from("profiles")
-        .update({ last_seen: new Date().toISOString() })
-        .eq("id", userId);
+      // Heartbeat RPC only writes if last_seen is stale (>90s) — less thrash.
+      const { error } = await supabase.rpc("heartbeat" as never);
+      if (error) {
+        await (supabase as any)
+          .from("profiles")
+          .update({ last_seen: new Date().toISOString() })
+          .eq("id", userId);
+      }
     }
 
     async function checkBan(force = false) {

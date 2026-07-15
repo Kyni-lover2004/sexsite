@@ -101,7 +101,15 @@ function InlineChoices({
   );
 }
 
-export function ProfileView({ profile, photos, albums, friendsCount, isOwn, isPremium = false }: ProfileViewProps) {
+export function ProfileView({
+  profile,
+  photos,
+  albums,
+  friendsCount,
+  isOwn,
+  isPremium = false,
+  viewerIsPremium = false,
+}: ProfileViewProps & { viewerIsPremium?: boolean }) {
   const supabase = createClient();
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -170,7 +178,11 @@ export function ProfileView({ profile, photos, albums, friendsCount, isOwn, isPr
     void checkRoleAndFriendship();
   }, [supabase, isOwn, profile.id]);
 
-  const photoLimit = usePhotoViewLimit(isOwn ? null : profile.id, isPremium);
+  // Free *viewers* are limited; own profile / premium viewers unlimited.
+  const photoLimit = usePhotoViewLimit(
+    isOwn ? null : profile.id,
+    isOwn || viewerIsPremium
+  );
 
   const [form, setForm] = useState({
     username: profile.username,
@@ -558,6 +570,23 @@ export function ProfileView({ profile, photos, albums, friendsCount, isOwn, isPr
 
     setSaving(false);
     setEditing(false);
+    void import("@/lib/analytics").then(({ trackEvent, isProfileFilled }) => {
+      if (
+        isProfileFilled({
+          display_name: form.display_name,
+          bio: form.bio,
+          city: form.city,
+          birth_date: form.birth_date,
+          gender: form.gender,
+          interests: form.interests
+            ? form.interests.split(",").map((s) => s.trim()).filter(Boolean)
+            : profile.interests,
+          avatar_url: profile.avatar_url,
+        })
+      ) {
+        void trackEvent("profile_filled");
+      }
+    });
     router.refresh();
   }
 
@@ -1343,7 +1372,7 @@ export function ProfileView({ profile, photos, albums, friendsCount, isOwn, isPr
           </div>
         ) : (
           <>
-            {!isOwn && !isPremium && (
+            {!isOwn && !viewerIsPremium && (
               <div className="mb-3 flex items-center justify-between rounded-lg border border-gold/10 bg-base-900/40 px-3 py-2">
                 <span className="text-xs text-slate-400">
                   Просмотров фото: {photoLimit.viewedCount} / {photoLimit.limit}
@@ -1387,12 +1416,16 @@ export function ProfileView({ profile, photos, albums, friendsCount, isOwn, isPr
                     <button
                       type="button"
                       onClick={() => {
-                        if (!isOwn && !isPremium && photoLimit.limitReached) {
+                        if (!isOwn && !viewerIsPremium && photoLimit.limitReached) {
                           return;
                         }
-                        if (!isOwn && !isPremium) {
-                          const allowed = photoLimit.recordView(photo.id);
-                          if (!allowed) return;
+                        if (!isOwn && !viewerIsPremium) {
+                          void photoLimit.recordView(photo.id).then((allowed) => {
+                            if (!allowed) return;
+                            setLightboxIndex(idx);
+                            setLightboxOpen(true);
+                          });
+                          return;
                         }
                         setLightboxIndex(idx);
                         setLightboxOpen(true);
@@ -1403,12 +1436,12 @@ export function ProfileView({ profile, photos, albums, friendsCount, isOwn, isPr
                         src={photo.url}
                         alt={photo.caption ?? "Фото профиля"}
                         className={`h-full w-full object-cover transition-transform duration-500 group-hover:scale-105 ${
-                          !isOwn && !isPremium && photoLimit.limitReached
+                          !isOwn && !viewerIsPremium && photoLimit.limitReached
                             ? "blur-md brightness-50"
                             : ""
                         }`}
                       />
-                      {!isOwn && !isPremium && photoLimit.limitReached && (
+                      {!isOwn && !viewerIsPremium && photoLimit.limitReached && (
                         <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/60">
                           <Crown size={24} className="text-gold" />
                           <span className="text-xs text-gold-soft">
