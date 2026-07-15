@@ -114,6 +114,7 @@ export interface TopicMedia {
 export interface ProfilePhoto {
   id: string;
   user_id: string;
+  album_id?: string | null;
   url: string;
   storage_path: string;
   caption: string | null;

@@ -18,6 +18,7 @@ import {
   ImagePlus,
   Shield,
   Crown,
+  Folder,
 } from "lucide-react";
 import Link from "next/link";
 import { Avatar } from "@/components/ui/Avatar";
@@ -113,6 +114,7 @@ export function ProfileView({ profile, photos, albums, friendsCount, isOwn, isPr
   const [saveError, setSaveError] = useState("");
   const [photoError, setPhotoError] = useState("");
   const [localPhotos, setLocalPhotos] = useState(photos);
+  const [viewAlbumId, setViewAlbumId] = useState<string>("all");
   const [available, setAvailable] = useState(profile.available_for_chat);
   const [friendStatus, setFriendStatus] = useState<"none" | "sent" | "received" | "accepted">("none");
 
@@ -632,7 +634,12 @@ export function ProfileView({ profile, photos, albums, friendsCount, isOwn, isPr
 
       <PhotoLightbox
         open={lightboxOpen}
-        photos={localPhotos.map((p) => ({ url: p.url, caption: p.caption }))}
+        photos={(viewAlbumId === "all"
+          ? localPhotos
+          : viewAlbumId === "main"
+          ? localPhotos.filter((p) => !p.album_id)
+          : localPhotos.filter((p) => p.album_id === viewAlbumId)
+        ).map((p) => ({ url: p.url, caption: p.caption }))}
         initialIndex={lightboxIndex}
         onClose={() => setLightboxOpen(false)}
       />
@@ -1327,8 +1334,41 @@ export function ProfileView({ profile, photos, albums, friendsCount, isOwn, isPr
                 )}
               </div>
             )}
+            
+            {albums && albums.length > 0 && (
+              <div className="mb-4 flex overflow-x-auto pb-2 gap-2 scrollbar-hide">
+                <button 
+                  onClick={() => setViewAlbumId("all")}
+                  className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${viewAlbumId === "all" ? "bg-gold text-base-900" : "bg-base-800 text-slate-400 hover:text-slate-200 border border-gold/10"}`}
+                >
+                  Все фото
+                </button>
+                <button 
+                  onClick={() => setViewAlbumId("main")}
+                  className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${viewAlbumId === "main" ? "bg-gold text-base-900" : "bg-base-800 text-slate-400 hover:text-slate-200 border border-gold/10"}`}
+                >
+                  Основная страница
+                </button>
+                {albums.map((a: any) => (
+                  <button 
+                    key={a.id}
+                    onClick={() => setViewAlbumId(a.id)}
+                    className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${viewAlbumId === a.id ? "bg-gold text-base-900" : "bg-base-800 text-slate-400 hover:text-slate-200 border border-gold/10"}`}
+                  >
+                    <Folder size={14} className={viewAlbumId === a.id ? "opacity-70" : "opacity-50"} />
+                    {a.name}
+                  </button>
+                ))}
+              </div>
+            )}
+            
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {localPhotos.map((photo, idx) => (
+              {(viewAlbumId === "all" 
+                ? localPhotos 
+                : viewAlbumId === "main" 
+                  ? localPhotos.filter(p => !p.album_id) 
+                  : localPhotos.filter(p => p.album_id === viewAlbumId)
+              ).map((photo, idx) => (
                   <div
                     key={photo.id}
                     className="group relative aspect-[4/5] overflow-hidden rounded-xl border border-gold/10 bg-base-900"

@@ -21,11 +21,16 @@ export default async function MyProfilePage() {
     .order("sort_order", { ascending: true })
     .order("created_at", { ascending: false });
 
-  const { count: friendsCount } = await supabase
+  const { data: friendsData } = await supabase
     .from("friendships")
-    .select("*", { count: "exact", head: true })
+    .select("requester_id, addressee_id")
     .or(`requester_id.eq.${auth.user.id},addressee_id.eq.${auth.user.id}`)
     .eq("status", "accepted");
+    
+  const uniqueFriends = new Set(
+    friendsData?.map((f: any) => f.requester_id === auth.user.id ? f.addressee_id : f.requester_id)
+  );
+  const friendsCount = uniqueFriends.size;
 
   const { data: albums } = await (supabase as any)
     .from("profile_albums")
