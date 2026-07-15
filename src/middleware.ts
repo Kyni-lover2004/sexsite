@@ -36,6 +36,7 @@ export async function middleware(request: NextRequest) {
   const protectedPaths = [
     "/chat",
     "/people",
+    "/swipe",
     "/profile",
     "/admin",
     "/friends",

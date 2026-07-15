@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import {
   Crown,
   Eye,
+  Flame,
   Headphones,
   Images,
   LogOut,
@@ -37,6 +38,7 @@ const NAV: NavItem[] = [
   { href: "/profile", label: "Анкета", shortLabel: "Профиль", icon: User },
   { href: "/chat", label: "Сообщения", shortLabel: "Чаты", icon: MessagesSquare },
   { href: "/guests", label: "Гости", shortLabel: "Гости", icon: Eye },
+  { href: "/swipe", label: "Свайпы", shortLabel: "Свайп", icon: Flame },
   { href: "/people", label: "Поиск", shortLabel: "Люди", icon: Users },
   { href: "/", label: "Обсуждения", shortLabel: "Форум", icon: MessageSquare },
 ];
@@ -313,7 +315,7 @@ export function AppShell({
         className="fixed inset-x-0 bottom-0 z-40 border-t border-gold/12 bg-base-950/94 backdrop-blur-xl md:hidden"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
-        <div className="mx-auto grid h-[4.25rem] max-w-lg grid-cols-5 items-stretch px-1">
+        <div className="mx-auto grid h-[4.25rem] max-w-lg grid-cols-6 items-stretch px-0.5">
           {NAV.map((item) => {
             const active = isActive(item.href);
             return (
@@ -321,7 +323,7 @@ export function AppShell({
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "relative flex min-w-0 touch-manipulation flex-col items-center justify-center gap-1 px-0.5 pt-1 text-[10px] font-medium leading-none transition-colors",
+                  "relative flex min-w-0 touch-manipulation flex-col items-center justify-center gap-1 px-0.5 pt-1 text-[9px] font-medium leading-none transition-colors sm:text-[10px]",
                   active ? "text-gold-soft" : "text-slate-500"
                 )}
               >
