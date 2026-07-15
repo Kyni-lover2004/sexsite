@@ -26,28 +26,16 @@ export const SEXUAL_INTERESTS = [
   { value: "hotwife_cuckold", label: "SexWife | Cuckold" },
 ] as const;
 
-export const INTEREST_SECTIONS = [
-  {
-    title: "Образ жизни",
-    items: ["спорт", "йога", "путешествия", "прогулки", "кофе", "кулинария"],
-  },
-  {
-    title: "Культура",
-    items: ["кино", "музыка", "книги", "театр", "музеи", "фотография"],
-  },
-  {
-    title: "Технологии",
-    items: ["дизайн", "стартапы", "программирование", "игры", "ai", "гаджеты"],
-  },
-  {
-    title: "Общение",
-    items: ["свидания", "дружба", "вечеринки", "настолки", "волонтерство", "языки"],
-  },
-  {
-    title: "Интимные предпочтения",
-    items: SEXUAL_INTERESTS.map((i) => i.label),
-  },
-] as const;
+export function getSexualInterestLabel(value?: string | null) {
+  if (!value) return null;
+  return SEXUAL_INTERESTS.find((interest) => interest.value === value || interest.label === value)?.label ?? null;
+}
+
+export function normalizeSexualInterests(values?: string[] | null) {
+  return Array.from(
+    new Set((values ?? []).map(getSexualInterestLabel).filter((value): value is string => Boolean(value)))
+  );
+}
 
 export const LOOKING_FOR_OPTIONS = [
   { value: "married_couple_mf", label: "Семейная пара МЖ" },

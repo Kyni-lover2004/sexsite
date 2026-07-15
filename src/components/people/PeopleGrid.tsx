@@ -90,7 +90,10 @@ export function PeopleGrid({ currentUserId }: { currentUserId: string | null }) 
     if (
       filters.interests.length > 0 &&
       !filters.interests.some((interest) =>
-        u.interests.some((ui) => ui.toLowerCase().includes(interest.toLowerCase()))
+        u.interests.some((ui) => {
+          const option = SEXUAL_INTERESTS.find((item) => item.value === interest);
+          return ui === interest || ui === option?.label;
+        })
       )
     )
       return false;
