@@ -185,15 +185,10 @@ export function AppShell({
           {SUPPORT.label}
         </Link>
         <div className="mx-3 mb-3 h-px bg-gradient-to-r from-transparent via-black/70 to-transparent dark:via-black" />
-        <div className="flex items-center justify-between px-3">
-          <p className="text-[10px] uppercase tracking-[0.18em] text-gold-soft/35">
-            v0.1 · E2EE ready
-          </p>
-          <div className="flex items-center gap-2">
-            <NotificationBell />
-            <LogoutButton />
-            <ThemeToggle />
-          </div>
+        <div className="flex items-center justify-end gap-2 px-3">
+          <NotificationBell />
+          <LogoutButton />
+          <ThemeToggle />
         </div>
       </aside>
 
