@@ -66,19 +66,27 @@ export function PresenceTracker() {
       if (!force && now - lastPresenceRef.current < PRESENCE_MIN_MS) return;
       lastPresenceRef.current = now;
 
-      // Always re-read flag before write — toggle must stop heartbeat immediately.
+      // Always re-read flag; heartbeat still runs when invisible so last_active_at
+      // (retention / 30-day cleanup) keeps ticking. Public last_seen is frozen server-side.
       await refreshInvisibleFlag();
-      if (invisibleRef.current) return;
 
-      // Heartbeat RPC only writes if last_seen is stale (>90s) — less thrash.
-      // Server-side also skips when is_invisible is set.
+      // Heartbeat RPC rate-limits writes (~90s). Invisible → only last_active_at.
       const { error } = await supabase.rpc("heartbeat" as never);
       if (error) {
-        await (supabase as any)
-          .from("profiles")
-          .update({ last_seen: new Date().toISOString() })
-          .eq("id", userId)
-          .eq("is_invisible", false);
+        const ts = new Date().toISOString();
+        if (invisibleRef.current) {
+          // Retention only — never revive public "online" while invisible.
+          await (supabase as any)
+            .from("profiles")
+            .update({ last_active_at: ts })
+            .eq("id", userId);
+        } else {
+          await (supabase as any)
+            .from("profiles")
+            .update({ last_seen: ts, last_active_at: ts })
+            .eq("id", userId)
+            .eq("is_invisible", false);
+        }
       }
     }
 

@@ -38,7 +38,8 @@ create table if not exists public.profiles (
   city         text,
   birth_date   date,                        -- age is derived, never stored raw
   gender       gender default 'prefer_not_to_say',
-  last_seen    timestamptz default now(),   -- powers "online" indicator
+  last_seen    timestamptz default now(),   -- public "online" indicator
+  last_active_at timestamptz default now(), -- internal activity (retention / 30-day cleanup)
   available_for_chat boolean default false, -- "готов(а) пообщаться сейчас"
   role         text not null default 'user',          -- 'user' | 'admin'
   is_banned    boolean not null default false,

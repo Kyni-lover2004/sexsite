@@ -49,6 +49,9 @@ begin
 end;
 $$;
 
+-- Prefer full heartbeat from patch_last_active_retention.sql (last_active_at).
+-- This fallback keeps invisible last_seen frozen but still bumps last_active_at
+-- when that column already exists.
 create or replace function public.heartbeat()
 returns timestamptz
 language plpgsql
@@ -61,6 +64,8 @@ declare
   v_invisible boolean;
   v_role text;
   v_premium timestamptz;
+  v_can_hide boolean;
+  has_last_active boolean;
 begin
   if me is null then
     return null;
@@ -75,28 +80,62 @@ begin
     return null;
   end if;
 
-  -- Invisible + still premium/admin → do not refresh last_seen.
-  if v_invisible
-     and (
-       v_role = 'admin'
-       or (v_premium is not null and v_premium > now())
-     ) then
-    return null;
-  end if;
+  v_can_hide :=
+    v_role = 'admin'
+    or (v_premium is not null and v_premium > now());
+
+  select exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'profiles'
+      and column_name = 'last_active_at'
+  ) into has_last_active;
 
   -- Privilege lapsed while still flagged invisible: clear flag + resume presence.
-  if v_invisible then
-    update public.profiles
-    set is_invisible = false,
-        last_seen = ts
-    where id = me;
+  if v_invisible and not v_can_hide then
+    if has_last_active then
+      update public.profiles
+      set is_invisible = false,
+          last_seen = ts,
+          last_active_at = ts
+      where id = me;
+    else
+      update public.profiles
+      set is_invisible = false,
+          last_seen = ts
+      where id = me;
+    end if;
     return ts;
   end if;
 
-  update public.profiles
-  set last_seen = ts
-  where id = me
-    and (last_seen is null or last_seen < ts - interval '90 seconds');
+  -- Invisible + still premium/admin → freeze public last_seen, keep activity.
+  if v_invisible and v_can_hide then
+    if has_last_active then
+      update public.profiles
+      set last_active_at = ts
+      where id = me
+        and (last_active_at is null or last_active_at < ts - interval '90 seconds');
+    end if;
+    return ts;
+  end if;
+
+  if has_last_active then
+    update public.profiles
+    set last_seen = ts,
+        last_active_at = ts
+    where id = me
+      and (
+        last_seen is null
+        or last_seen < ts - interval '90 seconds'
+        or last_active_at is null
+        or last_active_at < ts - interval '90 seconds'
+      );
+  else
+    update public.profiles
+    set last_seen = ts
+    where id = me
+      and (last_seen is null or last_seen < ts - interval '90 seconds');
+  end if;
 
   return ts;
 end;
