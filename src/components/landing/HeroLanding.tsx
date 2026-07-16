@@ -16,6 +16,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { BrandLogo } from "@/components/ui/BrandLogo";
+import { SiteFooter } from "@/components/legal/SiteFooter";
 
 /* ---------- typewriter ---------- */
 const WORDS = ["обсуждения", "знакомства", "общение", "приватность"];
@@ -146,7 +147,7 @@ export function HeroLanding() {
           >
             <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-gold/15 bg-gold/[0.07] px-4 py-1.5 text-[11px] uppercase tracking-[0.2em] text-gold-soft/80">
               <Sparkles size={13} className="animate-pulse-glow" />
-              закрытый клуб
+              закрытый клуб · 18+
             </div>
           </motion.div>
 
@@ -298,12 +299,7 @@ export function HeroLanding() {
           </motion.div>
         </section>
 
-        {/* Footer */}
-        <footer className="border-t border-gold/10 py-8 text-center text-xs text-slate-600">
-          <p>
-            © {new Date().getFullYear()} Desire Privé · Все права защищены
-          </p>
-        </footer>
+        <SiteFooter className="mt-8" />
       </div>
     </div>
   );

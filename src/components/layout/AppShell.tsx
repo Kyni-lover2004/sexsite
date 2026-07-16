@@ -57,6 +57,8 @@ const SUPPORT: NavItem = {
   icon: Headphones,
 };
 
+const LEGAL_HREF = "/legal";
+
 export function AppShell({
   children,
   noPadding = false,
@@ -175,7 +177,7 @@ export function AppShell({
         <Link
           href={SUPPORT.href}
           className={cn(
-            "mb-3 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
+            "mb-1 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
             isActive(SUPPORT.href)
               ? "bg-gold/10 text-warm-100"
               : "text-slate-500 hover:bg-gold/[0.05] hover:text-warm-100"
@@ -183,6 +185,20 @@ export function AppShell({
         >
           <SUPPORT.icon className="h-5 w-5" />
           {SUPPORT.label}
+        </Link>
+        <Link
+          href={LEGAL_HREF}
+          className={cn(
+            "mb-3 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
+            isActive(LEGAL_HREF)
+              ? "bg-gold/10 text-warm-100"
+              : "text-slate-500 hover:bg-gold/[0.05] hover:text-warm-100"
+          )}
+        >
+          <span className="grid h-5 w-5 place-items-center text-[10px] font-bold text-gold-soft/80">
+            18+
+          </span>
+          Правила / legal
         </Link>
         <div className="mx-3 mb-3 h-px bg-gradient-to-r from-transparent via-black/70 to-transparent dark:via-black" />
         <div className="flex items-center justify-end gap-2 px-3">
@@ -300,6 +316,21 @@ export function AppShell({
                   {item.label}
                 </Link>
               ))}
+              <Link
+                href={LEGAL_HREF}
+                onClick={() => setMobileMenuOpen(false)}
+                className={cn(
+                  "flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm font-medium transition-colors",
+                  isActive(LEGAL_HREF)
+                    ? "bg-gold/10 text-warm-100"
+                    : "text-slate-300 hover:bg-gold/10 hover:text-white"
+                )}
+              >
+                <span className="grid h-5 w-5 place-items-center text-[10px] font-bold text-gold-soft/80">
+                  18+
+                </span>
+                Правила / legal
+              </Link>
             </nav>
             <div className="mt-4 border-t border-gold/10 pt-3">
               <LogoutButton wide />

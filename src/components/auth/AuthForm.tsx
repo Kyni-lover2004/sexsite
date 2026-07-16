@@ -62,6 +62,8 @@ export function AuthForm() {
   const [mode, setMode] = useState<"login" | "register">(initialMode);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [acceptTerms, setAcceptTerms] = useState(false);
+  const [confirm18, setConfirm18] = useState(false);
 
   const paramError = searchParams.get("error");
   const strength = useMemo(() => getPasswordStrength(password), [password]);
@@ -69,6 +71,16 @@ export function AuthForm() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+    if (mode === "register") {
+      if (!confirm18) {
+        setError("Подтвердите, что вам есть 18 лет.");
+        return;
+      }
+      if (!acceptTerms) {
+        setError("Примите условия и политику конфиденциальности.");
+        return;
+      }
+    }
     setLoading(true);
 
     const options =
@@ -312,6 +324,56 @@ export function AuthForm() {
                 </AnimatePresence>
               </div>
 
+              {mode === "register" && (
+                <div className="space-y-2.5 rounded-xl border border-gold/10 bg-base-900/40 px-3 py-3">
+                  <label className="flex items-start gap-2.5 text-xs leading-snug text-slate-400">
+                    <input
+                      type="checkbox"
+                      checked={confirm18}
+                      onChange={(e) => setConfirm18(e.target.checked)}
+                      className="mt-0.5 rounded border-gold/30 accent-amber-600"
+                    />
+                    <span>
+                      Мне есть <strong className="text-slate-300">18 лет</strong>
+                    </span>
+                  </label>
+                  <label className="flex items-start gap-2.5 text-xs leading-snug text-slate-400">
+                    <input
+                      type="checkbox"
+                      checked={acceptTerms}
+                      onChange={(e) => setAcceptTerms(e.target.checked)}
+                      className="mt-0.5 rounded border-gold/30 accent-amber-600"
+                    />
+                    <span>
+                      Принимаю{" "}
+                      <Link
+                        href="/legal/terms"
+                        className="text-gold-soft underline"
+                        target="_blank"
+                      >
+                        условия
+                      </Link>
+                      ,{" "}
+                      <Link
+                        href="/legal/privacy"
+                        className="text-gold-soft underline"
+                        target="_blank"
+                      >
+                        конфиденциальность
+                      </Link>{" "}
+                      и{" "}
+                      <Link
+                        href="/legal/rules"
+                        className="text-gold-soft underline"
+                        target="_blank"
+                      >
+                        правила 18+
+                      </Link>
+                    </span>
+                  </label>
+                </div>
+              )}
+
               {/* Submit */}
               <Button type="submit" disabled={loading} className="w-full">
                 {loading ? (
@@ -329,9 +391,14 @@ export function AuthForm() {
               </Button>
             </form>
 
+            <p className="mt-4 text-center text-[10px] text-slate-600">
+              <Link href="/legal" className="hover:text-gold-soft">
+                Правовые документы
+              </Link>
+            </p>
 
             {/* Mode switch */}
-            <p className="mt-8 text-center text-sm text-slate-500">
+            <p className="mt-6 text-center text-sm text-slate-500">
               {mode === "login" ? (
                 <>
                   Нет аккаунта?{" "}
