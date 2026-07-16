@@ -30,7 +30,7 @@ export async function getGuestsForUser(
       .select(
         `id, visited_at,
          visitor:profiles!profile_visits_visitor_id_fkey(
-           id, username, display_name, avatar_url, last_seen
+           id, username, display_name, avatar_url, last_seen, is_invisible
          )`
       )
       .eq("profile_id", userId)

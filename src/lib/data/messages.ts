@@ -13,6 +13,7 @@ interface ConversationWithProfile {
     display_name: string | null;
     avatar_url: string | null;
     last_seen: string;
+    is_invisible?: boolean;
     premium_until: string | null;
   } | null;
   lastMessage: {
@@ -57,7 +58,7 @@ export async function getConversations(
       supa
         .from("profiles")
         .select(
-          "id, username, display_name, avatar_url, last_seen, premium_until"
+          "id, username, display_name, avatar_url, last_seen, is_invisible, premium_until"
         )
         .in("id", otherIds),
       supa

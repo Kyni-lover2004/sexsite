@@ -5,7 +5,7 @@ import type { FeedPerson, TopicWithAuthor } from "@/lib/types";
 const TOPIC_SELECT = `id, author_id, title, body, tags, media, status, view_count, like_count,
   comment_count, type, is_pinned, created_at, updated_at,
   author:profiles!topics_author_id_fkey (
-    id, username, display_name, avatar_url, last_seen, premium_until
+    id, username, display_name, avatar_url, last_seen, is_invisible, premium_until
   )`;
 
 /**
@@ -118,7 +118,7 @@ async function getTopicsLegacy(
       `id, author_id, title, body, tags, media, status, view_count, like_count,
        comment_count, type, created_at, updated_at,
        author:profiles!topics_author_id_fkey (
-         id, username, display_name, avatar_url, last_seen, premium_until
+         id, username, display_name, avatar_url, last_seen, is_invisible, premium_until
        )`
     )
     .eq("status", "active")
@@ -165,7 +165,7 @@ export async function getNearbyPeople(
   let query = supa
     .from("profiles")
     .select(
-      "id, username, display_name, avatar_url, last_seen, city, premium_until, available_for_chat"
+      "id, username, display_name, avatar_url, last_seen, is_invisible, city, premium_until, available_for_chat"
     )
     .neq("id", currentUserId)
     .eq("is_banned", false)
@@ -189,7 +189,7 @@ export async function getNearbyPeople(
     const { data: more } = await supa
       .from("profiles")
       .select(
-        "id, username, display_name, avatar_url, last_seen, city, premium_until, available_for_chat"
+        "id, username, display_name, avatar_url, last_seen, is_invisible, city, premium_until, available_for_chat"
       )
       .neq("id", currentUserId)
       .order("last_seen", { ascending: false })

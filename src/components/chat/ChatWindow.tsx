@@ -22,7 +22,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { KeyBackupPanel } from "@/components/chat/KeyBackupPanel";
-import { timeAgo, isOnline } from "@/lib/utils";
+import { timeAgo, publicLastSeen, presenceLabel } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import {
   ensureKeyPair,
@@ -45,6 +45,7 @@ interface ChatWindowProps {
     display_name: string | null;
     avatar_url: string | null;
     last_seen: string;
+    is_invisible?: boolean;
     premium_until?: string | null;
   };
   /** True when conversation was just created / never had messages. */
@@ -598,8 +599,11 @@ export function ChatWindow({
           <Avatar
             src={otherUser.avatar_url}
             name={displayName}
-            lastSeen={otherUser.last_seen}
-            showPresence
+            lastSeen={publicLastSeen(
+              otherUser.last_seen,
+              otherUser.is_invisible
+            )}
+            showPresence={!otherUser.is_invisible}
             size="md"
           />
           <div className="min-w-0 flex-1">
@@ -615,10 +619,11 @@ export function ChatWindow({
             <p className="text-xs text-slate-500">
               {peerTyping ? (
                 <span className="text-gold-soft animate-pulse">печатает…</span>
-              ) : isOnline(otherUser.last_seen) ? (
-                "В сети"
               ) : (
-                `Был(а) ${timeAgo(otherUser.last_seen)}`
+                presenceLabel(
+                  otherUser.last_seen,
+                  otherUser.is_invisible
+                ) ?? "\u00a0"
               )}
             </p>
           </div>

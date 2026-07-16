@@ -88,7 +88,7 @@ export function Feed({
     let query = supa
       .from("topics")
       .select(
-        "id, author_id, title, body, tags, media, status, view_count, like_count, comment_count, type, is_pinned, created_at, updated_at, author:profiles!topics_author_id_fkey(id,username,display_name,avatar_url,last_seen,premium_until)"
+        "id, author_id, title, body, tags, media, status, view_count, like_count, comment_count, type, is_pinned, created_at, updated_at, author:profiles!topics_author_id_fkey(id,username,display_name,avatar_url,last_seen,is_invisible,premium_until)"
       )
       .eq("status", "active")
       .order("is_pinned", { ascending: false })
@@ -118,7 +118,7 @@ export function Feed({
           const fallback = await supa
             .from("topics")
             .select(
-              "id, author_id, title, body, tags, media, status, view_count, like_count, comment_count, type, created_at, updated_at, author:profiles!topics_author_id_fkey(id,username,display_name,avatar_url,last_seen,premium_until)"
+              "id, author_id, title, body, tags, media, status, view_count, like_count, comment_count, type, created_at, updated_at, author:profiles!topics_author_id_fkey(id,username,display_name,avatar_url,last_seen,is_invisible,premium_until)"
             )
             .eq("status", "active")
             .order("created_at", { ascending: false })

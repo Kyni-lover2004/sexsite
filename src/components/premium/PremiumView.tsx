@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import {
   Crown,
   Eye,
+  EyeOff,
   Flame,
   Heart,
   Sparkles,
@@ -84,6 +85,12 @@ const FEATURES = [
       "Золотой бейдж Premium на анкете — сразу видно, что у вас расширенный доступ.",
   },
   {
+    icon: EyeOff,
+    title: "Режим невидимки",
+    description:
+      "В профиле тумблер: вас не видно «в сети», нет даты «был(а)» — никто не поймёт, когда вы онлайн и когда включили скрытие.",
+  },
+  {
     icon: Flame,
     title: "Свайпы и поиск на максимум",
     description:
@@ -104,6 +111,7 @@ const FREE_VS_PREMIUM = [
   { label: "Суперлайк", free: "—", pro: "да" },
   { label: "Новые чаты / день", free: "2", pro: "∞" },
   { label: "Значок Premium", free: "—", pro: "да" },
+  { label: "Режим невидимки", free: "—", pro: "да" },
 ];
 
 function LimitBanners() {

@@ -61,8 +61,8 @@ export function TopicCard({
           <Avatar
             src={author?.avatar_url}
             name={author?.display_name ?? author?.username}
-            lastSeen={author?.last_seen}
-            showPresence
+            lastSeen={author?.is_invisible ? null : author?.last_seen}
+            showPresence={!author?.is_invisible}
             size="md"
           />
           <div className="min-w-0">

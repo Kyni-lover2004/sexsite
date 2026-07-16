@@ -47,6 +47,7 @@ create table if not exists public.profiles (
   banned_by    uuid references public.profiles (id) on delete set null,
   banned_at    timestamptz,
   premium_until timestamptz,                          -- null = no premium
+  is_invisible boolean not null default false,        -- premium/admin: hide online + last_seen
   created_at   timestamptz default now(),
   updated_at   timestamptz default now()
 );
@@ -74,7 +75,9 @@ alter table public.profiles
   add column if not exists drinking_attitude text,
   add column if not exists orientation_roles text[] default '{}',
   -- When the owner last opened /guests (for "new guests" badge).
-  add column if not exists guests_seen_at timestamptz;
+  add column if not exists guests_seen_at timestamptz,
+  -- Premium/admin: hide online status and last_seen from others.
+  add column if not exists is_invisible boolean not null default false;
 
 -- Keep existing single-goal profiles visible after enabling multi-select goals.
 update public.profiles

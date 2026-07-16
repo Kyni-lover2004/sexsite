@@ -43,6 +43,7 @@ export interface Database {
           banned_by: string | null;
           banned_at: string | null;
           premium_until: string | null;
+          is_invisible: boolean;
           last_seen: string;
           looking_for: string[];
           age_preference: string | null;
@@ -81,6 +82,7 @@ export interface Database {
           banned_by?: string | null;
           banned_at?: string | null;
           premium_until?: string | null;
+          is_invisible?: boolean;
           last_seen?: string;
           looking_for?: string[];
           age_preference?: string | null;

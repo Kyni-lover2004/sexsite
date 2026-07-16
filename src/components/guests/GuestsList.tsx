@@ -105,7 +105,13 @@ export function GuestsList({ initialGuests }: { initialGuests: GuestListItem[] }
           >
             <div className="flex items-start gap-3">
               <Link href={`/profile/${v.id}`} className="shrink-0">
-                <Avatar src={v.avatar_url} name={name} lastSeen={v.last_seen ?? undefined} showPresence size="md" />
+                <Avatar
+                  src={v.avatar_url}
+                  name={name}
+                  lastSeen={v.is_invisible ? null : (v.last_seen ?? undefined)}
+                  showPresence={!v.is_invisible}
+                  size="md"
+                />
               </Link>
 
               <div className="min-w-0 flex-1">

@@ -33,6 +33,8 @@ export interface Profile {
   banned_by: string | null;
   banned_at: string | null;
   premium_until: string | null;
+  /** Premium/admin: hide online status and last_seen from others. */
+  is_invisible?: boolean;
   looking_for: string[];
   age_preference: string | null;
   meeting_place: string[];
@@ -63,6 +65,7 @@ export interface GuestListItem {
     display_name: string | null;
     avatar_url: string | null;
     last_seen: string | null;
+    is_invisible?: boolean;
   };
 }
 
@@ -131,6 +134,7 @@ export interface FeedPerson {
   display_name: string | null;
   avatar_url: string | null;
   last_seen: string;
+  is_invisible?: boolean;
   city: string | null;
   premium_until: string | null;
   available_for_chat?: boolean;
@@ -160,7 +164,7 @@ export interface ProfilePhoto {
 export interface TopicWithAuthor extends Topic {
   author: Pick<
     Profile,
-    "id" | "username" | "display_name" | "avatar_url" | "last_seen"
+    "id" | "username" | "display_name" | "avatar_url" | "last_seen" | "is_invisible"
   > | null;
   liked_by_me?: boolean;
 }

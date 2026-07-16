@@ -42,6 +42,49 @@ export function isOnline(lastSeen: string | null | undefined): boolean {
   return Date.now() - new Date(lastSeen).getTime() < 2 * 60 * 1000;
 }
 
+/**
+ * Presence as seen by others. When the user is invisible, last_seen and
+ * online state must not leak (including when they turned the mode on).
+ * Own profile can still see real activity.
+ */
+export function publicLastSeen(
+  lastSeen: string | null | undefined,
+  isInvisible: boolean | null | undefined,
+  isSelf = false
+): string | null {
+  if (isInvisible && !isSelf) return null;
+  return lastSeen ?? null;
+}
+
+/** Online indicator respecting invisible mode. */
+export function isPubliclyOnline(
+  lastSeen: string | null | undefined,
+  isInvisible: boolean | null | undefined,
+  isSelf = false
+): boolean {
+  return isOnline(publicLastSeen(lastSeen, isInvisible, isSelf));
+}
+
+/** Label for presence line; null when hidden (invisible + not self). */
+export function presenceLabel(
+  lastSeen: string | null | undefined,
+  isInvisible: boolean | null | undefined,
+  isSelf = false
+): string | null {
+  const seen = publicLastSeen(lastSeen, isInvisible, isSelf);
+  if (seen === null && isInvisible && !isSelf) return null;
+  if (!seen) return null;
+  return isOnline(seen) ? "В сети" : `Был(а) ${timeAgo(seen)}`;
+}
+
+/** Can use invisible mode: active premium or admin. */
+export function canUseInvisible(
+  premiumUntil: string | null | undefined,
+  role: string | null | undefined
+): boolean {
+  return role === "admin" || isPremiumActive(premiumUntil);
+}
+
 /** Derive age from an ISO birth date. */
 export function ageFromBirthDate(birthDate: string | null): number | null {
   if (!birthDate) return null;

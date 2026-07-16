@@ -24,7 +24,12 @@ import { GlassCard } from "@/components/ui/GlassCard";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Tag } from "@/components/ui/Badge";
-import { ageFromBirthDate, isOnline, cn } from "@/lib/utils";
+import {
+  ageFromBirthDate,
+  isPubliclyOnline,
+  publicLastSeen,
+  cn,
+} from "@/lib/utils";
 import { haptic } from "@/lib/haptic";
 import { createClient } from "@/lib/supabase/client";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -173,7 +178,10 @@ export function PeopleGrid({
 
       if (tab === "online") {
         const since = new Date(Date.now() - ONLINE_WINDOW_MS).toISOString();
-        q = q.gte("last_seen", since).order("last_seen", { ascending: false });
+        q = q
+          .eq("is_invisible", false)
+          .gte("last_seen", since)
+          .order("last_seen", { ascending: false });
       } else if (tab === "available") {
         q = q
           .eq("available_for_chat", true)
@@ -669,8 +677,11 @@ export function PeopleGrid({
                   <Avatar
                     src={user.avatar_url}
                     name={user.display_name ?? user.username}
-                    lastSeen={user.last_seen}
-                    showPresence
+                    lastSeen={publicLastSeen(
+                      user.last_seen,
+                      user.is_invisible
+                    )}
+                    showPresence={!user.is_invisible}
                     size="lg"
                   />
                   <div className="min-w-0 flex-1">
@@ -683,7 +694,10 @@ export function PeopleGrid({
                             className="shrink-0 fill-current text-gold-soft"
                           />
                         )}
-                        {isOnline(user.last_seen) && (
+                        {isPubliclyOnline(
+                          user.last_seen,
+                          user.is_invisible
+                        ) && (
                           <span className="text-[10px] font-normal text-emerald-400">
                             online
                           </span>

@@ -6,7 +6,7 @@ import { Crown, Image as ImageIcon, Shield } from "lucide-react";
 import Link from "next/link";
 import { Avatar } from "@/components/ui/Avatar";
 import { GlassCard } from "@/components/ui/GlassCard";
-import { timeAgo, isOnline } from "@/lib/utils";
+import { timeAgo, isPubliclyOnline, publicLastSeen } from "@/lib/utils";
 import {
   decryptMessage,
   ensureKeyPair,
@@ -26,6 +26,7 @@ interface ConversationItem {
     display_name: string | null;
     avatar_url: string | null;
     last_seen: string;
+    is_invisible?: boolean;
     premium_until: string | null;
   } | null;
   lastMessage: {
@@ -172,8 +173,11 @@ export function ConversationList({
                   <Avatar
                     src={other?.avatar_url}
                     name={other?.display_name ?? other?.username}
-                    lastSeen={other?.last_seen}
-                    showPresence
+                    lastSeen={publicLastSeen(
+                      other?.last_seen,
+                      other?.is_invisible
+                    )}
+                    showPresence={!other?.is_invisible}
                     size="md"
                   />
                   <div className="min-w-0 flex-1">
@@ -201,7 +205,11 @@ export function ConversationList({
                         conv.lastMessage?.created_at ?? conv.updated_at
                       )}
                     </span>
-                    {other && isOnline(other.last_seen) && (
+                    {other &&
+                      isPubliclyOnline(
+                        other.last_seen,
+                        other.is_invisible
+                      ) && (
                       <span className="text-[10px] font-medium text-emerald-400">
                         online
                       </span>

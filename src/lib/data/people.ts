@@ -78,6 +78,7 @@ export async function searchPeople(
   if (tab === "online") {
     const since = new Date(Date.now() - ONLINE_WINDOW_MS).toISOString();
     query = query
+      .eq("is_invisible", false)
       .gte("last_seen", since)
       .order("last_seen", { ascending: false });
   } else if (tab === "available") {

@@ -9,10 +9,13 @@ import { Button } from "@/components/ui/Button";
 const BAN_CHECK_MS = 60_000;
 /** Minimum gap between last_seen writes. */
 const PRESENCE_MIN_MS = 60_000;
+/** How often we re-read invisible flag (cheap). */
+const INVISIBLE_CHECK_MS = 60_000;
 
 /**
  * Lightweight presence + ban overlay.
  * Avoids hammering Supabase on every mousemove (previous behaviour).
+ * When invisible mode is on (premium/admin), skips last_seen updates.
  */
 export function PresenceTracker() {
   const supabase = useMemo(() => createClient(), []);
@@ -21,6 +24,8 @@ export function PresenceTracker() {
   const userIdRef = useRef<string | null>(null);
   const lastPresenceRef = useRef(0);
   const lastBanCheckRef = useRef(0);
+  const invisibleRef = useRef(false);
+  const lastInvisibleCheckRef = useRef(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -34,6 +39,31 @@ export function PresenceTracker() {
       return id;
     }
 
+    async function refreshInvisibleFlag(force = false) {
+      const userId = await resolveUserId();
+      if (!userId || cancelled) return;
+
+      const now = Date.now();
+      if (!force && now - lastInvisibleCheckRef.current < INVISIBLE_CHECK_MS) {
+        return;
+      }
+      lastInvisibleCheckRef.current = now;
+
+      const { data: profile } = await (supabase as any)
+        .from("profiles")
+        .select("is_invisible, premium_until, role")
+        .eq("id", userId)
+        .maybeSingle();
+
+      if (!profile || cancelled) return;
+
+      const premiumOk =
+        !!profile.premium_until &&
+        new Date(profile.premium_until).getTime() > Date.now();
+      const canHide = profile.role === "admin" || premiumOk;
+      invisibleRef.current = !!profile.is_invisible && canHide;
+    }
+
     async function touchPresence(force = false) {
       const userId = await resolveUserId();
       if (!userId || cancelled) return;
@@ -42,13 +72,18 @@ export function PresenceTracker() {
       if (!force && now - lastPresenceRef.current < PRESENCE_MIN_MS) return;
       lastPresenceRef.current = now;
 
+      await refreshInvisibleFlag(force);
+      if (invisibleRef.current) return;
+
       // Heartbeat RPC only writes if last_seen is stale (>90s) — less thrash.
+      // Server-side also skips when is_invisible is set.
       const { error } = await supabase.rpc("heartbeat" as never);
       if (error) {
         await (supabase as any)
           .from("profiles")
           .update({ last_seen: new Date().toISOString() })
-          .eq("id", userId);
+          .eq("id", userId)
+          .eq("is_invisible", false);
       }
     }
 

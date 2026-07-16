@@ -5,31 +5,48 @@ import {
   Pencil,
   Shield,
   Crown,
+  EyeOff,
+  Eye,
 } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { ReportProfileButton } from "@/components/profile/ReportProfileButton";
 import type { Profile } from "@/lib/types";
-import { ageFromBirthDate, isOnline, timeAgo } from "@/lib/utils";
+import {
+  ageFromBirthDate,
+  canUseInvisible,
+  isOnline,
+  presenceLabel,
+  publicLastSeen,
+} from "@/lib/utils";
 
 export function ProfileHeader({
   profile,
   isOwn,
   available,
+  invisible,
+  canToggleInvisible = false,
   friendsCount,
   onToggleAvailable,
+  onToggleInvisible,
   onEdit,
   currentUserId = null,
 }: {
   profile: Profile;
   isOwn: boolean;
   available: boolean;
+  invisible: boolean;
+  canToggleInvisible?: boolean;
   friendsCount: number;
   onToggleAvailable: () => void;
+  onToggleInvisible?: () => void;
   onEdit: () => void;
   currentUserId?: string | null;
 }) {
-  const online = isOnline(profile.last_seen);
+  const showPresenceToViewer = isOwn || !invisible;
+  const seen = publicLastSeen(profile.last_seen, invisible, isOwn);
+  const online = isOnline(seen);
+  const label = presenceLabel(profile.last_seen, invisible, isOwn);
   const age = ageFromBirthDate(profile.birth_date);
   const gender =
     profile.gender === "male"
@@ -41,6 +58,9 @@ export function ProfileHeader({
           : null;
   const isPremium =
     profile.premium_until && new Date(profile.premium_until) > new Date();
+  const invisibleAllowed =
+    canToggleInvisible ||
+    canUseInvisible(profile.premium_until, profile.role);
 
   return (
     <header className="fixed left-4 right-4 top-[calc(4.5rem+env(safe-area-inset-top))] z-40 rounded-2xl border border-gold/15 bg-gradient-to-br from-gold/20 via-accent-deep/10 to-gold/10 p-4 backdrop-blur-xl sm:p-5 md:left-64 md:right-0 md:top-14 md:mx-auto md:max-w-4xl md:px-8">
@@ -49,8 +69,8 @@ export function ProfileHeader({
           src={profile.avatar_url}
           name={profile.display_name ?? profile.username}
           size="xl"
-          lastSeen={profile.last_seen}
-          showPresence
+          lastSeen={seen}
+          showPresence={showPresenceToViewer}
         />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
@@ -92,6 +112,25 @@ export function ProfileHeader({
                   Готов(а) общаться
                 </span>
               ))}
+            {isOwn && invisibleAllowed && onToggleInvisible && (
+              <button
+                type="button"
+                onClick={onToggleInvisible}
+                title={
+                  invisible
+                    ? "Невидимка включена: вас не видно в сети и без «был(а)»"
+                    : "Включить невидимку: скрыть онлайн и дату последнего визита"
+                }
+                className={`inline-flex min-h-8 items-center gap-1.5 rounded-full border px-2.5 text-[10px] font-semibold transition-colors ${
+                  invisible
+                    ? "border-violet-400/40 bg-violet-500/15 text-violet-300"
+                    : "border-gold/20 text-slate-400 hover:border-violet-400/30 hover:text-violet-300"
+                }`}
+              >
+                {invisible ? <EyeOff size={12} /> : <Eye size={12} />}
+                {invisible ? "Невидимка" : "Видимый"}
+              </button>
+            )}
           </div>
           <p className="mt-1 truncate text-sm text-slate-500">
             @{profile.username}
@@ -100,9 +139,14 @@ export function ProfileHeader({
             {gender && <span>{gender}</span>}
             {profile.city && <span>{profile.city}</span>}
             {age && <span>{age} лет</span>}
-            <span>
-              {online ? "● В сети" : `Был(а) ${timeAgo(profile.last_seen)}`}
-            </span>
+            {label && (
+              <span>
+                {online ? `● ${label}` : label}
+                {isOwn && invisible && (
+                  <span className="ml-1 text-violet-300/80">(скрыто)</span>
+                )}
+              </span>
+            )}
             <span>Друзей: {friendsCount}</span>
           </div>
         </div>

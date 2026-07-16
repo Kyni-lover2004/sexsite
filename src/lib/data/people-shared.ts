@@ -8,7 +8,7 @@ export const LIKE_SOURCE_PEOPLE = "people";
 export const LIKE_SOURCE_SWIPE = "swipe";
 
 export const PEOPLE_SELECT =
-  "id, username, display_name, avatar_url, status, bio, interests, dating_goal, dating_goals, country, region, city, birth_date, gender, available_for_chat, last_seen, role, premium_until, looking_for, created_at";
+  "id, username, display_name, avatar_url, status, bio, interests, dating_goal, dating_goals, country, region, city, birth_date, gender, available_for_chat, last_seen, is_invisible, role, premium_until, looking_for, created_at";
 
 export const ONLINE_WINDOW_MS = 2 * 60 * 1000;
 

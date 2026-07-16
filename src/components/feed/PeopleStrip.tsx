@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { MapPin, MessageCircle, Sparkles } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
-import { isOnline } from "@/lib/utils";
+import { isPubliclyOnline, publicLastSeen } from "@/lib/utils";
 import type { FeedPerson } from "@/lib/types";
 
 /** Horizontal “people nearby / new” strip mixed into the feed. */
@@ -31,7 +31,7 @@ export function PeopleStrip({
       <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-1 scrollbar-thin">
         {people.map((p) => {
           const name = p.display_name ?? p.username;
-          const online = isOnline(p.last_seen);
+          const online = isPubliclyOnline(p.last_seen, p.is_invisible);
           const pro =
             !!p.premium_until && new Date(p.premium_until) > new Date();
           return (
@@ -43,8 +43,8 @@ export function PeopleStrip({
                 <Avatar
                   src={p.avatar_url}
                   name={name}
-                  lastSeen={p.last_seen}
-                  showPresence
+                  lastSeen={publicLastSeen(p.last_seen, p.is_invisible)}
+                  showPresence={!p.is_invisible}
                   size="lg"
                   className="mx-auto"
                 />

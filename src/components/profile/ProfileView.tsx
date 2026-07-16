@@ -30,7 +30,13 @@ import { PhotoLightbox } from "@/components/ui/PhotoLightbox";
 import { ProfileHeader } from "@/components/profile/ProfileHeader";
 import { ProfileWall } from "@/components/profile/ProfileWall";
 import { usePhotoViewLimit } from "@/hooks/usePhotoViewLimit";
-import { ageFromBirthDate, isOnline, timeAgo } from "@/lib/utils";
+import {
+  ageFromBirthDate,
+  canUseInvisible,
+  isOnline,
+  presenceLabel,
+  publicLastSeen,
+} from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { getCountries, getRegions, getCities } from "@/lib/data/locations";
 import {
@@ -125,6 +131,7 @@ export function ProfileView({
   const [localPhotos, setLocalPhotos] = useState(photos);
   const [viewAlbumId, setViewAlbumId] = useState<string>("main");
   const [available, setAvailable] = useState(profile.available_for_chat);
+  const [invisible, setInvisible] = useState(!!profile.is_invisible);
   const [friendStatus, setFriendStatus] = useState<"none" | "sent" | "received" | "accepted">("none");
 
   const [cropperOpen, setCropperOpen] = useState(false);
@@ -218,7 +225,13 @@ export function ProfileView({
     orientation_roles: normalizeOrientationValues(profile.orientation_roles),
   });
 
-  const online = isOnline(profile.last_seen);
+  const seenPublic = publicLastSeen(profile.last_seen, invisible, isOwn);
+  const online = isOnline(seenPublic);
+  const statusLabel = presenceLabel(profile.last_seen, invisible, isOwn);
+  const mayUseInvisible =
+    canUseInvisible(profile.premium_until, profile.role) ||
+    isPremium ||
+    viewerIsAdmin;
 
   const countries = useMemo(() => getCountries(), []);
   const regions = useMemo(() => getRegions(form.country), [form.country]);
@@ -227,6 +240,10 @@ export function ProfileView({
   useEffect(() => {
     setAvailable(profile.available_for_chat);
   }, [profile.available_for_chat]);
+
+  useEffect(() => {
+    setInvisible(!!profile.is_invisible);
+  }, [profile.is_invisible]);
 
   useEffect(() => {
     setLocalPhotos(photos);
@@ -403,6 +420,26 @@ export function ProfileView({
       setAvailable(!next);
       console.error("Available status update error:", error);
       alert(`Ошибка: ${error.message}\nВозможно, в таблице profiles в Supabase отсутствует колонка available_for_chat.`);
+    } else {
+      router.refresh();
+    }
+  }
+
+  async function toggleInvisible() {
+    if (!isOwn || !mayUseInvisible) return;
+    const next = !invisible;
+    setInvisible(next);
+    const { error } = await (supabase as any)
+      .from("profiles")
+      .update({ is_invisible: next })
+      .eq("id", profile.id);
+
+    if (error) {
+      setInvisible(!next);
+      console.error("Invisible mode update error:", error);
+      alert(
+        `Ошибка: ${error.message}\nПримените supabase/patch_invisible_mode.sql в Supabase (колонка is_invisible).`
+      );
     } else {
       router.refresh();
     }
@@ -696,8 +733,11 @@ export function ProfileView({
           profile={profile}
           isOwn={isOwn}
           available={available}
+          invisible={invisible}
+          canToggleInvisible={mayUseInvisible}
           friendsCount={friendsCount}
           onToggleAvailable={toggleAvailable}
+          onToggleInvisible={toggleInvisible}
           onEdit={() => setEditing(true)}
           currentUserId={viewerId}
         />
@@ -717,8 +757,8 @@ export function ProfileView({
                 src={profile.avatar_url}
                 name={profile.display_name ?? profile.username}
                 size="xl"
-                lastSeen={profile.last_seen}
-                showPresence
+                lastSeen={seenPublic}
+                showPresence={isOwn || !invisible}
               />
               <div className="pointer-events-none absolute inset-0 -z-10 rounded-full bg-gold/20 blur-xl" />
 
@@ -1226,14 +1266,16 @@ export function ProfileView({
                         {age} лет
                       </span>
                     )}
-                    <span className="flex items-center gap-1">
-                      <span
-                        className={`h-2 w-2 rounded-full ${
-                          online ? "bg-emerald-glow shadow-glow-emerald" : "bg-slate-600"
-                        }`}
-                      />
-                      {online ? "В сети" : `Был(а) ${timeAgo(profile.last_seen)}`}
-                    </span>
+                    {statusLabel && (
+                      <span className="flex items-center gap-1">
+                        <span
+                          className={`h-2 w-2 rounded-full ${
+                            online ? "bg-emerald-glow shadow-glow-emerald" : "bg-slate-600"
+                          }`}
+                        />
+                        {statusLabel}
+                      </span>
+                    )}
                   </div>
 
                   <div className="order-3 w-full border-y border-gold/20 bg-base-800/35 px-3.5 text-sm leading-6 text-slate-300 sm:px-5 sm:text-[15px]">
