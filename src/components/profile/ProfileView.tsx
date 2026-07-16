@@ -32,6 +32,7 @@ import { ProfileWall } from "@/components/profile/ProfileWall";
 import { usePhotoViewLimit } from "@/hooks/usePhotoViewLimit";
 import { usePeerPresence } from "@/hooks/useLivePresence";
 import { INVISIBLE_MODE_EVENT } from "@/components/auth/PresenceTracker";
+import { moveProfilePhoto } from "@/lib/photo-move";
 import {
   ageFromBirthDate,
   canUseInvisible,
@@ -420,6 +421,75 @@ export function ProfileView({
     }
   }
 
+  const lightboxPhotos = useMemo(() => {
+    const list =
+      viewAlbumId === "main"
+        ? localPhotos.filter((p) => !p.album_id)
+        : localPhotos.filter((p) => p.album_id === viewAlbumId);
+    return list.map((p) => ({
+      id: p.id,
+      url: p.url,
+      caption: p.caption,
+      album_id: p.album_id ?? null,
+    }));
+  }, [localPhotos, viewAlbumId]);
+
+  const moveDestinations = useMemo(() => {
+    if (!isOwn) return undefined;
+    return [
+      { id: null as string | null, label: "Основная страница" },
+      ...albums.map((a: { id: string; name?: string }) => ({
+        id: a.id as string | null,
+        label: a.name ? `Альбом: ${a.name}` : "Альбом",
+      })),
+    ];
+  }, [isOwn, albums]);
+
+  async function handleLightboxMove(
+    photoId: string,
+    targetAlbumId: string | null
+  ) {
+    const photo = localPhotos.find((p) => p.id === photoId);
+    if (!photo || !isOwn) return;
+
+    const result = await moveProfilePhoto({
+      photo,
+      targetAlbumId,
+      albums: albums as { id: string; name?: string; is_private?: boolean }[],
+    });
+
+    if (!result.ok) {
+      throw new Error(result.error);
+    }
+
+    setLocalPhotos((prev) =>
+      prev.map((p) =>
+        p.id === photoId
+          ? {
+              ...p,
+              album_id: result.photo.album_id ?? null,
+              url: result.photo.url,
+              storage_path: result.photo.storage_path,
+            }
+          : p
+      )
+    );
+
+    // If current view no longer contains this photo, close lightbox when empty
+    const stillHere =
+      (viewAlbumId === "main" && !result.photo.album_id) ||
+      (viewAlbumId !== "main" && result.photo.album_id === viewAlbumId);
+    if (!stillHere) {
+      const remaining =
+        viewAlbumId === "main"
+          ? localPhotos.filter((p) => p.id !== photoId && !p.album_id)
+          : localPhotos.filter(
+              (p) => p.id !== photoId && p.album_id === viewAlbumId
+            );
+      if (remaining.length === 0) setLightboxOpen(false);
+    }
+  }
+
   async function toggleAvailable() {
     const next = !available;
     setAvailable(next);
@@ -741,12 +811,11 @@ export function ProfileView({
 
       <PhotoLightbox
         open={lightboxOpen}
-        photos={(viewAlbumId === "main"
-          ? localPhotos.filter((p) => !p.album_id)
-          : localPhotos.filter((p) => p.album_id === viewAlbumId)
-        ).map((p) => ({ url: p.url, caption: p.caption }))}
+        photos={lightboxPhotos}
         initialIndex={lightboxIndex}
         onClose={() => setLightboxOpen(false)}
+        moveDestinations={moveDestinations}
+        onMove={isOwn ? handleLightboxMove : undefined}
       />
 
       {!editing && <>

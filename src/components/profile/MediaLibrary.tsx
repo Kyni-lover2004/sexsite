@@ -1,10 +1,30 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
-import { ImagePlus, Loader2, Trash2, Upload, Video, Plus, Folder } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  ImagePlus,
+  Loader2,
+  Trash2,
+  Upload,
+  Video,
+  Plus,
+  Folder,
+} from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
+import { PhotoLightbox } from "@/components/ui/PhotoLightbox";
+import { moveProfilePhoto } from "@/lib/photo-move";
 
-export function MediaLibrary({ kind, userId, initialItems, initialAlbums = [] }: { kind: "photo" | "video"; userId: string; initialItems: any[]; initialAlbums?: any[] }) {
+export function MediaLibrary({
+  kind,
+  userId,
+  initialItems,
+  initialAlbums = [],
+}: {
+  kind: "photo" | "video";
+  userId: string;
+  initialItems: any[];
+  initialAlbums?: any[];
+}) {
   const [items, setItems] = useState(initialItems);
   const [albums, setAlbums] = useState(initialAlbums);
   const [loading, setLoading] = useState(false);
@@ -23,6 +43,10 @@ export function MediaLibrary({ kind, userId, initialItems, initialAlbums = [] }:
 
   // Filter for viewing
   const [viewAlbumId, setViewAlbumId] = useState<string>("main");
+
+  // Lightbox
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
 
   async function createAlbum() {
     if (!newAlbumName.trim()) return;
@@ -150,6 +174,73 @@ export function MediaLibrary({ kind, userId, initialItems, initialAlbums = [] }:
       ? items.filter((i: any) => !i.album_id)
       : items.filter((i: any) => i.album_id === viewAlbumId);
 
+  const lightboxPhotos = useMemo(
+    () =>
+      displayedItems.map((item: any) => ({
+        id: item.id as string,
+        url: (signedUrls[item.id] || item.url) as string,
+        caption: item.caption as string | null,
+        album_id: (item.album_id ?? null) as string | null,
+      })),
+    [displayedItems, signedUrls]
+  );
+
+  const moveDestinations = useMemo(() => {
+    if (kind !== "photo") return undefined;
+    return [
+      { id: null as string | null, label: "Основная страница" },
+      ...albums.map((a: any) => ({
+        id: a.id as string | null,
+        label: a.name ? `Альбом: ${a.name}` : "Альбом",
+      })),
+    ];
+  }, [kind, albums]);
+
+  async function handleLightboxMove(
+    photoId: string,
+    targetAlbumId: string | null
+  ) {
+    const photo = items.find((i: any) => i.id === photoId);
+    if (!photo) return;
+
+    const result = await moveProfilePhoto({
+      photo: {
+        id: photo.id,
+        url: photo.url,
+        storage_path: photo.storage_path,
+        album_id: photo.album_id ?? null,
+        user_id: photo.user_id,
+      },
+      targetAlbumId,
+      albums,
+    });
+
+    if (!result.ok) {
+      throw new Error(result.error);
+    }
+
+    setItems((prev) =>
+      prev.map((p: any) =>
+        p.id === photoId
+          ? {
+              ...p,
+              album_id: result.photo.album_id ?? null,
+              url: result.photo.url,
+              storage_path: result.photo.storage_path,
+            }
+          : p
+      )
+    );
+
+    const stillHere =
+      (viewAlbumId === "main" && !result.photo.album_id) ||
+      (viewAlbumId !== "main" && result.photo.album_id === viewAlbumId);
+    if (!stillHere) {
+      const remaining = displayedItems.filter((i: any) => i.id !== photoId);
+      if (remaining.length === 0) setLightboxOpen(false);
+    }
+  }
+
   // Resolve signed URLs for private album photos when viewing
   useEffect(() => {
     if (kind !== "photo" || viewAlbumId === "main") return;
@@ -174,45 +265,62 @@ export function MediaLibrary({ kind, userId, initialItems, initialAlbums = [] }:
 
   return (
     <div className="space-y-6">
-      <input 
-        ref={input} 
-        className="hidden" 
-        type="file" 
-        accept={kind === "photo" ? "image/*" : "video/mp4,video/webm,video/quicktime"} 
+      {kind === "photo" && (
+        <PhotoLightbox
+          open={lightboxOpen}
+          photos={lightboxPhotos}
+          initialIndex={lightboxIndex}
+          onClose={() => setLightboxOpen(false)}
+          moveDestinations={moveDestinations}
+          onMove={handleLightboxMove}
+        />
+      )}
+
+      <input
+        ref={input}
+        className="hidden"
+        type="file"
+        accept={
+          kind === "photo" ? "image/*" : "video/mp4,video/webm,video/quicktime"
+        }
         onChange={(e) => upload(e.target.files?.[0])}
       />
-      
+
       {/* Upload controls */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start p-4 rounded-2xl border border-gold/10 bg-base-800">
+      <div className="flex flex-col gap-4 rounded-2xl border border-gold/10 bg-base-800 p-4 sm:flex-row sm:items-start">
         <div className="flex-1 space-y-3">
-          <p className="text-sm font-semibold text-warm-100">Загрузить {kind === "photo" ? "фото" : "видео"}</p>
-          
+          <p className="text-sm font-semibold text-warm-100">
+            Загрузить {kind === "photo" ? "фото" : "видео"}
+          </p>
+
           {kind === "photo" && (
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-sm text-slate-400">Куда:</span>
-              <select 
+              <select
                 value={selectedAlbumId}
                 onChange={(e) => setSelectedAlbumId(e.target.value)}
-                className="h-9 w-full sm:w-auto rounded-lg border border-gold/20 bg-base-900 px-3 py-1 text-sm text-slate-200 outline-none focus:border-gold/50"
+                className="h-9 w-full rounded-lg border border-gold/20 bg-base-900 px-3 py-1 text-sm text-slate-200 outline-none focus:border-gold/50 sm:w-auto"
               >
                 <option value="main">Основная страница</option>
-                {albums.map(a => (
-                  <option key={a.id} value={a.id}>Альбом: {a.name}</option>
+                {albums.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    Альбом: {a.name}
+                  </option>
                 ))}
                 <option value="new">+ Создать новый альбом...</option>
               </select>
             </div>
           )}
-          
+
           {selectedAlbumId === "new" && kind === "photo" && (
-            <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+            <div className="animate-in fade-in slide-in-from-top-2 space-y-2">
               <div className="flex items-center gap-2">
                 <input
                   type="text"
                   placeholder="Название альбома"
                   value={newAlbumName}
                   onChange={(e) => setNewAlbumName(e.target.value)}
-                  className="h-9 w-full rounded-lg border border-gold/20 bg-base-900 px-3 text-sm text-slate-200 outline-none focus:border-gold/50 placeholder:text-slate-500"
+                  className="h-9 w-full rounded-lg border border-gold/20 bg-base-900 px-3 text-sm text-slate-200 outline-none placeholder:text-slate-500 focus:border-gold/50"
                 />
                 <Button
                   size="sm"
@@ -239,35 +347,58 @@ export function MediaLibrary({ kind, userId, initialItems, initialAlbums = [] }:
             </div>
           )}
         </div>
-        
-        <Button 
-          className="w-full sm:w-auto mt-2 sm:mt-0" 
-          onClick={() => input.current?.click()} 
-          disabled={loading || (selectedAlbumId === "new")}
+
+        <Button
+          className="mt-2 w-full sm:mt-0 sm:w-auto"
+          onClick={() => input.current?.click()}
+          disabled={loading || selectedAlbumId === "new"}
         >
-          {loading ? <Loader2 className="animate-spin" size={17}/> : kind === "photo" ? <ImagePlus size={17}/> : <Upload size={17}/>}
+          {loading ? (
+            <Loader2 className="animate-spin" size={17} />
+          ) : kind === "photo" ? (
+            <ImagePlus size={17} />
+          ) : (
+            <Upload size={17} />
+          )}
           Выбрать файл
         </Button>
       </div>
 
-      {error && <p className="rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-500">{error}</p>}
+      {error && (
+        <p className="rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-500">
+          {error}
+        </p>
+      )}
 
       {/* Viewing controls */}
       {kind === "photo" && (
-        <div className="flex overflow-x-auto pb-2 gap-2 scrollbar-hide">
-          <button 
+        <div className="scrollbar-hide flex gap-2 overflow-x-auto pb-2">
+          <button
+            type="button"
             onClick={() => setViewAlbumId("main")}
-            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${viewAlbumId === "main" ? "bg-gold text-base-900" : "bg-base-800 text-slate-400 hover:text-slate-200 border border-gold/10"}`}
+            className={`whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+              viewAlbumId === "main"
+                ? "bg-gold text-base-900"
+                : "border border-gold/10 bg-base-800 text-slate-400 hover:text-slate-200"
+            }`}
           >
             Основная страница
           </button>
-          {albums.map(a => (
-            <button 
+          {albums.map((a) => (
+            <button
+              type="button"
               key={a.id}
               onClick={() => setViewAlbumId(a.id)}
-              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${viewAlbumId === a.id ? "bg-gold text-base-900" : "bg-base-800 text-slate-400 hover:text-slate-200 border border-gold/10"}`}
+              className={`flex items-center gap-1.5 whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+                viewAlbumId === a.id
+                  ? "bg-gold text-base-900"
+                  : "border border-gold/10 bg-base-800 text-slate-400 hover:text-slate-200"
+              }`}
             >
-              <Folder size={14} className={viewAlbumId === a.id ? "opacity-70" : "opacity-50"} />
+              <Folder
+                size={14}
+                className={viewAlbumId === a.id ? "opacity-70" : "opacity-50"}
+              />
               {a.name}
             </button>
           ))}
@@ -276,15 +407,29 @@ export function MediaLibrary({ kind, userId, initialItems, initialAlbums = [] }:
 
       {/* Grid */}
       <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 sm:grid-cols-3">
-        {displayedItems.map((item) => (
-          <div key={item.id} className={`group relative overflow-hidden rounded-2xl border border-gold/10 bg-base-800 ${kind === "photo" ? "aspect-[4/5]" : "aspect-video"}`}>
+        {displayedItems.map((item, idx) => (
+          <div
+            key={item.id}
+            className={`group relative overflow-hidden rounded-2xl border border-gold/10 bg-base-800 ${
+              kind === "photo" ? "aspect-[4/5]" : "aspect-video"
+            }`}
+          >
             {kind === "photo" ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={signedUrls[item.id] || item.url}
-                alt=""
-                className="h-full w-full object-cover"
-              />
+              <button
+                type="button"
+                className="absolute inset-0"
+                onClick={() => {
+                  setLightboxIndex(idx);
+                  setLightboxOpen(true);
+                }}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={signedUrls[item.id] || item.url}
+                  alt=""
+                  className="h-full w-full object-cover"
+                />
+              </button>
             ) : (
               <video
                 src={signedUrls[item.id] || item.url}
@@ -294,20 +439,29 @@ export function MediaLibrary({ kind, userId, initialItems, initialAlbums = [] }:
               />
             )}
             {kind === "photo" && item.album_id && (
-              <div className="absolute bottom-2 left-2 right-2 rounded-lg bg-black/60 px-2 py-1 text-[10px] font-medium text-white backdrop-blur-md truncate">
-                <Folder size={10} className="inline mr-1 opacity-70" />
-                {albums.find(a => a.id === item.album_id)?.name || "Альбом"}
+              <div className="pointer-events-none absolute bottom-2 left-2 right-2 truncate rounded-lg bg-black/60 px-2 py-1 text-[10px] font-medium text-white backdrop-blur-md">
+                <Folder size={10} className="mr-1 inline opacity-70" />
+                {albums.find((a) => a.id === item.album_id)?.name || "Альбом"}
               </div>
             )}
-            <button onClick={() => remove(item)} className="absolute right-2 top-2 grid h-11 w-11 place-items-center rounded-full bg-black/70 text-white opacity-0 transition-opacity group-hover:opacity-100" aria-label="Удалить">
-              <Trash2 size={16}/>
+            <button
+              type="button"
+              onClick={() => remove(item)}
+              className="absolute right-2 top-2 grid h-11 w-11 place-items-center rounded-full bg-black/70 text-white opacity-0 transition-opacity group-hover:opacity-100"
+              aria-label="Удалить"
+            >
+              <Trash2 size={16} />
             </button>
           </div>
         ))}
         {!displayedItems.length && (
           <div className="col-span-full grid min-h-48 place-items-center rounded-2xl border border-dashed border-gold/15 text-slate-500">
             <div className="text-center">
-              {kind === "video" ? <Video className="mx-auto mb-2 opacity-50" size={32} /> : <ImagePlus className="mx-auto mb-2 opacity-50" size={32} />}
+              {kind === "video" ? (
+                <Video className="mx-auto mb-2 opacity-50" size={32} />
+              ) : (
+                <ImagePlus className="mx-auto mb-2 opacity-50" size={32} />
+              )}
               Здесь пока ничего нет
             </div>
           </div>
