@@ -8,11 +8,16 @@ import {
   Video,
   Plus,
   Folder,
+  Pencil,
+  Check,
+  X,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
 import { PhotoLightbox } from "@/components/ui/PhotoLightbox";
 import { moveProfilePhoto } from "@/lib/photo-move";
+
+const ALBUM_NAME_MAX = 60;
 
 export function MediaLibrary({
   kind,
@@ -43,10 +48,18 @@ export function MediaLibrary({
 
   // Filter for viewing
   const [viewAlbumId, setViewAlbumId] = useState<string>("main");
+  const [editingAlbumId, setEditingAlbumId] = useState<string | null>(null);
+  const [editAlbumName, setEditAlbumName] = useState("");
+  const [albumBusy, setAlbumBusy] = useState(false);
 
   // Lightbox
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+
+  const viewAlbum =
+    viewAlbumId === "main"
+      ? null
+      : albums.find((a: any) => a.id === viewAlbumId) ?? null;
 
   async function createAlbum() {
     if (!newAlbumName.trim()) return;
@@ -54,7 +67,7 @@ export function MediaLibrary({
     setError("");
     const payload: Record<string, unknown> = {
       user_id: userId,
-      name: newAlbumName.trim(),
+      name: newAlbumName.trim().slice(0, ALBUM_NAME_MAX),
     };
     if (kind === "photo") payload.is_private = newAlbumPrivate;
 
@@ -74,6 +87,128 @@ export function MediaLibrary({
       setError(rowError?.message ?? "Не удалось создать альбом");
     }
     setCreatingAlbum(false);
+  }
+
+  function startRenameAlbum(album: { id: string; name: string }) {
+    setEditingAlbumId(album.id);
+    setEditAlbumName(album.name ?? "");
+    setError("");
+  }
+
+  function cancelRenameAlbum() {
+    setEditingAlbumId(null);
+    setEditAlbumName("");
+  }
+
+  async function saveRenameAlbum() {
+    if (!editingAlbumId) return;
+    const name = editAlbumName.trim().slice(0, ALBUM_NAME_MAX);
+    if (!name) {
+      setError("Введите название альбома");
+      return;
+    }
+    const current = albums.find((a: any) => a.id === editingAlbumId);
+    if (!current) return;
+    if (name === current.name) {
+      cancelRenameAlbum();
+      return;
+    }
+
+    setAlbumBusy(true);
+    setError("");
+    const { data: row, error: rowError } = await (supabase as any)
+      .from("profile_albums")
+      .update({ name, updated_at: new Date().toISOString() })
+      .eq("id", editingAlbumId)
+      .eq("user_id", userId)
+      .select()
+      .single();
+
+    if (rowError || !row) {
+      setError(rowError?.message ?? "Не удалось переименовать альбом");
+      setAlbumBusy(false);
+      return;
+    }
+
+    setAlbums((prev) =>
+      prev.map((a: any) => (a.id === editingAlbumId ? { ...a, ...row } : a))
+    );
+    cancelRenameAlbum();
+    setAlbumBusy(false);
+  }
+
+  async function deleteAlbum(albumId: string) {
+    const album = albums.find((a: any) => a.id === albumId);
+    if (!album) return;
+
+    const photosInAlbum = items.filter((i: any) => i.album_id === albumId);
+    const n = photosInAlbum.length;
+    const ok = window.confirm(
+      n > 0
+        ? `Удалить альбом «${album.name}»? ${n} фото будут перенесены на основную страницу.`
+        : `Удалить альбом «${album.name}»?`
+    );
+    if (!ok) return;
+
+    setAlbumBusy(true);
+    setError("");
+    setLightboxOpen(false);
+
+    // Move photos to main first (handles private → public bucket)
+    for (const photo of photosInAlbum) {
+      const result = await moveProfilePhoto({
+        photo: {
+          id: photo.id,
+          url: photo.url,
+          storage_path: photo.storage_path,
+          album_id: photo.album_id ?? null,
+          user_id: photo.user_id,
+        },
+        targetAlbumId: null,
+        albums,
+      });
+      if (!result.ok) {
+        setError(result.error);
+        setAlbumBusy(false);
+        return;
+      }
+      setItems((prev) =>
+        prev.map((p: any) =>
+          p.id === photo.id
+            ? {
+                ...p,
+                album_id: null,
+                url: result.photo.url,
+                storage_path: result.photo.storage_path,
+              }
+            : p
+        )
+      );
+    }
+
+    const { error: delError } = await (supabase as any)
+      .from("profile_albums")
+      .delete()
+      .eq("id", albumId)
+      .eq("user_id", userId);
+
+    if (delError) {
+      setError(delError.message ?? "Не удалось удалить альбом");
+      setAlbumBusy(false);
+      return;
+    }
+
+    setAlbums((prev) => prev.filter((a: any) => a.id !== albumId));
+    // Safety: any leftover album_id (race) → main
+    setItems((prev) =>
+      prev.map((p: any) =>
+        p.album_id === albumId ? { ...p, album_id: null } : p
+      )
+    );
+    if (viewAlbumId === albumId) setViewAlbumId("main");
+    if (selectedAlbumId === albumId) setSelectedAlbumId("main");
+    if (editingAlbumId === albumId) cancelRenameAlbum();
+    setAlbumBusy(false);
   }
 
   async function upload(file?: File) {
@@ -319,7 +454,10 @@ export function MediaLibrary({
                   type="text"
                   placeholder="Название альбома"
                   value={newAlbumName}
-                  onChange={(e) => setNewAlbumName(e.target.value)}
+                  maxLength={ALBUM_NAME_MAX}
+                  onChange={(e) =>
+                    setNewAlbumName(e.target.value.slice(0, ALBUM_NAME_MAX))
+                  }
                   className="h-9 w-full rounded-lg border border-gold/20 bg-base-900 px-3 text-sm text-slate-200 outline-none placeholder:text-slate-500 focus:border-gold/50"
                 />
                 <Button
@@ -372,36 +510,139 @@ export function MediaLibrary({
 
       {/* Viewing controls */}
       {kind === "photo" && (
-        <div className="scrollbar-hide flex gap-2 overflow-x-auto pb-2">
-          <button
-            type="button"
-            onClick={() => setViewAlbumId("main")}
-            className={`whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
-              viewAlbumId === "main"
-                ? "bg-gold text-base-900"
-                : "border border-gold/10 bg-base-800 text-slate-400 hover:text-slate-200"
-            }`}
-          >
-            Основная страница
-          </button>
-          {albums.map((a) => (
+        <div className="space-y-3">
+          <div className="scrollbar-hide flex gap-2 overflow-x-auto pb-2">
             <button
               type="button"
-              key={a.id}
-              onClick={() => setViewAlbumId(a.id)}
-              className={`flex items-center gap-1.5 whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
-                viewAlbumId === a.id
+              onClick={() => {
+                setViewAlbumId("main");
+                cancelRenameAlbum();
+              }}
+              className={`whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+                viewAlbumId === "main"
                   ? "bg-gold text-base-900"
                   : "border border-gold/10 bg-base-800 text-slate-400 hover:text-slate-200"
               }`}
             >
-              <Folder
-                size={14}
-                className={viewAlbumId === a.id ? "opacity-70" : "opacity-50"}
-              />
-              {a.name}
+              Основная страница
             </button>
-          ))}
+            {albums.map((a) => (
+              <button
+                type="button"
+                key={a.id}
+                onClick={() => {
+                  setViewAlbumId(a.id);
+                  if (editingAlbumId && editingAlbumId !== a.id) {
+                    cancelRenameAlbum();
+                  }
+                }}
+                className={`flex items-center gap-1.5 whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+                  viewAlbumId === a.id
+                    ? "bg-gold text-base-900"
+                    : "border border-gold/10 bg-base-800 text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                <Folder
+                  size={14}
+                  className={viewAlbumId === a.id ? "opacity-70" : "opacity-50"}
+                />
+                {a.name}
+              </button>
+            ))}
+          </div>
+
+          {/* Manage created albums only — main page is fixed */}
+          {viewAlbum && (
+            <div className="rounded-2xl border border-gold/10 bg-base-800/70 p-3 sm:p-4">
+              {editingAlbumId === viewAlbum.id ? (
+                <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
+                  <input
+                    type="text"
+                    value={editAlbumName}
+                    onChange={(e) =>
+                      setEditAlbumName(e.target.value.slice(0, ALBUM_NAME_MAX))
+                    }
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") void saveRenameAlbum();
+                      if (e.key === "Escape") cancelRenameAlbum();
+                    }}
+                    maxLength={ALBUM_NAME_MAX}
+                    autoFocus
+                    disabled={albumBusy}
+                    placeholder="Название альбома"
+                    className="h-10 min-w-0 flex-1 rounded-lg border border-gold/20 bg-base-900 px-3 text-sm text-slate-200 outline-none placeholder:text-slate-500 focus:border-gold/50"
+                  />
+                  <div className="grid grid-cols-2 gap-2 sm:flex sm:shrink-0">
+                    <Button
+                      size="sm"
+                      className="w-full sm:w-auto"
+                      disabled={albumBusy || !editAlbumName.trim()}
+                      onClick={() => void saveRenameAlbum()}
+                    >
+                      {albumBusy ? (
+                        <Loader2 className="animate-spin" size={16} />
+                      ) : (
+                        <Check size={16} />
+                      )}
+                      Сохранить
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-full sm:w-auto"
+                      disabled={albumBusy}
+                      onClick={cancelRenameAlbum}
+                    >
+                      <X size={16} />
+                      Отмена
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="break-words text-sm font-semibold text-warm-100">
+                      {viewAlbum.name}
+                    </p>
+                    <p className="mt-0.5 text-xs text-slate-500">
+                      {
+                        items.filter((i: any) => i.album_id === viewAlbum.id)
+                          .length
+                      }{" "}
+                      фото
+                      {viewAlbum.is_private ? " · приватный" : ""}
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2 sm:flex sm:shrink-0 sm:flex-wrap">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-full sm:w-auto"
+                      disabled={albumBusy}
+                      onClick={() => startRenameAlbum(viewAlbum)}
+                    >
+                      <Pencil size={14} />
+                      Переименовать
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="danger"
+                      className="w-full sm:w-auto"
+                      disabled={albumBusy}
+                      onClick={() => void deleteAlbum(viewAlbum.id)}
+                    >
+                      {albumBusy ? (
+                        <Loader2 className="animate-spin" size={14} />
+                      ) : (
+                        <Trash2 size={14} />
+                      )}
+                      Удалить альбом
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
