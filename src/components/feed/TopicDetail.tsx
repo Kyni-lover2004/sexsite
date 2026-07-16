@@ -154,7 +154,7 @@ export function TopicDetail({
 
             <div className="flex flex-wrap items-center gap-2">
               {topicData.is_pinned && (
-                <span className="flex items-center gap-1 rounded-full border border-gold/30 bg-gold/10 px-2 py-0.5 text-[10px] font-semibold uppercase text-gold-soft">
+                <span className="badge-premium px-2 py-0.5 text-[10px] uppercase">
                   <Pin size={10} />
                   Закреп
                 </span>

@@ -75,7 +75,7 @@ export function TopicCard({
           </div>
           <div className="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-1">
             {topic.is_pinned && (
-              <span className="flex items-center gap-1 rounded-full border border-gold/35 bg-gold/15 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-gold-soft">
+              <span className="badge-premium px-2 py-1 text-[10px] uppercase tracking-[0.14em]">
                 <Pin size={11} />
                 Закреп
               </span>

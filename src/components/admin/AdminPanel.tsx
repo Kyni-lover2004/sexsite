@@ -1430,8 +1430,8 @@ function Badge({
   label: string;
 }) {
   return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-gold/15 px-2 py-0.5 text-[10px] font-semibold text-gold-soft">
-      <Icon size={10} />
+    <span className="badge-premium px-2 py-0.5 text-[10px] uppercase tracking-wide">
+      <Icon size={10} className="fill-current" />
       {label}
     </span>
   );

@@ -3,8 +3,10 @@ import { cn } from "@/lib/utils";
 type BadgeTone = "accent" | "gold" | "emerald" | "neutral";
 
 const tones: Record<BadgeTone, string> = {
-  accent: "bg-gold/10 text-gold-soft border-gold/25 hover:border-gold/50 hover:shadow-[0_0_14px_rgb(var(--gold-glow)/0.15)]",
-  gold: "bg-gold/10 text-gold-soft border-gold/25 hover:border-gold/50 hover:shadow-[0_0_14px_rgb(var(--gold-glow)/0.15)]",
+  accent:
+    "badge-premium border-transparent hover:brightness-105",
+  gold:
+    "badge-premium border-transparent hover:brightness-105",
   emerald: "bg-emerald-glow/10 text-emerald-glow border-emerald-glow/25",
   neutral: "bg-base-900/55 text-slate-300 border-gold/10 hover:border-gold/25",
 };

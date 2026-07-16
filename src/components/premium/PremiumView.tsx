@@ -297,8 +297,8 @@ export function PremiumView({ isPremium }: PremiumViewProps) {
               }`}
             >
               {plan.popular && (
-                <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full bg-gold-gradient px-3 py-0.5 text-[10px] font-bold text-white shadow-glow-gold dark:[text-shadow:0_1px_2px_rgb(0_0_0/0.45)]">
-                  ПОПУЛЯРНЫЙ
+                <span className="badge-premium absolute -top-2.5 left-1/2 -translate-x-1/2 px-3 py-0.5 text-[10px] uppercase">
+                  Популярный
                 </span>
               )}
               {plan.badge && !plan.popular && (
