@@ -76,12 +76,26 @@ export interface KeyPairExport {
   publicKeyJwk: JsonWebKey;
 }
 
+export type EnsureKeyPairOptions = {
+  /**
+   * If false and no local key exists, throws NEED_RESTORE_OR_SETUP
+   * instead of generating a new pair (avoids silent history loss).
+   * Default true for backward compatibility.
+   */
+  allowCreate?: boolean;
+};
+
 /**
  * Ensures the current device has a key pair. Generates one on first use,
  * persists the private key in IndexedDB, and returns the public JWK so the
  * caller can publish it to the server.
+ *
+ * Prefer allowCreate:false when a cloud backup may exist — restore first.
  */
-export async function ensureKeyPair(): Promise<KeyPairExport> {
+export async function ensureKeyPair(
+  opts: EnsureKeyPairOptions = {}
+): Promise<KeyPairExport> {
+  const allowCreate = opts.allowCreate !== false;
   const existingPrivate = await idbGet<CryptoKey>(PRIVATE_KEY_ID);
   const existingPublic = await idbGet<JsonWebKey>("self-public-jwk");
 
@@ -99,6 +113,10 @@ export async function ensureKeyPair(): Promise<KeyPairExport> {
     return { publicKeyJwk: existingPublic };
   }
 
+  if (!allowCreate) {
+    throw new Error("NEED_RESTORE_OR_SETUP");
+  }
+
   // extractable: true so the owner can export a passphrase-encrypted backup.
   const pair = await crypto.subtle.generateKey(KEY_ALGO, true, ["deriveKey"]);
   await idbSet(PRIVATE_KEY_ID, pair.privateKey);
@@ -109,6 +127,33 @@ export async function ensureKeyPair(): Promise<KeyPairExport> {
   await idbSet(PRIVATE_JWK_ID, privateKeyJwk);
 
   return { publicKeyJwk };
+}
+
+/** Local flag: user completed recovery-password setup on this browser. */
+const RECOVERY_SETUP_FLAG = "dp_e2ee_recovery_ok_v1";
+
+export function markRecoverySetupDone(userId: string): void {
+  try {
+    localStorage.setItem(`${RECOVERY_SETUP_FLAG}:${userId}`, "1");
+  } catch {
+    /* ignore */
+  }
+}
+
+export function isRecoverySetupMarked(userId: string): boolean {
+  try {
+    return localStorage.getItem(`${RECOVERY_SETUP_FLAG}:${userId}`) === "1";
+  } catch {
+    return false;
+  }
+}
+
+export function clearRecoverySetupMark(userId: string): void {
+  try {
+    localStorage.removeItem(`${RECOVERY_SETUP_FLAG}:${userId}`);
+  } catch {
+    /* ignore */
+  }
 }
 
 /** True if this device already holds a private key. */

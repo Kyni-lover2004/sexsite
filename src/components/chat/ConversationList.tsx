@@ -10,7 +10,6 @@ import { timeAgo, isPubliclyOnline, publicLastSeen } from "@/lib/utils";
 import { useLivePresence } from "@/hooks/useLivePresence";
 import {
   decryptMessage,
-  ensureKeyPair,
   hasLocalKey,
 } from "@/lib/crypto";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -88,9 +87,8 @@ export function ConversationList({
       setDecrypting(true);
       const local = await hasLocalKey();
       if (!cancelled) setHasKey(local);
-      if (!local) {
-        await ensureKeyPair();
-      }
+      // Never auto-create a new key here — that would orphan cloud history.
+      // E2eeRecoveryGate forces restore/setup first.
 
       const next: Record<string, string> = {};
 

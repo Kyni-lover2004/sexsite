@@ -4,19 +4,26 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import {
+  PRESENCE_EVENT,
+  presenceChannelName,
+  type PresenceBroadcastPayload,
+} from "@/lib/presence-channel";
 
 /** How often we refresh ban status while the tab is open. */
 const BAN_CHECK_MS = 60_000;
-/** Minimum gap between last_seen writes. */
+/** Minimum gap between last_seen writes (DB heartbeat). */
 const PRESENCE_MIN_MS = 60_000;
+/** How often we pulse "I'm online" over Realtime Broadcast (instant for peers). */
+const LIVE_PULSE_MS = 20_000;
 
 /** Dispatched from profile toggle so heartbeat stops in the same tab immediately. */
 export const INVISIBLE_MODE_EVENT = "dp:invisible-mode";
 
 /**
  * Lightweight presence + ban overlay.
- * Avoids hammering Supabase on every mousemove (previous behaviour).
- * When invisible mode is on (premium/admin), skips last_seen updates.
+ * - DB heartbeat: last_seen / last_active_at (retention + offline lists)
+ * - Realtime Broadcast: instant green/invisible for open chats (no SQL publication needed)
  */
 export function PresenceTracker() {
   const supabase = useMemo(() => createClient(), []);
@@ -26,6 +33,9 @@ export function PresenceTracker() {
   const lastPresenceRef = useRef(0);
   const lastBanCheckRef = useRef(0);
   const invisibleRef = useRef(false);
+  const liveChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(
+    null
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -37,6 +47,48 @@ export function PresenceTracker() {
       const id = data.session?.user?.id ?? null;
       userIdRef.current = id;
       return id;
+    }
+
+    async function ensureLiveChannel(userId: string) {
+      if (liveChannelRef.current) return liveChannelRef.current;
+      const ch = supabase.channel(presenceChannelName(userId), {
+        config: { broadcast: { self: false } },
+      });
+      liveChannelRef.current = ch;
+      await new Promise<void>((resolve) => {
+        ch.subscribe((status: string) => {
+          if (status === "SUBSCRIBED" || status === "CHANNEL_ERROR") {
+            resolve();
+          }
+        });
+        // Don't hang forever if realtime is down
+        setTimeout(() => resolve(), 2500);
+      });
+      return ch;
+    }
+
+    async function broadcastLive(
+      online: boolean,
+      opts?: { invisible?: boolean }
+    ) {
+      const userId = await resolveUserId();
+      if (!userId || cancelled) return;
+      try {
+        const ch = await ensureLiveChannel(userId);
+        const payload: PresenceBroadcastPayload = {
+          userId,
+          online,
+          invisible: opts?.invisible ?? invisibleRef.current,
+          at: new Date().toISOString(),
+        };
+        await ch.send({
+          type: "broadcast",
+          event: PRESENCE_EVENT,
+          payload,
+        });
+      } catch {
+        /* realtime optional */
+      }
     }
 
     async function refreshInvisibleFlag() {
@@ -55,7 +107,14 @@ export function PresenceTracker() {
         !!profile.premium_until &&
         new Date(profile.premium_until).getTime() > Date.now();
       const canHide = profile.role === "admin" || premiumOk;
-      invisibleRef.current = !!profile.is_invisible && canHide;
+      const next = !!profile.is_invisible && canHide;
+      const was = invisibleRef.current;
+      invisibleRef.current = next;
+      if (next && !was) {
+        void broadcastLive(false, { invisible: true });
+      } else if (!next && was) {
+        void broadcastLive(true, { invisible: false });
+      }
     }
 
     async function touchPresence(force = false) {
@@ -88,6 +147,17 @@ export function PresenceTracker() {
             .eq("is_invisible", false);
         }
       }
+    }
+
+    async function pulseLive() {
+      if (cancelled) return;
+      if (document.visibilityState !== "visible") return;
+      await refreshInvisibleFlag();
+      if (invisibleRef.current) {
+        // Stay silent while invisible (already announced offline on toggle).
+        return;
+      }
+      void broadcastLive(true, { invisible: false });
     }
 
     async function checkBan(force = false) {
@@ -134,17 +204,26 @@ export function PresenceTracker() {
     // Initial pass: ban check + presence once.
     void checkBan(true);
     void touchPresence(true);
+    void pulseLive();
 
     const banInterval = setInterval(() => void checkBan(), BAN_CHECK_MS);
     const presenceInterval = setInterval(
       () => void touchPresence(),
       PRESENCE_MIN_MS
     );
+    const liveInterval = setInterval(() => void pulseLive(), LIVE_PULSE_MS);
 
     const onVisible = () => {
-      if (document.visibilityState !== "visible") return;
+      if (document.visibilityState !== "visible") {
+        // Soft offline for peers watching this tab
+        if (!invisibleRef.current) {
+          void broadcastLive(false, { invisible: false });
+        }
+        return;
+      }
       void checkBan();
       void touchPresence();
+      void pulseLive();
     };
 
     // Activity only marks "user is here" — presence write is still rate-limited.
@@ -155,6 +234,7 @@ export function PresenceTracker() {
       activityTimer = setTimeout(() => {
         activityTimer = null;
         void touchPresence();
+        void pulseLive();
       }, 5_000);
     };
 
@@ -163,8 +243,20 @@ export function PresenceTracker() {
       const detail = (ev as CustomEvent<{ invisible?: boolean }>).detail;
       if (typeof detail?.invisible === "boolean") {
         invisibleRef.current = detail.invisible;
+        if (detail.invisible) {
+          void broadcastLive(false, { invisible: true });
+        } else {
+          void broadcastLive(true, { invisible: false });
+          void touchPresence(true);
+        }
       } else {
         void refreshInvisibleFlag();
+      }
+    };
+
+    const onPageHide = () => {
+      if (!invisibleRef.current) {
+        void broadcastLive(false, { invisible: false });
       }
     };
 
@@ -173,12 +265,14 @@ export function PresenceTracker() {
     window.addEventListener("pointerdown", onActivity, { passive: true });
     window.addEventListener("keydown", onActivity, { passive: true });
     window.addEventListener(INVISIBLE_MODE_EVENT, onInvisibleEvent);
+    window.addEventListener("pagehide", onPageHide);
 
     // Realtime: own profile is_invisible changes (other tabs / devices).
     let profileChannel: ReturnType<typeof supabase.channel> | null = null;
     void (async () => {
       const userId = await resolveUserId();
       if (!userId || cancelled) return;
+      await ensureLiveChannel(userId);
       profileChannel = supabase
         .channel(`own-presence:${userId}`)
         .on(
@@ -202,7 +296,11 @@ export function PresenceTracker() {
               !!row.premium_until &&
               new Date(row.premium_until).getTime() > Date.now();
             const canHide = row.role === "admin" || premiumOk;
-            invisibleRef.current = !!row.is_invisible && canHide;
+            const next = !!row.is_invisible && canHide;
+            const was = invisibleRef.current;
+            invisibleRef.current = next;
+            if (next && !was) void broadcastLive(false, { invisible: true });
+            if (!next && was) void broadcastLive(true, { invisible: false });
           }
         )
         .subscribe();
@@ -212,13 +310,19 @@ export function PresenceTracker() {
       cancelled = true;
       clearInterval(banInterval);
       clearInterval(presenceInterval);
+      clearInterval(liveInterval);
       if (activityTimer) clearTimeout(activityTimer);
       document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("focus", onVisible);
       window.removeEventListener("pointerdown", onActivity);
       window.removeEventListener("keydown", onActivity);
       window.removeEventListener(INVISIBLE_MODE_EVENT, onInvisibleEvent);
+      window.removeEventListener("pagehide", onPageHide);
       if (profileChannel) void supabase.removeChannel(profileChannel);
+      if (liveChannelRef.current) {
+        void supabase.removeChannel(liveChannelRef.current);
+        liveChannelRef.current = null;
+      }
     };
   }, [supabase]);
 

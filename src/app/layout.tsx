@@ -4,6 +4,8 @@ import { createClient, supabaseConfigured } from "@/lib/supabase/server";
 import { SetupGuide } from "@/components/SetupGuide";
 import { BannedScreen } from "@/components/auth/BannedScreen";
 import { PresenceTracker } from "@/components/auth/PresenceTracker";
+import { E2eeRecoveryGate } from "@/components/chat/E2eeRecoveryGate";
+import { AgeGate } from "@/components/legal/AgeGate";
 import { RegisterSW } from "@/components/pwa/RegisterSW";
 import "./globals.css";
 
@@ -143,7 +145,9 @@ export default async function RootLayout({
         ) : (
           <>
             {children}
+            <AgeGate />
             <PresenceTracker />
+            <E2eeRecoveryGate />
             <RegisterSW />
           </>
         )}

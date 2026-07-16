@@ -1,18 +1,32 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import {
+  PRESENCE_EVENT,
+  presenceChannelName,
+  type PresenceBroadcastPayload,
+} from "@/lib/presence-channel";
 
 export type PresenceSnapshot = {
   last_seen: string | null;
   is_invisible: boolean;
 };
 
-const POLL_MS = 12_000;
+/** Fast poll until realtime/broadcast is known good. */
+const POLL_FAST_MS = 5_000;
+/** Backup poll when live channels are subscribed. */
+const POLL_SLOW_MS = 20_000;
+/** Max peers to attach broadcast listeners (inbox). */
+const MAX_BROADCAST_PEERS = 40;
 
 /**
  * Live last_seen + is_invisible for one or many profiles.
- * Realtime UPDATE on profiles + short poll fallback (realtime may be off).
+ *
+ * Layers (best → fallback):
+ * 1. Realtime Broadcast from peer's PresenceTracker (instant online/invisible)
+ * 2. postgres_changes on profiles (needs table in publication)
+ * 3. Poll REST (always on as safety net)
  */
 export function useLivePresence(
   userIds: string | string[] | null | undefined,
@@ -39,14 +53,16 @@ export function useLivePresence(
     return next;
   });
 
+  const liveOkRef = useRef(false);
+
   useEffect(() => {
     if (ids.length === 0) return;
 
     const tracked = ids;
     const supabase = createClient() as any;
     let cancelled = false;
+    liveOkRef.current = false;
 
-    // Apply SSR seed once per id set (do not clobber fresher live data later).
     if (initialById) {
       setMap((prev) => {
         let changed = false;
@@ -62,6 +78,20 @@ export function useLivePresence(
           changed = true;
         }
         return changed ? next : prev;
+      });
+    }
+
+    function applySnap(id: string, snap: PresenceSnapshot) {
+      setMap((prev) => {
+        const cur = prev[id];
+        if (
+          cur &&
+          cur.last_seen === snap.last_seen &&
+          cur.is_invisible === snap.is_invisible
+        ) {
+          return prev;
+        }
+        return { ...prev, [id]: snap };
       });
     }
 
@@ -99,15 +129,85 @@ export function useLivePresence(
     }
 
     void pull();
-    const poll = setInterval(() => void pull(), POLL_MS);
 
-    // Realtime only for a single peer (open chat / profile). Multi-id lists
-    // rely on poll — unfiltered profile broadcasts are too noisy.
-    let channel: ReturnType<typeof supabase.channel> | null = null;
+    // Adaptive poll interval
+    let pollMs = POLL_FAST_MS;
+    let pollTimer: ReturnType<typeof setInterval> | null = null;
+
+    function schedulePoll() {
+      if (pollTimer) clearInterval(pollTimer);
+      pollTimer = setInterval(() => void pull(), pollMs);
+    }
+    schedulePoll();
+
+    function markLiveOk() {
+      if (liveOkRef.current) return;
+      liveOkRef.current = true;
+      pollMs = POLL_SLOW_MS;
+      schedulePoll();
+    }
+
+    const channels: Array<ReturnType<typeof supabase.channel>> = [];
+
+    function onBroadcastPayload(payload: {
+      payload?: PresenceBroadcastPayload;
+    }) {
+      const p = payload.payload;
+      if (!p?.userId || !tracked.includes(p.userId)) return;
+      markLiveOk();
+
+      // Invisible: hide completely (no last_seen, no green)
+      if (p.invisible) {
+        applySnap(p.userId, {
+          last_seen: null,
+          is_invisible: true,
+        });
+        return;
+      }
+
+      // Explicit offline (tab closed / went away) — green off, keep not-invisible
+      if (!p.online) {
+        setMap((prev) => ({
+          ...prev,
+          [p.userId]: {
+            last_seen: new Date(Date.now() - 3 * 60 * 1000).toISOString(),
+            is_invisible: prev[p.userId]?.is_invisible ?? false,
+          },
+        }));
+        return;
+      }
+
+      // Online pulse
+      applySnap(p.userId, {
+        last_seen: p.at || new Date().toISOString(),
+        is_invisible: false,
+      });
+    }
+
+    // Broadcast listeners (instant; no DB publication required)
+    const broadcastIds = tracked.slice(0, MAX_BROADCAST_PEERS);
+    for (const peerId of broadcastIds) {
+      const ch = supabase
+        .channel(presenceChannelName(peerId), {
+          config: { broadcast: { self: false } },
+        })
+        .on(
+          "broadcast",
+          { event: PRESENCE_EVENT },
+          (payload: { payload?: PresenceBroadcastPayload }) =>
+            onBroadcastPayload(payload)
+        )
+        .subscribe((status: string) => {
+          if (status === "SUBSCRIBED") markLiveOk();
+        });
+      channels.push(ch);
+    }
+
+    // postgres_changes: single peer only (chat / profile)
     if (tracked.length === 1) {
       const peerId = tracked[0];
-      channel = supabase
-        .channel(`presence:${peerId}`)
+      const ch = supabase
+        .channel(`presence-pg:${peerId}`)
         .on(
           "postgres_changes",
           {
@@ -125,24 +225,26 @@ export function useLivePresence(
           }) => {
             const row = payload.new;
             if (!row?.id) return;
-            setMap((prev) => ({
-              ...prev,
-              [row.id!]: {
-                last_seen: row.last_seen ?? null,
-                is_invisible: !!row.is_invisible,
-              },
-            }));
+            markLiveOk();
+            applySnap(row.id, {
+              last_seen: row.last_seen ?? null,
+              is_invisible: !!row.is_invisible,
+            });
           }
         )
-        .subscribe();
+        .subscribe((status: string) => {
+          if (status === "SUBSCRIBED") markLiveOk();
+        });
+      channels.push(ch);
     }
 
     return () => {
       cancelled = true;
-      clearInterval(poll);
-      if (channel) void supabase.removeChannel(channel);
+      if (pollTimer) clearInterval(pollTimer);
+      for (const ch of channels) {
+        void supabase.removeChannel(ch);
+      }
     };
-    // initialById only seeds missing keys once per mount of this id set
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idsKey]);
 

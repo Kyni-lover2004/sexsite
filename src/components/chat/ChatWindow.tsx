@@ -121,7 +121,17 @@ export function ChatWindow({
     let active = true;
 
     async function init() {
-      await ensureKeyPair();
+      // Do not mint a new key if missing — E2eeRecoveryGate handles restore/setup.
+      try {
+        const { publicKeyJwk } = await ensureKeyPair({ allowCreate: false });
+        await supa.from("encryption_keys").upsert({
+          user_id: currentUserId,
+          public_key: publicKeyJwk,
+          updated_at: new Date().toISOString(),
+        });
+      } catch {
+        setHistoryLostHint(true);
+      }
 
       const { data: keyData } = await supa
         .from("encryption_keys")
@@ -380,20 +390,18 @@ export function ChatWindow({
     };
   }, [messages, peerKey, supabase]);
 
-  // Publish public key
+  // Publish public key (only if local keys already exist — no silent re-key)
   useEffect(() => {
     async function publishKey() {
-      const { publicKeyJwk } = await ensureKeyPair();
-      const { data: existing } = await supa
-        .from("encryption_keys")
-        .select("user_id")
-        .eq("user_id", currentUserId)
-        .maybeSingle();
-      if (!existing) {
-        await supa.from("encryption_keys").insert({
+      try {
+        const { publicKeyJwk } = await ensureKeyPair({ allowCreate: false });
+        await supa.from("encryption_keys").upsert({
           user_id: currentUserId,
           public_key: publicKeyJwk,
+          updated_at: new Date().toISOString(),
         });
+      } catch {
+        /* E2eeRecoveryGate will force setup/restore */
       }
     }
     void publishKey();

@@ -228,6 +228,34 @@ create table if not exists public.encryption_keys (
   updated_at  timestamptz default now()
 );
 
+-- Passphrase-encrypted private key blob (server cannot decrypt without user passphrase).
+create table if not exists public.e2ee_key_backups (
+  user_id      uuid primary key references public.profiles (id) on delete cascade,
+  v            integer not null default 1,
+  alg          text not null default 'PBKDF2-AES-GCM',
+  salt         text not null,
+  iv           text not null,
+  ciphertext   text not null,
+  public_key   jsonb not null,
+  created_at   timestamptz not null default now(),
+  updated_at   timestamptz not null default now()
+);
+
+alter table public.e2ee_key_backups enable row level security;
+
+drop policy if exists e2ee_backups_select on public.e2ee_key_backups;
+create policy e2ee_backups_select on public.e2ee_key_backups
+  for select using (auth.uid() = user_id);
+drop policy if exists e2ee_backups_insert on public.e2ee_key_backups;
+create policy e2ee_backups_insert on public.e2ee_key_backups
+  for insert with check (auth.uid() = user_id);
+drop policy if exists e2ee_backups_update on public.e2ee_key_backups;
+create policy e2ee_backups_update on public.e2ee_key_backups
+  for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+drop policy if exists e2ee_backups_delete on public.e2ee_key_backups;
+create policy e2ee_backups_delete on public.e2ee_key_backups
+  for delete using (auth.uid() = user_id);
+
 -- =============================================================
 --  TOPICS  (forum threads)
 --  Business rule: a user may have only ONE 'active' topic at a time.
