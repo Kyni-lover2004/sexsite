@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, useInView } from "framer-motion";
 import {
 
@@ -18,37 +18,46 @@ import { GlassCard } from "@/components/ui/GlassCard";
 import { BrandLogo } from "@/components/ui/BrandLogo";
 import { SiteFooter } from "@/components/legal/SiteFooter";
 
-/* ---------- typewriter ---------- */
-const WORDS = ["обсуждения", "знакомства", "общение", "приватность"];
+/* ---------- typewriter (genitive after «для …») ---------- */
+const WORDS = ["обсуждений", "знакомств", "общения", "приватности"] as const;
 
-function useTypewriter(words: string[], speed = 90, pause = 2000) {
+function useTypewriter(
+  words: readonly string[],
+  typeMs = 72,
+  deleteMs = 42,
+  holdMs = 2000
+) {
   const [text, setText] = useState("");
   const [wordIdx, setWordIdx] = useState(0);
-  const [deleting, setDeleting] = useState(false);
+  const [phase, setPhase] = useState<"type" | "hold" | "delete">("type");
 
   useEffect(() => {
-    const word = words[wordIdx];
+    const word = words[wordIdx] ?? "";
+    let t: ReturnType<typeof setTimeout>;
 
-    const timeout = setTimeout(
-      () => {
-        if (!deleting) {
-          setText(word.slice(0, text.length + 1));
-          if (text.length + 1 === word.length) {
-            setTimeout(() => setDeleting(true), pause);
-          }
-        } else {
-          setText(word.slice(0, text.length - 1));
-          if (text.length === 0) {
-            setDeleting(false);
-            setWordIdx((i) => (i + 1) % words.length);
-          }
-        }
-      },
-      deleting ? speed / 2 : speed
-    );
+    if (phase === "type") {
+      if (text.length < word.length) {
+        t = setTimeout(
+          () => setText(word.slice(0, text.length + 1)),
+          typeMs
+        );
+      } else {
+        t = setTimeout(() => setPhase("delete"), holdMs);
+      }
+    } else if (phase === "delete") {
+      if (text.length > 0) {
+        t = setTimeout(() => setText(text.slice(0, -1)), deleteMs);
+      } else {
+        // Next word only after full erase — single state update batch
+        t = setTimeout(() => {
+          setWordIdx((i) => (i + 1) % words.length);
+          setPhase("type");
+        }, 120);
+      }
+    }
 
-    return () => clearTimeout(timeout);
-  }, [text, deleting, wordIdx, words, speed, pause]);
+    return () => clearTimeout(t);
+  }, [text, phase, wordIdx, words, typeMs, deleteMs, holdMs]);
 
   return text;
 }
@@ -101,6 +110,10 @@ const FEATURES = [
 /* ---------- main component ---------- */
 export function HeroLanding() {
   const typed = useTypewriter(WORDS);
+  const widest = useMemo(
+    () => WORDS.reduce((a, b) => (a.length >= b.length ? a : b), WORDS[0]),
+    []
+  );
 
   return (
     <div className="relative min-h-dvh overflow-hidden bg-base-950">
@@ -159,9 +172,20 @@ export function HeroLanding() {
           >
             <span className="text-gradient glow-text">Пространство для</span>
             <br />
-            <span className="relative inline-block min-w-[200px] text-left sm:min-w-[280px] md:min-w-[400px]">
-              <span className="text-warm-100">{typed}</span>
-              <span className="cursor-blink ml-0.5 text-gold-soft">|</span>
+            {/* Reserve width of longest word so the line doesn’t jump */}
+            <span className="relative inline-grid justify-items-center">
+              <span
+                className="invisible col-start-1 row-start-1 whitespace-nowrap"
+                aria-hidden
+              >
+                {widest}
+              </span>
+              <span className="col-start-1 row-start-1 whitespace-nowrap text-warm-100">
+                {typed}
+                <span className="cursor-blink ml-0.5 inline-block w-[0.45ch] text-gold-soft">
+                  |
+                </span>
+              </span>
             </span>
           </motion.h1>
 
