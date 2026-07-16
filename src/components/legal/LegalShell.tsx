@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { BrandLogo } from "@/components/ui/BrandLogo";
 import { SiteFooter } from "@/components/legal/SiteFooter";
+import { LegalHeaderCta } from "@/components/legal/LegalHeaderCta";
 
 const NAV = [
   { href: "/legal/rules", label: "Правила" },
@@ -26,12 +27,7 @@ export function LegalShell({
               Desire Privé
             </span>
           </Link>
-          <Link
-            href="/login"
-            className="text-xs text-gold-soft hover:underline"
-          >
-            Войти
-          </Link>
+          <LegalHeaderCta />
         </div>
         <nav className="mx-auto flex max-w-3xl gap-1 overflow-x-auto px-4 pb-3">
           {NAV.map((item) => (
