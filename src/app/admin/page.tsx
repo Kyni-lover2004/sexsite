@@ -51,7 +51,8 @@ export default async function AdminPage() {
       .select(
         `id, reporter_id, topic_id, comment_id, reason, reason_code, details, status, created_at,
          reporter:profiles!content_reports_reporter_id_fkey(id, username, display_name, avatar_url),
-         topic:topics!content_reports_topic_id_fkey(id, title, author_id)`
+         topic:topics!content_reports_topic_id_fkey(id, title, author_id, body),
+         comment:comments!content_reports_comment_id_fkey(id, body, topic_id)`
       )
       .order("created_at", { ascending: false })
       .limit(100),
@@ -70,6 +71,7 @@ export default async function AdminPage() {
     ...r,
     reporter: Array.isArray(r.reporter) ? r.reporter[0] ?? null : r.reporter,
     topic: Array.isArray(r.topic) ? r.topic[0] ?? null : r.topic,
+    comment: Array.isArray(r.comment) ? r.comment[0] ?? null : r.comment,
   }));
   const profileReports = (profileReportsRes.data ?? []).map((r: any) => ({
     ...r,

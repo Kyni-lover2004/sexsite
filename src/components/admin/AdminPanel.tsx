@@ -59,7 +59,18 @@ export type ContentReportRow = {
     Profile,
     "id" | "username" | "display_name" | "avatar_url"
   > | null;
-  topic?: { id: string; title: string; author_id: string } | null;
+  topic?: {
+    id: string;
+    title: string;
+    author_id: string;
+    body?: string | null;
+  } | null;
+  comment?: {
+    id: string;
+    body: string;
+    topic_id: string;
+    topic?: { id: string; title: string } | null;
+  } | null;
 };
 
 export type ProfileReportRow = {
@@ -764,96 +775,147 @@ export function AdminPanel({
                 Жалоб на посты/комментарии пока нет
               </GlassCard>
             ) : (
-              filteredContentReports.map((r) => (
-                <GlassCard
-                  key={r.id}
-                  className={cn(
-                    "p-4",
-                    r.status === "open" && "border-red-500/20"
-                  )}
-                >
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1 space-y-1">
-                      <div className="flex flex-wrap items-center gap-2 text-xs">
-                        <StatusPill status={r.status} />
-                        <span className="text-slate-500">
-                          {timeAgo(r.created_at)}
-                        </span>
-                        {r.comment_id ? (
-                          <span className="rounded bg-base-800 px-1.5 py-0.5 text-slate-400">
-                            комментарий
-                          </span>
-                        ) : (
-                          <span className="rounded bg-base-800 px-1.5 py-0.5 text-slate-400">
-                            пост
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-sm font-medium text-warm-100">
-                        {r.reason}
-                      </p>
-                      {r.details && (
-                        <p className="text-xs text-slate-400">{r.details}</p>
-                      )}
-                      <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-500">
-                        <span>
-                          От: @
-                          {r.reporter?.username ?? r.reporter_id.slice(0, 8)}
-                        </span>
-                        {r.topic_id && (
-                          <Link
-                            href={`/topic/${r.topic_id}`}
-                            className="text-gold-soft hover:underline"
-                          >
-                            {r.topic?.title
-                              ? `Пост: ${r.topic.title}`
-                              : "Открыть пост"}
-                          </Link>
-                        )}
+              filteredContentReports.map((r) => {
+                const linkedTopicId =
+                  r.topic_id ?? r.comment?.topic_id ?? r.comment?.topic?.id ?? null;
+                const linkedTitle =
+                  r.topic?.title ?? r.comment?.topic?.title ?? null;
+                const detailsText = (r.details ?? "").trim();
+                // reason already includes "label: details" when submitted — avoid double-printing
+                const reasonLooksCombined =
+                  detailsText.length > 0 &&
+                  r.reason.toLowerCase().includes(detailsText.toLowerCase());
+
+                return (
+                  <GlassCard
+                    key={r.id}
+                    className={cn(
+                      "overflow-hidden p-4",
+                      r.status === "open" && "border-red-500/20"
+                    )}
+                  >
+                    <div className="flex min-w-0 flex-col gap-3">
+                      <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="min-w-0 flex-1 space-y-2">
+                          <div className="flex flex-wrap items-center gap-2 text-xs">
+                            <StatusPill status={r.status} />
+                            <span className="shrink-0 text-slate-500">
+                              {timeAgo(r.created_at)}
+                            </span>
+                            <span className="rounded bg-base-800 px-1.5 py-0.5 text-slate-400">
+                              {r.comment_id ? "комментарий" : "пост"}
+                            </span>
+                          </div>
+
+                          <p className="break-words text-sm font-medium text-warm-100">
+                            {r.reason}
+                          </p>
+                          {detailsText && !reasonLooksCombined && (
+                            <p className="whitespace-pre-wrap break-words text-xs text-slate-400">
+                              {detailsText}
+                            </p>
+                          )}
+
+                          {r.topic?.body && (
+                            <div className="rounded-xl border border-gold/10 bg-base-900/40 px-3 py-2">
+                              <p className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
+                                Текст поста
+                              </p>
+                              <p className="mt-1 line-clamp-4 whitespace-pre-wrap break-words text-xs text-slate-300">
+                                {r.topic.body}
+                              </p>
+                            </div>
+                          )}
+                          {r.comment?.body && (
+                            <div className="rounded-xl border border-gold/10 bg-base-900/40 px-3 py-2">
+                              <p className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
+                                Текст комментария
+                              </p>
+                              <p className="mt-1 line-clamp-4 whitespace-pre-wrap break-words text-xs text-slate-300">
+                                {r.comment.body}
+                              </p>
+                            </div>
+                          )}
+
+                          <div className="flex min-w-0 flex-col gap-1 text-xs text-slate-500 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-3 sm:gap-y-1">
+                            <span className="break-words">
+                              От: @
+                              {r.reporter?.username ?? r.reporter_id.slice(0, 8)}
+                            </span>
+                            {linkedTopicId && (
+                              <Link
+                                href={`/topic/${linkedTopicId}`}
+                                className="min-w-0 break-words text-gold-soft hover:underline"
+                              >
+                                {linkedTitle
+                                  ? `Открыть: ${linkedTitle}`
+                                  : "Открыть пост"}
+                              </Link>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="grid w-full shrink-0 grid-cols-1 gap-2 min-[380px]:grid-cols-2 sm:w-auto sm:flex sm:flex-wrap sm:justify-end">
+                          {linkedTopicId && (
+                            <Link
+                              href={`/topic/${linkedTopicId}`}
+                              className="min-[380px]:col-span-2 sm:col-auto"
+                            >
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="w-full sm:w-auto"
+                              >
+                                К посту
+                              </Button>
+                            </Link>
+                          )}
+                          {r.status === "open" && (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="w-full sm:w-auto"
+                                disabled={actionLoading === r.id}
+                                onClick={() =>
+                                  void setContentReportStatus(r.id, "reviewed")
+                                }
+                              >
+                                <CheckCircle2 size={14} />
+                                Проверено
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="w-full sm:w-auto"
+                                disabled={actionLoading === r.id}
+                                onClick={() =>
+                                  void setContentReportStatus(r.id, "dismissed")
+                                }
+                              >
+                                Отклонить
+                              </Button>
+                            </>
+                          )}
+                          {r.status !== "open" && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="w-full sm:w-auto"
+                              disabled={actionLoading === r.id}
+                              onClick={() =>
+                                void setContentReportStatus(r.id, "open")
+                              }
+                            >
+                              Вернуть
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {r.status === "open" && (
-                        <>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            disabled={actionLoading === r.id}
-                            onClick={() =>
-                              void setContentReportStatus(r.id, "reviewed")
-                            }
-                          >
-                            <CheckCircle2 size={14} />
-                            Проверено
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            disabled={actionLoading === r.id}
-                            onClick={() =>
-                              void setContentReportStatus(r.id, "dismissed")
-                            }
-                          >
-                            Отклонить
-                          </Button>
-                        </>
-                      )}
-                      {r.status !== "open" && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          disabled={actionLoading === r.id}
-                          onClick={() =>
-                            void setContentReportStatus(r.id, "open")
-                          }
-                        >
-                          Вернуть
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </GlassCard>
-              ))
+                  </GlassCard>
+                );
+              })
             )}
           </motion.div>
         )}
@@ -875,29 +937,31 @@ export function AdminPanel({
                 <GlassCard
                   key={r.id}
                   className={cn(
-                    "p-4",
+                    "overflow-hidden p-4",
                     r.status === "open" && "border-red-500/20"
                   )}
                 >
-                  <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div className="flex min-w-0 flex-1 gap-3">
-                      <Avatar
-                        src={r.reported?.avatar_url}
-                        name={
-                          r.reported?.display_name ??
-                          r.reported?.username ??
-                          "?"
-                        }
-                        size="md"
-                      />
-                      <div className="min-w-0 space-y-1">
+                      <div className="shrink-0">
+                        <Avatar
+                          src={r.reported?.avatar_url}
+                          name={
+                            r.reported?.display_name ??
+                            r.reported?.username ??
+                            "?"
+                          }
+                          size="md"
+                        />
+                      </div>
+                      <div className="min-w-0 flex-1 space-y-1.5">
                         <div className="flex flex-wrap items-center gap-2 text-xs">
                           <StatusPill status={r.status} />
-                          <span className="text-slate-500">
+                          <span className="shrink-0 text-slate-500">
                             {timeAgo(r.created_at)}
                           </span>
                         </div>
-                        <p className="font-medium text-warm-100">
+                        <p className="break-words font-medium text-warm-100">
                           <Link
                             href={`/profile/${r.reported_user_id}`}
                             className="hover:text-gold-soft"
@@ -906,22 +970,36 @@ export function AdminPanel({
                             {r.reported?.username ??
                               r.reported_user_id.slice(0, 8)}
                           </Link>
+                          {r.reported?.display_name && (
+                            <span className="ml-1.5 font-normal text-slate-400">
+                              · {r.reported.display_name}
+                            </span>
+                          )}
                         </p>
-                        <p className="text-sm text-gold-soft/90">
+                        <p className="break-words text-sm text-gold-soft/90">
                           {r.reason_label}
                         </p>
-                        {r.details && (
-                          <p className="text-xs text-slate-400">{r.details}</p>
+                        {r.details?.trim() && (
+                          <p className="whitespace-pre-wrap break-words text-xs text-slate-400">
+                            {r.details}
+                          </p>
                         )}
-                        <p className="text-xs text-slate-500">
+                        <p className="break-words text-xs text-slate-500">
                           Жалоба от @
                           {r.reporter?.username ?? r.reporter_id.slice(0, 8)}
                         </p>
                       </div>
                     </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      <Link href={`/profile/${r.reported_user_id}`}>
-                        <Button size="sm" variant="outline">
+                    <div className="grid w-full shrink-0 grid-cols-1 gap-2 min-[380px]:grid-cols-2 sm:w-auto sm:flex sm:flex-wrap sm:justify-end">
+                      <Link
+                        href={`/profile/${r.reported_user_id}`}
+                        className="min-[380px]:col-span-2 sm:col-auto"
+                      >
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="w-full sm:w-auto"
+                        >
                           Анкета
                         </Button>
                       </Link>
@@ -930,6 +1008,7 @@ export function AdminPanel({
                           <Button
                             size="sm"
                             variant="outline"
+                            className="w-full sm:w-auto"
                             disabled={actionLoading === r.id}
                             onClick={() =>
                               void setProfileReportStatus(r.id, "reviewed")
@@ -941,6 +1020,7 @@ export function AdminPanel({
                           <Button
                             size="sm"
                             variant="ghost"
+                            className="w-full sm:w-auto"
                             disabled={actionLoading === r.id}
                             onClick={() =>
                               void setProfileReportStatus(r.id, "dismissed")
@@ -954,6 +1034,7 @@ export function AdminPanel({
                         <Button
                           size="sm"
                           variant="ghost"
+                          className="w-full sm:w-auto"
                           disabled={actionLoading === r.id}
                           onClick={() =>
                             void setProfileReportStatus(r.id, "open")
@@ -1251,10 +1332,12 @@ function StatCard({
   tone?: "gold" | "red";
 }) {
   return (
-    <GlassCard className="p-4">
-      <p className="text-xs text-slate-500">{label}</p>
+    <GlassCard className="min-w-0 overflow-hidden p-3 sm:p-4">
+      <p className="break-words text-[11px] leading-tight text-slate-500 sm:text-xs">
+        {label}
+      </p>
       <p
-        className={`mt-1 font-display text-2xl font-bold ${
+        className={`mt-1 font-display text-xl font-bold sm:text-2xl ${
           tone === "gold"
             ? "text-gold-soft"
             : tone === "red"
@@ -1281,7 +1364,7 @@ function TabButton({
     <button
       type="button"
       onClick={onClick}
-      className={`flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition-all sm:flex-none sm:px-4 ${
+      className={`inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium transition-all sm:gap-2 sm:px-4 ${
         active
           ? "bg-accent-gradient text-white shadow-glow-accent"
           : "bg-base-800/50 text-slate-400 hover:text-white"
