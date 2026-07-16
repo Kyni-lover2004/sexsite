@@ -220,18 +220,21 @@ group by 1 order by 2 desc;
 Мусор чистится модерацией + cleanup неактивных (~30 дней по `last_active_at`).
 
 ### Freesh / cloud Supabase
+Регистрация идёт через `/api/auth/register` (service role, `email_confirm: true`) —
+письма и Confirm email **не нужны** для входа.
+
+В env (Vercel / `.env.local`) обязателен:
+
+```env
+SUPABASE_SERVICE_ROLE_KEY=eyJ...   # Project Settings → API → service_role
+```
+
 Dashboard → **Authentication** → **Providers** → **Email**:
 - **Enable Email provider** → **ON**
-- **Confirm email** → **OFF** (без писем)
-- (опционально) Secure email change — как удобно
+- Sign ups разрешены
 
-Также: **Authentication** → **Settings** (или Providers):
-- **Allow new users to sign up** / disable signups → **разрешено** (не disabled)
-
-Ошибка **"Email signups are disabled"** = в Dashboard выключена регистрация по email.
-Включи Email provider + signups, Save.
-
-Без Confirm email OFF `signUp` может не выдать сессию.
+Если уже есть «зависшие» неподтверждённые юзеры — повторная регистрация тем же
+email через форму попытается confirm’нуть их (или войдите после ручного confirm в Auth → Users).
 
 ### Self-hosted
 В `.env` Docker-стека (имена зависят от версии, смотри `.env.example`):

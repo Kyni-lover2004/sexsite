@@ -86,41 +86,35 @@ export function AuthForm() {
     const next = safeRedirectPath(searchParams.get("next"), "/");
 
     if (mode === "register") {
-      // No email verification: sign up and enter immediately (Confirm email OFF in Supabase).
-      const { data, error: signUpError } = await supabase.auth.signUp({
-        email,
-        password,
-      });
-
-      if (signUpError) {
-        setLoading(false);
-        const msg = signUpError.message || "";
-        if (/signups? are disabled|email signup/i.test(msg)) {
-          setError(
-            "Регистрация по email отключена в Supabase. " +
-              "Dashboard → Authentication → Providers → Email → включите Email provider " +
-              "и разрешите Sign ups. Confirm email — выключите."
-          );
-        } else {
-          setError(msg);
+      // Server creates user with email_confirm: true (no mail). Then client signs in.
+      try {
+        const res = await fetch("/api/auth/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        });
+        const payload = (await res.json().catch(() => ({}))) as {
+          error?: string;
+        };
+        if (!res.ok) {
+          setLoading(false);
+          setError(payload.error || "Не удалось зарегистрироваться");
+          return;
         }
+      } catch {
+        setLoading(false);
+        setError("Сеть недоступна. Попробуйте ещё раз.");
         return;
       }
 
-      // If project still has confirm-email ON, session may be null — try password login.
-      if (!data.session) {
-        const { error: signInError } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-        if (signInError) {
-          setLoading(false);
-          setError(
-            "Аккаунт создан, но вход заблокирован подтверждением почты. " +
-              "В Supabase: Authentication → Providers → Email → выключите Confirm email."
-          );
-          return;
-        }
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (signInError) {
+        setLoading(false);
+        setError(signInError.message);
+        return;
       }
 
       void import("@/lib/analytics").then(({ trackEvent }) =>
