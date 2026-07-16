@@ -42,6 +42,15 @@ export function ReportModal({
 
   if (!open) return null;
 
+  function resetAndClose() {
+    if (busy) return;
+    setError("");
+    setDone(false);
+    setDetails("");
+    setReason(reasons[0]);
+    onClose();
+  }
+
   async function submit() {
     setBusy(true);
     setError("");
@@ -81,7 +90,7 @@ export function ReportModal({
   return (
     <div
       className="fixed inset-0 z-[80] flex items-end justify-center bg-black/55 p-3 sm:items-center"
-      onClick={() => !busy && onClose()}
+      onClick={resetAndClose}
     >
       <div
         className="w-full max-w-md rounded-2xl border border-gold/20 bg-base-950 p-5 shadow-2xl"
@@ -93,8 +102,10 @@ export function ReportModal({
           </h3>
           <button
             type="button"
-            onClick={() => !busy && onClose()}
-            className="grid h-9 w-9 place-items-center rounded-lg text-slate-400 hover:bg-base-800"
+            onClick={resetAndClose}
+            disabled={busy}
+            aria-label="Закрыть"
+            className="grid h-9 w-9 place-items-center rounded-lg text-slate-400 hover:bg-base-800 disabled:opacity-50"
           >
             <X size={18} />
           </button>
@@ -141,14 +152,30 @@ export function ReportModal({
               />
             </div>
             {error && <p className="text-xs text-red-400">{error}</p>}
-            <Button className="w-full" disabled={busy} onClick={() => void submit()}>
-              {busy ? (
-                <Loader2 size={16} className="animate-spin" />
-              ) : (
-                <Flag size={16} />
-              )}
-              Отправить жалобу
-            </Button>
+            <div className="grid grid-cols-1 gap-2 min-[360px]:grid-cols-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                disabled={busy}
+                onClick={resetAndClose}
+              >
+                Отменить
+              </Button>
+              <Button
+                type="button"
+                className="w-full"
+                disabled={busy}
+                onClick={() => void submit()}
+              >
+                {busy ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <Flag size={16} />
+                )}
+                Отправить
+              </Button>
+            </div>
           </div>
         )}
       </div>
