@@ -29,6 +29,27 @@ where username = 'ВАШ_USERNAME';
 
 ---
 
+## 1b. Бэкап / переезд БД (Supabase → свой Postgres)
+
+Скрипты: `scripts/db/` (см. `scripts/db/README.md`).
+
+```bash
+# connection string: Supabase → Database → Direct URI (port 5432)
+export SUPABASE_DB_URL='postgresql://...'
+
+./scripts/db/export-from-supabase.sh              # public schema + data
+./scripts/db/export-from-supabase.sh --full-supabase  # + auth/storage metadata
+```
+
+Файлы → `backups/db/` (не в git). Импорт на VPS:
+
+```bash
+export TARGET_DB_URL='postgresql://user:pass@server:5432/dbname'
+./scripts/db/import-to-postgres.sh backups/db/supabase_....dump
+```
+
+Фото/аватары из Storage SQL-дамп **не** включает.
+
 ## 2. SQL-патчи (прод)
 
 Репозиторий: `supabase/patch_*.sql` + `schema.sql`.

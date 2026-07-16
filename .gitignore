@@ -26,6 +26,12 @@ yarn-error.log*
 .env
 .env*.local
 
+# DB dumps (may contain personal data — never commit)
+/backups/db/*
+!/backups/db/.gitkeep
+*.sql.dump
+*.dump
+
 # vercel
 .vercel
 
