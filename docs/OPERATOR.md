@@ -29,7 +29,27 @@ where username = 'ВАШ_USERNAME';
 
 ---
 
-## 1b. Бэкап / переезд БД (Supabase → свой Postgres)
+## 1b. Self-hosted: накатить схему приложения
+
+После `docker compose` / `setup.sh` (пустой self-hosted) — **один файл**:
+
+`supabase/общая_схема.sql`
+
+Studio → SQL Editor → вставить целиком → Run  
+(или `psql "$TARGET_DB_URL" -f supabase/общая_схема.sql`)
+
+Это **структура + логика** (таблицы, RLS, RPC).  
+**Данные** с freesh — отдельно: `scripts/db/export-from-supabase.sh`.
+
+Потом:
+
+```sql
+update public.profiles
+set role = 'admin', is_owner = true
+where id = 'uuid-из-auth.users';
+```
+
+## 1c. Бэкап / переезд БД (Supabase → свой Postgres)
 
 Скрипты: `scripts/db/` (см. `scripts/db/README.md`).
 

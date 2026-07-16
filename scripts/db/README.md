@@ -1,5 +1,19 @@
 # DB export / import (Supabase → свой Postgres)
 
+## Пустой self-hosted (только структура приложения)
+
+После установки Docker Supabase накатите:
+
+```bash
+# из Studio SQL Editor: файл supabase/общая_схема.sql
+# или:
+psql "$TARGET_DB_URL" -f supabase/общая_схема.sql
+```
+
+Файл = `schema.sql` + все `patch_*.sql`. **Данных нет** — для данных используйте export ниже.
+
+---
+
 Скрипты снимают **схему + данные** с live Supabase, чтобы потом накатить на VPS Postgres.
 
 | Скрипт | Зачем |
