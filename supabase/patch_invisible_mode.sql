@@ -2,19 +2,27 @@
 --  Invisible mode (premium + admin)
 --  When enabled: no last_seen heartbeat, not listed as online,
 --  presence/last-seen hidden from others in the app.
---  Re-run safe: create or replace / if not exists throughout.
+--
+--  Re-run safe. Prefer running when app traffic is low.
+--  Realtime for profiles is OPTIONAL — see bottom comments
+--  (do NOT run ALTER PUBLICATION in the same batch under load).
 -- =============================================================
 
+-- Fail fast on lock waits instead of hanging / deadlocking forever.
+set lock_timeout = '8s';
+set statement_timeout = '60s';
+
+-- 1) Column (no-op if already present)
 alter table public.profiles
   add column if not exists is_invisible boolean not null default false;
 
+-- 2) Index (skip if exists). Regular create — CONCURRENTLY cannot run
+--    inside the SQL editor's implicit transaction.
 create index if not exists profiles_is_invisible_idx
   on public.profiles (is_invisible)
   where is_invisible = true;
 
--- Only premium (active) or admin may keep is_invisible = true.
--- When turning invisible ON: backdate last_seen past the online window
--- so green "online" drops even for clients that only look at last_seen.
+-- 3) Functions first (replace body without dropping table locks long)
 create or replace function public.enforce_invisible_privilege()
 returns trigger
 language plpgsql
@@ -29,8 +37,10 @@ begin
     end if;
   end if;
 
-  -- Instant offline for observers: online window is ~2 minutes client-side.
-  if coalesce(new.is_invisible, false)
+  -- Instant offline for observers (online window ~2 min client-side).
+  -- Only on UPDATE false→true; INSERT has no OLD.
+  if tg_op = 'UPDATE'
+     and coalesce(new.is_invisible, false)
      and not coalesce(old.is_invisible, false) then
     new.last_seen := now() - interval '3 minutes';
   end if;
@@ -39,14 +49,6 @@ begin
 end;
 $$;
 
-drop trigger if exists trg_enforce_invisible_privilege on public.profiles;
-create trigger trg_enforce_invisible_privilege
-  before insert or update of is_invisible, premium_until, role
-  on public.profiles
-  for each row
-  execute function public.enforce_invisible_privilege();
-
--- Heartbeat skips last_seen while invisible (and still privileged).
 create or replace function public.heartbeat()
 returns timestamptz
 language plpgsql
@@ -102,13 +104,26 @@ $$;
 
 grant execute on function public.heartbeat() to authenticated;
 
--- Ensure realtime can push is_invisible / last_seen to open chats.
--- Safe if already added: ignore duplicate.
-do $$
-begin
-  alter publication supabase_realtime add table public.profiles;
-exception
-  when duplicate_object then null;
-  when undefined_object then null;
-end;
-$$;
+-- 4) Trigger last (brief exclusive lock on profiles)
+drop trigger if exists trg_enforce_invisible_privilege on public.profiles;
+create trigger trg_enforce_invisible_privilege
+  before insert or update of is_invisible, premium_until, role
+  on public.profiles
+  for each row
+  execute function public.enforce_invisible_privilege();
+
+-- Reset timeouts for the rest of the session (dashboard may keep connection)
+set lock_timeout = 0;
+set statement_timeout = 0;
+
+-- =============================================================
+-- OPTIONAL realtime (run SEPARATELY, only if needed):
+-- App already polls every ~12s without this.
+--
+-- In Dashboard → Database → Publications → supabase_realtime
+-- enable "profiles", OR run alone when traffic is quiet:
+--
+--   alter publication supabase_realtime add table public.profiles;
+--
+-- If already added: ERROR 42710 / duplicate_object — ignore.
+-- =============================================================
