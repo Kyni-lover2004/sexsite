@@ -132,10 +132,13 @@ export function ProfileView({
   const [saveError, setSaveError] = useState("");
   const [photoError, setPhotoError] = useState("");
   const [localPhotos, setLocalPhotos] = useState(photos);
+  const [localAlbums, setLocalAlbums] = useState(albums ?? []);
+  const [localAvatarUrl, setLocalAvatarUrl] = useState(profile.avatar_url);
   const [viewAlbumId, setViewAlbumId] = useState<string>("main");
   const [available, setAvailable] = useState(profile.available_for_chat);
   const [invisible, setInvisible] = useState(!!profile.is_invisible);
   const [friendStatus, setFriendStatus] = useState<"none" | "sent" | "received" | "accepted">("none");
+  const [mediaBusy, setMediaBusy] = useState(false);
 
   // When viewing someone else — live is_invisible so green online drops immediately.
   const livePeer = usePeerPresence(isOwn ? null : profile.id, {
@@ -261,6 +264,20 @@ export function ProfileView({
   useEffect(() => {
     setLocalPhotos(photos);
   }, [photos]);
+
+  useEffect(() => {
+    setLocalAlbums(albums ?? []);
+  }, [albums]);
+
+  useEffect(() => {
+    setLocalAvatarUrl(profile.avatar_url);
+  }, [profile.avatar_url]);
+
+  const isAdmin = viewerIsAdmin || isAdminViewer;
+  /** Owner or admin may delete media on this profile */
+  const canModerateMedia = isOwn || isAdmin;
+  /** Admin tools on someone else's profile only */
+  const isAdminModerating = !isOwn && isAdmin;
 
   useEffect(() => {
     if (isOwn) return;
@@ -400,9 +417,27 @@ export function ProfileView({
     setUploadingPhoto(false);
   }
 
+  function photoStorageBucket(photo: ProfilePhoto): string {
+    const album = localAlbums.find((a: any) => a.id === photo.album_id);
+    return album?.is_private ? "profile-photos-private" : "profile-photos";
+  }
+
   async function deleteProfilePhoto(photo: ProfilePhoto) {
+    if (!canModerateMedia) return;
+    if (
+      !window.confirm(
+        isAdminModerating
+          ? "Удалить это фото у пользователя? Действие необратимо."
+          : "Удалить это фото?"
+      )
+    ) {
+      return;
+    }
+
     setPhotoError("");
-    setLocalPhotos((prev) => prev.filter((item) => item.id !== photo.id));
+    setMediaBusy(true);
+    const prev = localPhotos;
+    setLocalPhotos((p) => p.filter((item) => item.id !== photo.id));
 
     const { error: deleteError } = await (supabase as any)
       .from("profile_photos")
@@ -410,15 +445,140 @@ export function ProfileView({
       .eq("id", photo.id)
       .eq("user_id", profile.id);
 
-    const { error: storageError } = await (supabase as any).storage
-      .from("profile-photos")
-      .remove([photo.storage_path]);
-
-    if (deleteError || storageError) {
-      console.error("Profile photo delete error:", deleteError ?? storageError);
-      setPhotoError("Не удалось удалить фото. Обновите страницу и попробуйте снова.");
-      router.refresh();
+    if (deleteError) {
+      console.error("Profile photo delete error:", deleteError);
+      setLocalPhotos(prev);
+      setPhotoError(
+        deleteError.message?.includes("policy")
+          ? "Нет прав на удаление фото (нужна политика admin)."
+          : "Не удалось удалить фото. Обновите страницу и попробуйте снова."
+      );
+      setMediaBusy(false);
+      return;
     }
+
+    const primary = photoStorageBucket(photo);
+    const other =
+      primary === "profile-photos-private"
+        ? "profile-photos"
+        : "profile-photos-private";
+    await (supabase as any).storage.from(primary).remove([photo.storage_path]);
+    // Best-effort: path may live in the other bucket after moves
+    await (supabase as any).storage.from(other).remove([photo.storage_path]);
+    setMediaBusy(false);
+  }
+
+  function avatarStoragePathFromUrl(url: string | null | undefined): string | null {
+    if (!url) return null;
+    const marker = "/object/public/avatars/";
+    const idx = url.indexOf(marker);
+    if (idx >= 0) return decodeURIComponent(url.slice(idx + marker.length));
+    const signed = "/object/sign/avatars/";
+    const sidx = url.indexOf(signed);
+    if (sidx >= 0) {
+      const rest = url.slice(sidx + signed.length).split("?")[0];
+      return decodeURIComponent(rest);
+    }
+    return null;
+  }
+
+  async function adminRemoveAvatar() {
+    if (!isAdminModerating) return;
+    if (!localAvatarUrl) return;
+    if (
+      !window.confirm(
+        "Удалить аватар пользователя? Вместо него будет плейсхолдер."
+      )
+    ) {
+      return;
+    }
+
+    setMediaBusy(true);
+    setPhotoError("");
+    const prevUrl = localAvatarUrl;
+    setLocalAvatarUrl(null);
+
+    const { error } = await (supabase as any)
+      .from("profiles")
+      .update({ avatar_url: null })
+      .eq("id", profile.id);
+
+    if (error) {
+      setLocalAvatarUrl(prevUrl);
+      setPhotoError(error.message ?? "Не удалось удалить аватар");
+      setMediaBusy(false);
+      return;
+    }
+
+    const path = avatarStoragePathFromUrl(prevUrl);
+    if (path) {
+      await (supabase as any).storage.from("avatars").remove([path]);
+    }
+    setMediaBusy(false);
+    router.refresh();
+  }
+
+  async function adminDeleteAlbum(album: { id: string; name?: string }) {
+    if (!isAdminModerating) return;
+    const photosInAlbum = localPhotos.filter((p) => p.album_id === album.id);
+    const n = photosInAlbum.length;
+    if (
+      !window.confirm(
+        n > 0
+          ? `Удалить альбом «${album.name ?? "без имени"}» и ${n} фото в нём?`
+          : `Удалить альбом «${album.name ?? "без имени"}»?`
+      )
+    ) {
+      return;
+    }
+
+    setMediaBusy(true);
+    setPhotoError("");
+    setLightboxOpen(false);
+
+    // Delete all photos first (DB + storage)
+    for (const photo of photosInAlbum) {
+      const { error: delErr } = await (supabase as any)
+        .from("profile_photos")
+        .delete()
+        .eq("id", photo.id)
+        .eq("user_id", profile.id);
+      if (delErr) {
+        setPhotoError(delErr.message ?? "Не удалось удалить фото из альбома");
+        setMediaBusy(false);
+        router.refresh();
+        return;
+      }
+      const primary = photoStorageBucket(photo);
+      const other =
+        primary === "profile-photos-private"
+          ? "profile-photos"
+          : "profile-photos-private";
+      await (supabase as any).storage.from(primary).remove([photo.storage_path]);
+      await (supabase as any).storage.from(other).remove([photo.storage_path]);
+    }
+
+    const { error: albumErr } = await (supabase as any)
+      .from("profile_albums")
+      .delete()
+      .eq("id", album.id)
+      .eq("user_id", profile.id);
+
+    if (albumErr) {
+      setPhotoError(
+        albumErr.message?.includes("policy")
+          ? "Нет прав на удаление альбома. Примените SQL-патч admin media moderation."
+          : albumErr.message ?? "Не удалось удалить альбом"
+      );
+      setMediaBusy(false);
+      router.refresh();
+      return;
+    }
+
+    setLocalPhotos((prev) => prev.filter((p) => p.album_id !== album.id));
+    setLocalAlbums((prev: any[]) => prev.filter((a) => a.id !== album.id));
+    if (viewAlbumId === album.id) setViewAlbumId("main");
+    setMediaBusy(false);
   }
 
   const lightboxPhotos = useMemo(() => {
@@ -438,12 +598,12 @@ export function ProfileView({
     if (!isOwn) return undefined;
     return [
       { id: null as string | null, label: "Основная страница" },
-      ...albums.map((a: { id: string; name?: string }) => ({
+      ...localAlbums.map((a: { id: string; name?: string }) => ({
         id: a.id as string | null,
         label: a.name ? `Альбом: ${a.name}` : "Альбом",
       })),
     ];
-  }, [isOwn, albums]);
+  }, [isOwn, localAlbums]);
 
   async function handleLightboxMove(
     photoId: string,
@@ -455,7 +615,11 @@ export function ProfileView({
     const result = await moveProfilePhoto({
       photo,
       targetAlbumId,
-      albums: albums as { id: string; name?: string; is_private?: boolean }[],
+      albums: localAlbums as {
+        id: string;
+        name?: string;
+        is_private?: boolean;
+      }[],
     });
 
     if (!result.ok) {
@@ -822,8 +986,12 @@ export function ProfileView({
         <ProfileHeader
           profile={
             isOwn
-              ? profile
-              : { ...profile, last_seen: effectiveLastSeen ?? profile.last_seen }
+              ? { ...profile, avatar_url: localAvatarUrl }
+              : {
+                  ...profile,
+                  avatar_url: localAvatarUrl,
+                  last_seen: effectiveLastSeen ?? profile.last_seen,
+                }
           }
           isOwn={isOwn}
           available={available}
@@ -834,6 +1002,9 @@ export function ProfileView({
           onToggleInvisible={toggleInvisible}
           onEdit={() => setEditing(true)}
           currentUserId={viewerId}
+          isAdminModerating={isAdminModerating}
+          onAdminRemoveAvatar={() => void adminRemoveAvatar()}
+          avatarActionBusy={mediaBusy}
         />
         <div className="h-[13rem] sm:h-[10rem]" aria-hidden="true" />
       </>}
@@ -848,7 +1019,7 @@ export function ProfileView({
           <div className="relative flex flex-col gap-3 pt-5 sm:flex-row sm:items-start sm:gap-4 sm:pt-7">
             <div className={editing ? "relative group w-fit shrink-0" : "hidden"}>
               <Avatar
-                src={profile.avatar_url}
+                src={localAvatarUrl}
                 name={profile.display_name ?? profile.username}
                 size="xl"
                 lastSeen={seenPublic}
@@ -1473,7 +1644,9 @@ export function ProfileView({
               Фото профиля
             </h2>
             <p className="text-xs text-slate-500">
-              Личные фото, которые видны на странице профиля
+              {isAdminModerating
+                ? "Модерация: можно удалять фото, аватар и альбомы"
+                : "Личные фото, которые видны на странице профиля"}
             </p>
           </div>
           {isOwn && (
@@ -1510,7 +1683,7 @@ export function ProfileView({
           </p>
         )}
 
-        {localPhotos.length === 0 ? (
+        {localPhotos.length === 0 && localAlbums.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-gold/15 bg-base-900/30 p-8 text-center">
             <p className="text-sm text-slate-400">
               {isOwn
@@ -1550,111 +1723,182 @@ export function ProfileView({
               </button>
             )}
 
-            {viewAlbumId === "main" && albums && albums.length > 0 && (
-              <h3 className="mb-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Основная страница</h3>
+            {viewAlbumId === "main" && localAlbums.length > 0 && (
+              <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">
+                Основная страница
+              </h3>
             )}
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 mb-8">
-              {(viewAlbumId === "main" 
-                  ? localPhotos.filter(p => !p.album_id) 
-                  : localPhotos.filter(p => p.album_id === viewAlbumId)
+            {viewAlbumId !== "main" && isAdminModerating && (
+              <div className="mb-4 flex flex-wrap items-center gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="danger"
+                  disabled={mediaBusy}
+                  onClick={() => {
+                    const album = localAlbums.find(
+                      (a: any) => a.id === viewAlbumId
+                    );
+                    if (album) void adminDeleteAlbum(album);
+                  }}
+                >
+                  {mediaBusy ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : (
+                    <Trash2 size={14} />
+                  )}
+                  Удалить альбом
+                </Button>
+              </div>
+            )}
+            <div className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {(viewAlbumId === "main"
+                ? localPhotos.filter((p) => !p.album_id)
+                : localPhotos.filter((p) => p.album_id === viewAlbumId)
               ).map((photo, idx) => (
-                  <div
-                    key={photo.id}
-                    className="group relative aspect-[4/5] overflow-hidden rounded-xl border border-gold/10 bg-base-900"
+                <div
+                  key={photo.id}
+                  className="group relative aspect-[4/5] overflow-hidden rounded-xl border border-gold/10 bg-base-900"
+                >
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (showPhotoQuota && photoLimit.limitReached) {
+                        return;
+                      }
+                      if (showPhotoQuota) {
+                        void photoLimit.recordView(photo.id).then((allowed) => {
+                          if (!allowed) return;
+                          setLightboxIndex(idx);
+                          setLightboxOpen(true);
+                        });
+                        return;
+                      }
+                      setLightboxIndex(idx);
+                      setLightboxOpen(true);
+                    }}
+                    className="absolute inset-0"
                   >
+                    <img
+                      src={photo.url}
+                      alt={photo.caption ?? "Фото профиля"}
+                      className={`h-full w-full object-cover transition-transform duration-500 group-hover:scale-105 ${
+                        showPhotoQuota && photoLimit.limitReached
+                          ? "blur-md brightness-50"
+                          : ""
+                      }`}
+                    />
+                    {showPhotoQuota && photoLimit.limitReached && (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/60">
+                        <Crown size={24} className="text-gold" />
+                        <span className="text-xs text-gold-soft">
+                          Дневной лимит фото
+                        </span>
+                        {!viewerIsPremium && (
+                          <Link
+                            href="/premium"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Button variant="gold" size="sm">
+                              Premium · 100/день
+                            </Button>
+                          </Link>
+                        )}
+                      </div>
+                    )}
+                  </button>
+                  {canModerateMedia && (
                     <button
                       type="button"
-                      onClick={() => {
-                        if (showPhotoQuota && photoLimit.limitReached) {
-                          return;
-                        }
-                        if (showPhotoQuota) {
-                          void photoLimit.recordView(photo.id).then((allowed) => {
-                            if (!allowed) return;
-                            setLightboxIndex(idx);
-                            setLightboxOpen(true);
-                          });
-                          return;
-                        }
-                        setLightboxIndex(idx);
-                        setLightboxOpen(true);
+                      disabled={mediaBusy}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void deleteProfilePhoto(photo);
                       }}
-                      className="absolute inset-0"
+                      className={`absolute right-2 top-2 grid h-9 w-9 place-items-center rounded-lg border border-red-400/30 bg-black/70 text-red-200 backdrop-blur transition-opacity disabled:opacity-50 ${
+                        isAdminModerating
+                          ? "opacity-100"
+                          : "opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+                      }`}
+                      aria-label="Удалить фото"
+                      title="Удалить фото"
                     >
-                      <img
-                        src={photo.url}
-                        alt={photo.caption ?? "Фото профиля"}
-                        className={`h-full w-full object-cover transition-transform duration-500 group-hover:scale-105 ${
-                          showPhotoQuota && photoLimit.limitReached
-                            ? "blur-md brightness-50"
-                            : ""
-                        }`}
-                      />
-                      {showPhotoQuota && photoLimit.limitReached && (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/60">
-                          <Crown size={24} className="text-gold" />
-                          <span className="text-xs text-gold-soft">
-                            Дневной лимит фото
-                          </span>
-                          {!viewerIsPremium && (
-                            <Link
-                              href="/premium"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <Button variant="gold" size="sm">
-                                Premium · 100/день
-                              </Button>
-                            </Link>
-                          )}
-                        </div>
-                      )}
+                      <Trash2 size={14} />
                     </button>
-                    {(isOwn || isAdminViewer) && (
-                      <button
-                        type="button"
-                        onClick={() => deleteProfilePhoto(photo)}
-                        className="absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-lg border border-red-400/20 bg-black/60 text-red-200 opacity-0 backdrop-blur transition-opacity group-hover:opacity-100"
-                        aria-label="Удалить фото"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    )}
-                  </div>
+                  )}
+                </div>
               ))}
             </div>
 
-            {viewAlbumId === "main" && albums && albums.length > 0 && (
+            {viewAlbumId === "main" && localAlbums.length > 0 && (
               <div className="mb-6 border-t border-gold/10 pt-6">
-                <h3 className="mb-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Фотоальбомы</h3>
+                <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">
+                  Фотоальбомы
+                </h3>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                  {albums.map((album: any) => {
-                    const albumPhotos = localPhotos.filter(p => p.album_id === album.id);
+                  {localAlbums.map((album: any) => {
+                    const albumPhotos = localPhotos.filter(
+                      (p) => p.album_id === album.id
+                    );
                     return (
-                      <button
+                      <div
                         key={album.id}
-                        onClick={() => setViewAlbumId(album.id)}
                         className="group relative overflow-hidden rounded-xl border border-gold/10 bg-base-900 text-left transition-all hover:border-gold/30 hover:shadow-lg hover:shadow-gold/5"
                       >
-                        <div className="aspect-[4/3] grid grid-cols-2 gap-[1px] bg-base-800 p-[1px]">
-                          {albumPhotos.slice(0, 4).map((p, i) => (
-                            <img 
-                              key={p.id} 
-                              src={p.url} 
-                              alt="" 
-                              className={`h-full w-full object-cover ${albumPhotos.length === 1 ? 'col-span-2 row-span-2' : albumPhotos.length === 2 ? 'row-span-2' : albumPhotos.length === 3 && i === 0 ? 'col-span-2' : ''}`} 
-                            />
-                          ))}
-                          {albumPhotos.length === 0 && (
-                            <div className="col-span-2 row-span-2 flex items-center justify-center bg-base-900">
-                              <Folder className="opacity-20" size={32} />
-                            </div>
-                          )}
-                        </div>
-                        <div className="p-3">
-                          <p className="font-semibold text-warm-100 truncate">{album.name}</p>
-                          <p className="text-xs text-slate-500 mt-0.5">{albumPhotos.length} фото</p>
-                        </div>
-                      </button>
+                        <button
+                          type="button"
+                          onClick={() => setViewAlbumId(album.id)}
+                          className="w-full text-left"
+                        >
+                          <div className="grid aspect-[4/3] grid-cols-2 gap-[1px] bg-base-800 p-[1px]">
+                            {albumPhotos.slice(0, 4).map((p, i) => (
+                              <img
+                                key={p.id}
+                                src={p.url}
+                                alt=""
+                                className={`h-full w-full object-cover ${
+                                  albumPhotos.length === 1
+                                    ? "col-span-2 row-span-2"
+                                    : albumPhotos.length === 2
+                                      ? "row-span-2"
+                                      : albumPhotos.length === 3 && i === 0
+                                        ? "col-span-2"
+                                        : ""
+                                }`}
+                              />
+                            ))}
+                            {albumPhotos.length === 0 && (
+                              <div className="col-span-2 row-span-2 flex items-center justify-center bg-base-900">
+                                <Folder className="opacity-20" size={32} />
+                              </div>
+                            )}
+                          </div>
+                          <div className="p-3 pr-10">
+                            <p className="truncate font-semibold text-warm-100">
+                              {album.name}
+                            </p>
+                            <p className="mt-0.5 text-xs text-slate-500">
+                              {albumPhotos.length} фото
+                              {album.is_private ? " · приватный" : ""}
+                            </p>
+                          </div>
+                        </button>
+                        {isAdminModerating && (
+                          <button
+                            type="button"
+                            disabled={mediaBusy}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              void adminDeleteAlbum(album);
+                            }}
+                            className="absolute right-2 top-2 grid h-9 w-9 place-items-center rounded-lg border border-red-400/30 bg-black/75 text-red-200 opacity-100 backdrop-blur transition-colors hover:bg-red-500/30 disabled:opacity-50"
+                            aria-label={`Удалить альбом ${album.name}`}
+                            title="Удалить альбом"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
+                      </div>
                     );
                   })}
                 </div>

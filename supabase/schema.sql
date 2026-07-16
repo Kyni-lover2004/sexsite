@@ -1456,6 +1456,14 @@ create policy profile_albums_update on public.profile_albums
 
 create policy profile_albums_delete on public.profile_albums
   for delete using (auth.uid() = user_id);
+
+drop policy if exists profile_albums_admin_delete on public.profile_albums;
+create policy profile_albums_admin_delete on public.profile_albums
+  for delete using (public.is_admin());
+
+drop policy if exists profile_albums_admin_update on public.profile_albums;
+create policy profile_albums_admin_update on public.profile_albums
+  for update using (public.is_admin()) with check (public.is_admin());
 -- =============================================================
 --  In-app notifications
 --  Supabase → SQL Editor → Run

@@ -7,6 +7,8 @@ import {
   Crown,
   EyeOff,
   Eye,
+  Trash2,
+  Loader2,
 } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
@@ -31,6 +33,9 @@ export function ProfileHeader({
   onToggleInvisible,
   onEdit,
   currentUserId = null,
+  isAdminModerating = false,
+  onAdminRemoveAvatar,
+  avatarActionBusy = false,
 }: {
   profile: Profile;
   isOwn: boolean;
@@ -42,6 +47,10 @@ export function ProfileHeader({
   onToggleInvisible?: () => void;
   onEdit: () => void;
   currentUserId?: string | null;
+  /** Admin viewing another user — media moderation controls */
+  isAdminModerating?: boolean;
+  onAdminRemoveAvatar?: () => void;
+  avatarActionBusy?: boolean;
 }) {
   const showPresenceToViewer = isOwn || !invisible;
   const seen = publicLastSeen(profile.last_seen, invisible, isOwn);
@@ -65,18 +74,42 @@ export function ProfileHeader({
   return (
     <header className="fixed left-4 right-4 top-[calc(4.5rem+env(safe-area-inset-top))] z-40 rounded-2xl border border-gold/15 bg-gradient-to-br from-gold/20 via-accent-deep/10 to-gold/10 p-4 backdrop-blur-xl sm:p-5 md:left-64 md:right-0 md:top-14 md:mx-auto md:max-w-4xl md:px-8">
       <div className="flex items-start gap-3 sm:gap-4">
-        <Avatar
-          src={profile.avatar_url}
-          name={profile.display_name ?? profile.username}
-          size="xl"
-          lastSeen={seen}
-          showPresence={showPresenceToViewer}
-        />
+        <div className="relative shrink-0">
+          <Avatar
+            src={profile.avatar_url}
+            name={profile.display_name ?? profile.username}
+            size="xl"
+            lastSeen={seen}
+            showPresence={showPresenceToViewer}
+          />
+          {isAdminModerating && profile.avatar_url && onAdminRemoveAvatar && (
+            <button
+              type="button"
+              onClick={onAdminRemoveAvatar}
+              disabled={avatarActionBusy}
+              title="Удалить аватар"
+              aria-label="Удалить аватар"
+              className="absolute -right-1 -top-1 grid h-8 w-8 place-items-center rounded-full border border-red-400/40 bg-black/80 text-red-200 shadow-lg transition-colors hover:bg-red-500/30 disabled:opacity-50"
+            >
+              {avatarActionBusy ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : (
+                <Trash2 size={14} />
+              )}
+            </button>
+          )}
+        </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="font-display text-xl font-bold text-warm-100">
               {(profile.display_name ?? profile.username).slice(0, 10)}
             </h1>
+            {isAdminModerating && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-200">
+                <Shield size={10} />
+                Модерация
+              </span>
+            )}
             {profile.role === "admin" && (
               <span className="inline-flex items-center gap-1 rounded-full border border-red-500/20 bg-red-500/10 px-2 py-0.5 text-[10px] font-semibold text-red-400 shadow-[0_0_12px_rgba(239,68,68,0.15)]">
                 <Shield size={10} className="fill-current" />
