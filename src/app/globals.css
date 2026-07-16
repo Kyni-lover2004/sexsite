@@ -8,28 +8,28 @@
   color-scheme: light;
 
   /*
-   * Light: Private-club luxury
-   * Cool porcelain + metal gold (jewelry) + deep wine accent.
-   * High contrast espresso type — no muddy beige wash.
+   * Light: Quiet luxury (not yellow gold)
+   * Cool porcelain + muted champagne/bronze + deep wine.
+   * Desaturated metal — Hermès/private-club, not taxi gold.
    */
-  --base-950: 248 244 238;
-  --base-900: 255 253 250;
-  --base-800: 252 248 242;
-  --base-700: 226 214 198;
-  --base-600: 148 128 104;
-  --base-500: 92 78 64;
+  --base-950: 246 243 239;
+  --base-900: 255 254 252;
+  --base-800: 250 247 243;
+  --base-700: 220 212 202;
+  --base-600: 140 128 112;
+  --base-500: 88 78 68;
 
-  --accent: 148 42 58;
-  --accent-soft: 186 86 98;
-  --accent-deep: 108 28 42;
-  --accent-muted: 158 108 112;
-  /* Jewelry gold — bright metal, deep label, warm highlight */
-  --gold: 212 168 72;
-  --gold-soft: 138 98 28;
-  --gold-deep: 98 68 18;
-  --gold-glow: 255 232 176;
-  --warm-100: 18 14 10;
-  --warm-200: 48 38 30;
+  --accent: 132 48 58;
+  --accent-soft: 168 92 100;
+  --accent-deep: 96 32 42;
+  --accent-muted: 148 112 114;
+  /* Champagne bronze — cool, muted, low-chroma */
+  --gold: 168 148 120;
+  --gold-soft: 104 88 68;
+  --gold-deep: 72 60 46;
+  --gold-glow: 236 228 216;
+  --warm-100: 22 18 14;
+  --warm-200: 52 44 36;
 }
 
 .dark {
@@ -68,13 +68,13 @@ body {
   @apply bg-base-950 text-slate-800 antialiased dark:text-slate-100;
   min-height: 100vh;
   min-height: -webkit-fill-available;
-  /* Light: hotel-suite porcelain + champagne veil */
+  /* Light: soft stone + pearl, no yellow wash */
   background-image:
     linear-gradient(
       168deg,
-      rgb(255 254 252) 0%,
-      rgb(var(--base-950)) 42%,
-      rgb(236 224 208) 100%
+      rgb(255 254 253) 0%,
+      rgb(var(--base-950)) 48%,
+      rgb(232 226 218) 100%
     );
   background-attachment: fixed;
   min-height: 100vh;
@@ -93,12 +93,12 @@ body::before {
   inset: 0;
   pointer-events: none;
   z-index: 0;
-  opacity: 0.72;
+  opacity: 0.5;
   background-image:
-    radial-gradient(ellipse 75% 50% at 8% -8%, rgb(var(--gold-glow) / 0.72) 0%, transparent 55%),
-    radial-gradient(ellipse 45% 38% at 96% 4%, rgb(var(--accent-soft) / 0.1) 0%, transparent 50%),
-    radial-gradient(ellipse 60% 48% at 72% 108%, rgb(var(--gold) / 0.16) 0%, transparent 52%),
-    radial-gradient(circle at 50% 38%, rgb(255 255 255 / 0.5) 0%, transparent 46%);
+    radial-gradient(ellipse 70% 48% at 10% -6%, rgb(255 255 255 / 0.7) 0%, transparent 55%),
+    radial-gradient(ellipse 42% 36% at 94% 6%, rgb(var(--accent-soft) / 0.07) 0%, transparent 50%),
+    radial-gradient(ellipse 55% 45% at 70% 105%, rgb(var(--gold) / 0.08) 0%, transparent 52%),
+    radial-gradient(circle at 50% 40%, rgb(255 255 255 / 0.35) 0%, transparent 48%);
 }
 
 .dark body::before,
@@ -209,12 +209,12 @@ body::after {
     0 0 0 1px rgb(var(--gold-deep) / 0.12);
 }
 
-/* Don't let global text-gold overrides flatten metal badges */
+/* Quiet-luxury badges: espresso bar + champagne type (not yellow metal) */
 .light .badge-premium,
 .light .badge-premium * {
-  color: rgb(22 16 8) !important;
-  -webkit-text-fill-color: rgb(22 16 8) !important;
-  font-weight: 700;
+  color: rgb(240 232 220) !important;
+  -webkit-text-fill-color: rgb(240 232 220) !important;
+  font-weight: 650;
 }
 
 .light .bg-accent-gradient .text-white,
@@ -252,7 +252,7 @@ body::after {
 
 .light .text-gold,
 .light [class*="text-gold"]:not([class*="text-gold-soft"]):not([class*="text-gold-deep"]) {
-  color: rgb(168 124 36) !important;
+  color: rgb(var(--gold-soft)) !important;
 }
 
 .light .text-gradient,
@@ -260,7 +260,7 @@ body::after {
   background-image: linear-gradient(
     125deg,
     rgb(var(--gold-deep)) 0%,
-    rgb(186 140 42) 38%,
+    rgb(var(--gold-soft)) 48%,
     rgb(var(--accent-deep)) 100%
   ) !important;
   -webkit-background-clip: text !important;
@@ -270,70 +270,58 @@ body::after {
   font-weight: 700;
 }
 
-/* Solid metal premium pill — use on Premium / gold badges */
+/*
+ * Premium pill — quiet luxury:
+ * espresso bar + pale champagne type (never bright yellow).
+ */
 .badge-premium {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
   border-radius: 9999px;
-  border: 1px solid rgb(var(--gold-deep) / 0.35);
+  border: 1px solid rgb(var(--gold) / 0.35);
   background: linear-gradient(
-    145deg,
-    rgb(var(--gold-glow)) 0%,
-    rgb(var(--gold)) 42%,
-    rgb(186 140 48) 78%,
-    rgb(var(--gold-deep)) 100%
+    160deg,
+    rgb(48 40 32) 0%,
+    rgb(28 22 18) 55%,
+    rgb(20 16 12) 100%
   );
-  color: rgb(22 16 8) !important;
-  font-weight: 700;
-  letter-spacing: 0.03em;
-  text-shadow: 0 1px 0 rgb(255 255 255 / 0.28);
+  color: rgb(236 228 214) !important;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-shadow: none;
   box-shadow:
-    0 1px 0 rgb(255 255 255 / 0.55) inset,
-    0 -1px 0 rgb(80 50 10 / 0.12) inset,
-    0 6px 16px rgb(var(--gold-deep) / 0.22);
+    0 1px 0 rgb(255 255 255 / 0.08) inset,
+    0 4px 14px rgb(20 14 10 / 0.14);
 }
 
 .dark .badge-premium {
-  border-color: rgb(var(--gold-glow) / 0.35);
+  border-color: rgb(var(--gold) / 0.28);
   background: linear-gradient(
-    145deg,
-    rgb(var(--gold-glow) / 0.35) 0%,
-    rgb(var(--gold) / 0.28) 50%,
-    rgb(var(--gold-deep) / 0.4) 100%
+    160deg,
+    rgb(42 34 30) 0%,
+    rgb(18 14 12) 100%
   );
-  color: rgb(var(--gold-glow)) !important;
-  text-shadow: 0 0 12px rgb(var(--gold-glow) / 0.35);
+  color: rgb(var(--gold-soft)) !important;
+  text-shadow: none;
   box-shadow:
-    0 0 18px rgb(var(--gold-glow) / 0.18),
-    inset 0 1px 0 rgb(255 255 255 / 0.08);
+    0 0 0 1px rgb(var(--gold) / 0.12),
+    inset 0 1px 0 rgb(255 255 255 / 0.05);
 }
 
-/* Soft gold chips on light — richer than 10% wash */
+/* Soft bronze chips — pearl wash, not yellow glare */
 .light .bg-gold\/10,
 .light .bg-gold\/\[0\.06\],
 .light .bg-gold\/\[0\.08\] {
-  background: linear-gradient(
-    145deg,
-    rgb(var(--gold-glow) / 0.55) 0%,
-    rgb(var(--gold) / 0.18) 100%
-  ) !important;
+  background-color: rgb(var(--gold) / 0.1) !important;
 }
 
 .light .bg-gold\/15 {
-  background: linear-gradient(
-    145deg,
-    rgb(var(--gold-glow) / 0.65) 0%,
-    rgb(var(--gold) / 0.28) 100%
-  ) !important;
+  background-color: rgb(var(--gold) / 0.14) !important;
 }
 
 .light .bg-gold\/20 {
-  background: linear-gradient(
-    145deg,
-    rgb(var(--gold) / 0.35) 0%,
-    rgb(var(--gold-soft) / 0.22) 100%
-  ) !important;
+  background-color: rgb(var(--gold) / 0.18) !important;
 }
 
 /* Nav / chrome on light — porcelain bar, metal gold edge */
@@ -438,17 +426,20 @@ body::after {
   background-color: rgb(var(--base-950)) !important;
 }
 
-/* Light accent buttons — deep wine + gold edge, hotel-club */
+/* Light primary CTAs — deep wine + bronze, no yellow fill */
 .light .bg-accent-gradient,
 .light .bg-gold-gradient,
 .light .bg-accent-gradient-v {
   background-image: linear-gradient(
     135deg,
-    rgb(var(--gold-deep)) 0%,
-    rgb(var(--gold)) 42%,
-    rgb(var(--accent-deep)) 100%
+    rgb(var(--accent-deep)) 0%,
+    rgb(var(--accent)) 48%,
+    rgb(var(--gold-deep)) 100%
   ) !important;
-  border-color: rgb(var(--gold-deep) / 0.35) !important;
+  border-color: rgb(var(--accent-deep) / 0.4) !important;
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.12) inset,
+    0 10px 28px rgb(var(--accent-deep) / 0.22) !important;
 }
 
 /* ------------------------------------------------------------------ */
