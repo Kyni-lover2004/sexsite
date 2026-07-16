@@ -104,12 +104,6 @@ export function ProfileHeader({
             <h1 className="font-display text-xl font-bold text-warm-100">
               {(profile.display_name ?? profile.username).slice(0, 10)}
             </h1>
-            {isAdminModerating && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-200">
-                <Shield size={10} />
-                Модерация
-              </span>
-            )}
             {profile.role === "admin" && (
               <span className="inline-flex items-center gap-1 rounded-full border border-red-500/20 bg-red-500/10 px-2 py-0.5 text-[10px] font-semibold text-red-400 shadow-[0_0_12px_rgba(239,68,68,0.15)]">
                 <Shield size={10} className="fill-current" />

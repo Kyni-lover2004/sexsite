@@ -1644,10 +1644,14 @@ export function ProfileView({
               Фото профиля
             </h2>
             <p className="text-xs text-slate-500">
-              {isAdminModerating
-                ? "Модерация: можно удалять фото, аватар и альбомы"
-                : "Личные фото, которые видны на странице профиля"}
+              Личные фото, которые видны на странице профиля
             </p>
+            {isAdminModerating && (
+              <p className="mt-1.5 rounded-lg border border-amber-500/25 bg-amber-500/10 px-2.5 py-1.5 text-[11px] font-medium text-amber-100/90">
+                Режим модератора: вы можете удалять фото, аватар и альбомы
+                этого пользователя. Это видно только вам.
+              </p>
+            )}
           </div>
           {isOwn && (
             <>
