@@ -83,12 +83,50 @@ export function AuthForm() {
     }
     setLoading(true);
 
-    const options =
-      mode === "register"
-        ? await supabase.auth.signUp({ email, password })
-        : await supabase.auth.signInWithPassword({ email, password });
+    const next = safeRedirectPath(searchParams.get("next"), "/");
 
-    const { error: authError } = options;
+    if (mode === "register") {
+      // No email verification: sign up and enter immediately (Confirm email OFF in Supabase).
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+
+      if (signUpError) {
+        setLoading(false);
+        setError(signUpError.message);
+        return;
+      }
+
+      // If project still has confirm-email ON, session may be null — try password login.
+      if (!data.session) {
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        if (signInError) {
+          setLoading(false);
+          setError(
+            "Аккаунт создан, но вход заблокирован подтверждением почты. " +
+              "В Supabase: Authentication → Providers → Email → выключите Confirm email."
+          );
+          return;
+        }
+      }
+
+      void import("@/lib/analytics").then(({ trackEvent }) =>
+        trackEvent("signup_completed")
+      );
+      setLoading(false);
+      router.push(next);
+      router.refresh();
+      return;
+    }
+
+    const { error: authError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
     setLoading(false);
 
     if (authError) {
@@ -96,17 +134,6 @@ export function AuthForm() {
       return;
     }
 
-    if (mode === "register") {
-      // Funnel: registration attempted/completed (email may need confirm)
-      void import("@/lib/analytics").then(({ trackEvent }) =>
-        trackEvent("signup_completed")
-      );
-      setMode("login");
-      setError("Проверьте почту для подтверждения регистрации");
-      return;
-    }
-
-    const next = safeRedirectPath(searchParams.get("next"), "/");
     router.push(next);
     router.refresh();
   }

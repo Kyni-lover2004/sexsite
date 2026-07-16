@@ -209,7 +209,34 @@ group by 1 order by 2 desc;
 - [ ] SQL: invisible, last_active, e2ee_backups  
 - [ ] Admin user есть  
 - [ ] Legal ссылки с лендинга, 18+ gate  
-- [ ] Email confirm / SMTP в Supabase Auth  
+- [ ] Email: **Confirm email = OFF** (регистрация без письма; см. § Auth ниже)  
+- [ ] SMTP — только если позже понадобится «забыл пароль»  
+
+---
+
+## Auth: без верификации почты
+
+Регистрация = email + пароль, **без** письма подтверждения.
+Мусор чистится модерацией + cleanup неактивных (~30 дней по `last_active_at`).
+
+### Freesh / cloud Supabase
+Dashboard → **Authentication** → **Providers** → **Email**:
+- **Confirm email** → **выключено**
+- (опционально) Secure email change — как удобно
+
+Без этого `signUp` не выдаёт сессию, и пользователь не войдёт.
+
+### Self-hosted
+В `.env` Docker-стека (имена зависят от версии, смотри `.env.example`):
+
+```env
+GOTRUE_MAILER_AUTOCONFIRM=true
+# или ENABLE_EMAIL_AUTOCONFIRM=true
+```
+
+Пересоздать auth: `sh run.sh recreate auth` (или полный restart).
+
+SMTP для signup **не нужен**. SMTP — только для reset password, когда решите включить.
 - [ ] Premium: либо pay provider, либо ручная выдача  
 - [ ] Cron inactive cleanup на last_active_at  
 - [ ] Storage buckets: profile-photos (+ private)  
