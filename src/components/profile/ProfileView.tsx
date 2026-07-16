@@ -1161,7 +1161,7 @@ export function ProfileView({
                         {profile.premium_until && new Date(profile.premium_until) > new Date() && (
                           <span className="inline-flex items-center gap-1 rounded-full bg-gold/10 border border-gold/20 px-2 py-0.5 text-[10px] font-semibold text-gold-soft shadow-glow-gold">
                             <Crown size={10} className="fill-current" />
-                            PRO
+                            Premium
                           </span>
                         )}
                         {(available || isOwn) && (

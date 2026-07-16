@@ -79,9 +79,9 @@ const FEATURES = [
   },
   {
     icon: Crown,
-    title: "Значок PRO",
+    title: "Значок Premium",
     description:
-      "Золотой бейдж на анкете — сразу видно, что вы в клубе с расширенным доступом.",
+      "Золотой бейдж Premium на анкете — сразу видно, что у вас расширенный доступ.",
   },
   {
     icon: Flame,
@@ -93,7 +93,7 @@ const FEATURES = [
     icon: Zap,
     title: "Приоритет внимания",
     description:
-      "Суперлайк + PRO-статус помогают не потеряться в потоке: вас заметят раньше, чем обычный интерес.",
+      "Суперлайк + значок Premium помогают не потеряться в потоке: вас заметят раньше.",
   },
 ];
 
@@ -103,7 +103,7 @@ const FREE_VS_PREMIUM = [
   { label: "Лайки в свайпах / день", free: "10", pro: "100" },
   { label: "Суперлайк", free: "—", pro: "да" },
   { label: "Новые чаты / день", free: "2", pro: "∞" },
-  { label: "Значок PRO", free: "—", pro: "да" },
+  { label: "Значок Premium", free: "—", pro: "да" },
 ];
 
 function LimitBanners() {
@@ -122,7 +122,7 @@ function LimitBanners() {
     return (
       <Banner
         title="Лимит просмотра фото"
-        text="Без Premium — 10 чужих фото в день, с Premium — 100. Завтра квота обновится; PRO даёт запас уже сегодня."
+        text="Без Premium — 10 чужих фото в день, с Premium — 100. Завтра квота обновится; Premium даёт запас уже сегодня."
       />
     );
   }
@@ -138,7 +138,7 @@ function LimitBanners() {
     return (
       <Banner
         title="Лимит лайков в свайпах"
-        text="Бесплатно — 10 лайков в день. Premium — 100. Пасс не считается. Суперлайк — только с PRO."
+        text="Бесплатно — 10 лайков в день. Premium — 100. Пасс не считается. Суперлайк — только с Premium."
       />
     );
   }
@@ -193,8 +193,8 @@ export function PremiumView({ isPremium }: PremiumViewProps) {
           Desire Privé Premium
         </h1>
         <p className="mx-auto mt-2 max-w-md text-sm text-slate-400">
-          Больше фото, анкет и лайков в сутки · суперлайк · значок PRO · без
-          урезания новых чатов
+          Больше фото, анкет и лайков в сутки · суперлайк · значок Premium ·
+          без урезания новых чатов
         </p>
       </motion.div>
 

@@ -66,7 +66,7 @@ export function ProfileHeader({
             {isPremium && (
               <span className="inline-flex items-center gap-1 rounded-full border border-gold/20 bg-gold/10 px-2 py-0.5 text-[10px] font-semibold text-gold-soft shadow-glow-gold">
                 <Crown size={10} className="fill-current" />
-                PRO
+                Premium
               </span>
             )}
             {(available || isOwn) &&

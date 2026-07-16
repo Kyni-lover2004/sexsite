@@ -592,7 +592,9 @@ export function AdminPanel({
                           {user.display_name ?? user.username}
                         </p>
                         {user.role === "admin" && <Badge icon={Shield} label="ADMIN" />}
-                        {isPremiumActive(user) && <Badge icon={Crown} label="PRO" />}
+                        {isPremiumActive(user) && (
+                          <Badge icon={Crown} label="Premium" />
+                        )}
                         {user.is_banned && (
                           <span className="inline-flex max-w-full items-center gap-1 rounded-full bg-red-500/15 px-2 py-0.5 text-[10px] font-semibold text-red-300">
                             <Ban size={10} />
@@ -683,7 +685,7 @@ export function AdminPanel({
                           onClick={() => revokePremium(user.id)}
                           disabled={actionLoading === user.id}
                         >
-                          Снять PRO
+                          Снять Premium
                         </Button>
                       )}
                       <Button
