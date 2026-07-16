@@ -2,6 +2,7 @@
 --  Invisible mode (premium + admin)
 --  When enabled: no last_seen heartbeat, not listed as online,
 --  presence/last-seen hidden from others in the app.
+--  Re-run safe: create or replace / if not exists throughout.
 -- =============================================================
 
 alter table public.profiles
@@ -12,6 +13,8 @@ create index if not exists profiles_is_invisible_idx
   where is_invisible = true;
 
 -- Only premium (active) or admin may keep is_invisible = true.
+-- When turning invisible ON: backdate last_seen past the online window
+-- so green "online" drops even for clients that only look at last_seen.
 create or replace function public.enforce_invisible_privilege()
 returns trigger
 language plpgsql
@@ -25,6 +28,13 @@ begin
       new.is_invisible := false;
     end if;
   end if;
+
+  -- Instant offline for observers: online window is ~2 minutes client-side.
+  if coalesce(new.is_invisible, false)
+     and not coalesce(old.is_invisible, false) then
+    new.last_seen := now() - interval '3 minutes';
+  end if;
+
   return new;
 end;
 $$;
@@ -91,3 +101,14 @@ end;
 $$;
 
 grant execute on function public.heartbeat() to authenticated;
+
+-- Ensure realtime can push is_invisible / last_seen to open chats.
+-- Safe if already added: ignore duplicate.
+do $$
+begin
+  alter publication supabase_realtime add table public.profiles;
+exception
+  when duplicate_object then null;
+  when undefined_object then null;
+end;
+$$;

@@ -9,8 +9,9 @@ import { Button } from "@/components/ui/Button";
 const BAN_CHECK_MS = 60_000;
 /** Minimum gap between last_seen writes. */
 const PRESENCE_MIN_MS = 60_000;
-/** How often we re-read invisible flag (cheap). */
-const INVISIBLE_CHECK_MS = 60_000;
+
+/** Dispatched from profile toggle so heartbeat stops in the same tab immediately. */
+export const INVISIBLE_MODE_EVENT = "dp:invisible-mode";
 
 /**
  * Lightweight presence + ban overlay.
@@ -25,7 +26,6 @@ export function PresenceTracker() {
   const lastPresenceRef = useRef(0);
   const lastBanCheckRef = useRef(0);
   const invisibleRef = useRef(false);
-  const lastInvisibleCheckRef = useRef(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -39,15 +39,9 @@ export function PresenceTracker() {
       return id;
     }
 
-    async function refreshInvisibleFlag(force = false) {
+    async function refreshInvisibleFlag() {
       const userId = await resolveUserId();
       if (!userId || cancelled) return;
-
-      const now = Date.now();
-      if (!force && now - lastInvisibleCheckRef.current < INVISIBLE_CHECK_MS) {
-        return;
-      }
-      lastInvisibleCheckRef.current = now;
 
       const { data: profile } = await (supabase as any)
         .from("profiles")
@@ -72,7 +66,8 @@ export function PresenceTracker() {
       if (!force && now - lastPresenceRef.current < PRESENCE_MIN_MS) return;
       lastPresenceRef.current = now;
 
-      await refreshInvisibleFlag(force);
+      // Always re-read flag before write — toggle must stop heartbeat immediately.
+      await refreshInvisibleFlag();
       if (invisibleRef.current) return;
 
       // Heartbeat RPC only writes if last_seen is stale (>90s) — less thrash.
@@ -155,11 +150,55 @@ export function PresenceTracker() {
       }, 5_000);
     };
 
+    // Same-tab toggle from profile UI — stop/resume without waiting for poll.
+    const onInvisibleEvent = (ev: Event) => {
+      const detail = (ev as CustomEvent<{ invisible?: boolean }>).detail;
+      if (typeof detail?.invisible === "boolean") {
+        invisibleRef.current = detail.invisible;
+      } else {
+        void refreshInvisibleFlag();
+      }
+    };
+
     document.addEventListener("visibilitychange", onVisible);
     window.addEventListener("focus", onVisible);
-    // Sparse activity signals — not mousemove (that fired dozens of times/sec).
     window.addEventListener("pointerdown", onActivity, { passive: true });
     window.addEventListener("keydown", onActivity, { passive: true });
+    window.addEventListener(INVISIBLE_MODE_EVENT, onInvisibleEvent);
+
+    // Realtime: own profile is_invisible changes (other tabs / devices).
+    let profileChannel: ReturnType<typeof supabase.channel> | null = null;
+    void (async () => {
+      const userId = await resolveUserId();
+      if (!userId || cancelled) return;
+      profileChannel = supabase
+        .channel(`own-presence:${userId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "UPDATE",
+            schema: "public",
+            table: "profiles",
+            filter: `id=eq.${userId}`,
+          },
+          (payload: {
+            new?: {
+              is_invisible?: boolean | null;
+              premium_until?: string | null;
+              role?: string | null;
+            };
+          }) => {
+            const row = payload.new;
+            if (!row) return;
+            const premiumOk =
+              !!row.premium_until &&
+              new Date(row.premium_until).getTime() > Date.now();
+            const canHide = row.role === "admin" || premiumOk;
+            invisibleRef.current = !!row.is_invisible && canHide;
+          }
+        )
+        .subscribe();
+    })();
 
     return () => {
       cancelled = true;
@@ -170,6 +209,8 @@ export function PresenceTracker() {
       window.removeEventListener("focus", onVisible);
       window.removeEventListener("pointerdown", onActivity);
       window.removeEventListener("keydown", onActivity);
+      window.removeEventListener(INVISIBLE_MODE_EVENT, onInvisibleEvent);
+      if (profileChannel) void supabase.removeChannel(profileChannel);
     };
   }, [supabase]);
 

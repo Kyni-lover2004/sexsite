@@ -23,6 +23,7 @@ import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { KeyBackupPanel } from "@/components/chat/KeyBackupPanel";
 import { timeAgo, publicLastSeen, presenceLabel } from "@/lib/utils";
+import { usePeerPresence } from "@/hooks/useLivePresence";
 import { createClient } from "@/lib/supabase/client";
 import {
   ensureKeyPair,
@@ -91,6 +92,14 @@ export function ChatWindow({
     !!otherUser.premium_until &&
     new Date(otherUser.premium_until) > new Date();
   const displayName = otherUser.display_name ?? otherUser.username;
+
+  // Live is_invisible / last_seen so green "online" drops the moment peer hides.
+  const peerPresence = usePeerPresence(otherUserId, {
+    last_seen: otherUser.last_seen ?? null,
+    is_invisible: !!otherUser.is_invisible,
+  });
+  const peerLastSeen = peerPresence.last_seen;
+  const peerInvisible = peerPresence.is_invisible;
 
   const msgById = useMemo(() => {
     const m = new Map<string, ChatMessage>();
@@ -599,11 +608,8 @@ export function ChatWindow({
           <Avatar
             src={otherUser.avatar_url}
             name={displayName}
-            lastSeen={publicLastSeen(
-              otherUser.last_seen,
-              otherUser.is_invisible
-            )}
-            showPresence={!otherUser.is_invisible}
+            lastSeen={publicLastSeen(peerLastSeen, peerInvisible)}
+            showPresence={!peerInvisible}
             size="md"
           />
           <div className="min-w-0 flex-1">
@@ -620,10 +626,7 @@ export function ChatWindow({
               {peerTyping ? (
                 <span className="text-gold-soft animate-pulse">печатает…</span>
               ) : (
-                presenceLabel(
-                  otherUser.last_seen,
-                  otherUser.is_invisible
-                ) ?? "\u00a0"
+                presenceLabel(peerLastSeen, peerInvisible) ?? "\u00a0"
               )}
             </p>
           </div>

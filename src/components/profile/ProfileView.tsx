@@ -30,6 +30,8 @@ import { PhotoLightbox } from "@/components/ui/PhotoLightbox";
 import { ProfileHeader } from "@/components/profile/ProfileHeader";
 import { ProfileWall } from "@/components/profile/ProfileWall";
 import { usePhotoViewLimit } from "@/hooks/usePhotoViewLimit";
+import { usePeerPresence } from "@/hooks/useLivePresence";
+import { INVISIBLE_MODE_EVENT } from "@/components/auth/PresenceTracker";
 import {
   ageFromBirthDate,
   canUseInvisible,
@@ -134,6 +136,16 @@ export function ProfileView({
   const [invisible, setInvisible] = useState(!!profile.is_invisible);
   const [friendStatus, setFriendStatus] = useState<"none" | "sent" | "received" | "accepted">("none");
 
+  // When viewing someone else — live is_invisible so green online drops immediately.
+  const livePeer = usePeerPresence(isOwn ? null : profile.id, {
+    last_seen: profile.last_seen ?? null,
+    is_invisible: !!profile.is_invisible,
+  });
+  const effectiveInvisible = isOwn ? invisible : livePeer.is_invisible;
+  const effectiveLastSeen = isOwn
+    ? profile.last_seen
+    : (livePeer.last_seen ?? profile.last_seen);
+
   const [cropperOpen, setCropperOpen] = useState(false);
   const [cropperSrc, setCropperSrc] = useState("");
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -225,9 +237,9 @@ export function ProfileView({
     orientation_roles: normalizeOrientationValues(profile.orientation_roles),
   });
 
-  const seenPublic = publicLastSeen(profile.last_seen, invisible, isOwn);
+  const seenPublic = publicLastSeen(effectiveLastSeen, effectiveInvisible, isOwn);
   const online = isOnline(seenPublic);
-  const statusLabel = presenceLabel(profile.last_seen, invisible, isOwn);
+  const statusLabel = presenceLabel(effectiveLastSeen, effectiveInvisible, isOwn);
   const mayUseInvisible =
     canUseInvisible(profile.premium_until, profile.role) ||
     isPremium ||
@@ -429,6 +441,10 @@ export function ProfileView({
     if (!isOwn || !mayUseInvisible) return;
     const next = !invisible;
     setInvisible(next);
+    // Stop / resume heartbeat in this tab immediately (before DB round-trip).
+    window.dispatchEvent(
+      new CustomEvent(INVISIBLE_MODE_EVENT, { detail: { invisible: next } })
+    );
     const { error } = await (supabase as any)
       .from("profiles")
       .update({ is_invisible: next })
@@ -436,6 +452,11 @@ export function ProfileView({
 
     if (error) {
       setInvisible(!next);
+      window.dispatchEvent(
+        new CustomEvent(INVISIBLE_MODE_EVENT, {
+          detail: { invisible: !next },
+        })
+      );
       console.error("Invisible mode update error:", error);
       alert(
         `Ошибка: ${error.message}\nПримените supabase/patch_invisible_mode.sql в Supabase (колонка is_invisible).`
@@ -730,10 +751,14 @@ export function ProfileView({
 
       {!editing && <>
         <ProfileHeader
-          profile={profile}
+          profile={
+            isOwn
+              ? profile
+              : { ...profile, last_seen: effectiveLastSeen ?? profile.last_seen }
+          }
           isOwn={isOwn}
           available={available}
-          invisible={invisible}
+          invisible={effectiveInvisible}
           canToggleInvisible={mayUseInvisible}
           friendsCount={friendsCount}
           onToggleAvailable={toggleAvailable}
@@ -758,7 +783,7 @@ export function ProfileView({
                 name={profile.display_name ?? profile.username}
                 size="xl"
                 lastSeen={seenPublic}
-                showPresence={isOwn || !invisible}
+                showPresence={isOwn || !effectiveInvisible}
               />
               <div className="pointer-events-none absolute inset-0 -z-10 rounded-full bg-gold/20 blur-xl" />
 

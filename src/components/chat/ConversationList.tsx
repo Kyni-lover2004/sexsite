@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Crown, Image as ImageIcon, Shield } from "lucide-react";
 import Link from "next/link";
 import { Avatar } from "@/components/ui/Avatar";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { timeAgo, isPubliclyOnline, publicLastSeen } from "@/lib/utils";
+import { useLivePresence } from "@/hooks/useLivePresence";
 import {
   decryptMessage,
   ensureKeyPair,
@@ -49,6 +50,32 @@ export function ConversationList({
   const [previews, setPreviews] = useState<Record<string, string>>({});
   const [hasKey, setHasKey] = useState<boolean | null>(null);
   const [decrypting, setDecrypting] = useState(conversations.length > 0);
+
+  const peerIds = useMemo(
+    () =>
+      conversations
+        .map((c) => c.otherUser?.id)
+        .filter((id): id is string => !!id),
+    [conversations]
+  );
+
+  const initialPresence = useMemo(() => {
+    const m: Record<
+      string,
+      { last_seen: string | null; is_invisible: boolean }
+    > = {};
+    for (const c of conversations) {
+      const o = c.otherUser;
+      if (!o) continue;
+      m[o.id] = {
+        last_seen: o.last_seen ?? null,
+        is_invisible: !!o.is_invisible,
+      };
+    }
+    return m;
+  }, [conversations]);
+
+  const livePresence = useLivePresence(peerIds, initialPresence);
 
   useEffect(() => {
     let cancelled = false;
@@ -143,6 +170,9 @@ export function ConversationList({
         <div className="space-y-2">
           {conversations.map((conv, i) => {
             const other = conv.otherUser;
+            const live = other ? livePresence[other.id] : undefined;
+            const lastSeen = live?.last_seen ?? other?.last_seen ?? null;
+            const invisible = live?.is_invisible ?? !!other?.is_invisible;
             const hasPremium =
               !!other?.premium_until &&
               new Date(other.premium_until) > new Date();
@@ -173,11 +203,8 @@ export function ConversationList({
                   <Avatar
                     src={other?.avatar_url}
                     name={other?.display_name ?? other?.username}
-                    lastSeen={publicLastSeen(
-                      other?.last_seen,
-                      other?.is_invisible
-                    )}
-                    showPresence={!other?.is_invisible}
+                    lastSeen={publicLastSeen(lastSeen, invisible)}
+                    showPresence={!invisible}
                     size="md"
                   />
                   <div className="min-w-0 flex-1">
@@ -205,11 +232,7 @@ export function ConversationList({
                         conv.lastMessage?.created_at ?? conv.updated_at
                       )}
                     </span>
-                    {other &&
-                      isPubliclyOnline(
-                        other.last_seen,
-                        other.is_invisible
-                      ) && (
+                    {other && isPubliclyOnline(lastSeen, invisible) && (
                       <span className="text-[10px] font-medium text-emerald-400">
                         online
                       </span>
