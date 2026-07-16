@@ -86,16 +86,7 @@ npm run dev
 
 Чтобы все фичи работали стабильно, импортируйте полный скрипт `supabase/schema.sql` в **SQL Editor** в вашей панели управления Supabase и нажмите **Run**.
 
-### Назначение себя администратором (с обходом триггеров защиты):
-```sql
-ALTER TABLE public.profiles DISABLE TRIGGER trg_guard_profile_admin_fields;
 
-UPDATE public.profiles 
-SET role = 'admin' 
-WHERE username = 'ваш_username' OR email = 'ваша_почта';
-
-ALTER TABLE public.profiles ENABLE TRIGGER trg_guard_profile_admin_fields;
-```
 
 ---
 
