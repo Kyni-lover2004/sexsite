@@ -13,14 +13,19 @@
 | SQL | Supabase → SQL Editor |
 | Auth users | Supabase → Authentication |
 
-Выдать себе admin:
+Выдать себе admin + owner (владелец сайта — единственный, кто может «Снять админа»):
 
 ```sql
+-- один раз: патч supabase/patch_super_admin_owner.sql
+
 update public.profiles
-set role = 'admin'
+set role = 'admin', is_owner = true
 where username = 'ВАШ_USERNAME';
 -- или where id = 'uuid-из-auth.users';
 ```
+
+Обычных админов по-прежнему можно делать через `/admin` → «Сделать админом».  
+Снять админку с них может только аккаунт с `is_owner = true`.
 
 ---
 

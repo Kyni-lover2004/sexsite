@@ -94,6 +94,8 @@ export type ProfileReportRow = {
 
 interface AdminPanelProps {
   currentUserId: string;
+  /** Only site owner can demote other admins */
+  isSiteOwner?: boolean;
   users: Profile[];
   topics: TopicWithAuthor[];
   supportTickets: SupportTicketWithMessages[];
@@ -138,6 +140,7 @@ function isPremiumActive(user: Profile) {
 
 export function AdminPanel({
   currentUserId,
+  isSiteOwner = false,
   users,
   topics,
   supportTickets,
@@ -328,6 +331,11 @@ export function AdminPanel({
   }
 
   async function deleteUser(userId: string) {
+    const target = users.find((u) => u.id === userId);
+    if (target?.is_owner) {
+      alert("Нельзя удалить владельца сайта.");
+      return;
+    }
     if (
       !window.confirm(
         "Навсегда удалить профиль и связанные данные пользователя?"
@@ -344,9 +352,35 @@ export function AdminPanel({
   }
 
   async function setRole(userId: string, role: "admin" | "user") {
+    const target = users.find((u) => u.id === userId);
+    if (role === "user") {
+      if (!isSiteOwner) {
+        alert("Снимать админку может только владелец сайта.");
+        return;
+      }
+      if (target?.is_owner) {
+        alert("Нельзя снять админку с владельца сайта.");
+        return;
+      }
+    }
+    if (target?.is_owner && role !== "admin") {
+      alert("Нельзя снять админку с владельца сайта.");
+      return;
+    }
+
     setActionLoading(userId);
-    const { error } = await supa.from("profiles").update({ role }).eq("id", userId);
-    if (error) alert(`Ошибка смены роли: ${error.message}`);
+    const { error } = await supa
+      .from("profiles")
+      .update({ role })
+      .eq("id", userId);
+    if (error) {
+      const msg = String(error.message ?? "");
+      if (msg.includes("site owner") || msg.includes("owner")) {
+        alert("Снимать админку может только владелец сайта.");
+      } else {
+        alert(`Ошибка смены роли: ${error.message}`);
+      }
+    }
     setActionLoading(null);
     router.refresh();
   }
@@ -602,7 +636,11 @@ export function AdminPanel({
                         <p className="min-w-0 max-w-full truncate font-medium text-white">
                           {user.display_name ?? user.username}
                         </p>
-                        {user.role === "admin" && <Badge icon={Shield} label="ADMIN" />}
+                        {user.is_owner ? (
+                          <Badge icon={Shield} label="OWNER" />
+                        ) : user.role === "admin" ? (
+                          <Badge icon={Shield} label="ADMIN" />
+                        ) : null}
                         {isPremiumActive(user) && (
                           <Badge icon={Crown} label="Premium" />
                         )}
@@ -633,15 +671,17 @@ export function AdminPanel({
                   {user.id !== currentUserId && (
                     <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-2 lg:flex lg:flex-wrap lg:justify-end">
                       {user.role === "admin" ? (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="w-full lg:w-auto"
-                          onClick={() => setRole(user.id, "user")}
-                          disabled={actionLoading === user.id}
-                        >
-                          Снять админа
-                        </Button>
+                        isSiteOwner && !user.is_owner ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full lg:w-auto"
+                            onClick={() => setRole(user.id, "user")}
+                            disabled={actionLoading === user.id}
+                          >
+                            Снять админа
+                          </Button>
+                        ) : null
                       ) : (
                         <Button
                           variant="outline"
@@ -653,35 +693,40 @@ export function AdminPanel({
                           Сделать админом
                         </Button>
                       )}
-                      {user.is_banned ? (
-                        <Button
-                          variant="primary"
-                          size="sm"
-                          className="w-full lg:w-auto"
-                          onClick={() => unbanUser(user.id)}
-                          disabled={actionLoading === user.id}
-                        >
-                          <CheckCircle2 size={14} />
-                          Разбан
-                        </Button>
-                      ) : (
-                        <Button
-                          variant="danger"
-                          size="sm"
-                          className="w-full lg:w-auto"
-                          onClick={() => setBanUserId(banUserId === user.id ? null : user.id)}
-                          disabled={actionLoading === user.id}
-                        >
-                          <Ban size={14} />
-                          Бан
-                        </Button>
-                      )}
+                      {!user.is_owner &&
+                        (user.is_banned ? (
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            className="w-full lg:w-auto"
+                            onClick={() => unbanUser(user.id)}
+                            disabled={actionLoading === user.id}
+                          >
+                            <CheckCircle2 size={14} />
+                            Разбан
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="danger"
+                            size="sm"
+                            className="w-full lg:w-auto"
+                            onClick={() =>
+                              setBanUserId(banUserId === user.id ? null : user.id)
+                            }
+                            disabled={actionLoading === user.id}
+                          >
+                            <Ban size={14} />
+                            Бан
+                          </Button>
+                        ))}
                       <Button
                         variant="gold"
                         size="sm"
                         className="w-full lg:w-auto"
                         onClick={() =>
-                          setPremiumUserId(premiumUserId === user.id ? null : user.id)
+                          setPremiumUserId(
+                            premiumUserId === user.id ? null : user.id
+                          )
                         }
                         disabled={actionLoading === user.id}
                       >
@@ -699,16 +744,18 @@ export function AdminPanel({
                           Снять Premium
                         </Button>
                       )}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full border-red-500/20 text-red-400 hover:bg-red-500/10 lg:w-auto"
-                        onClick={() => deleteUser(user.id)}
-                        disabled={actionLoading === user.id}
-                      >
-                        <Trash2 size={14} />
-                        Удалить
-                      </Button>
+                      {!user.is_owner && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full border-red-500/20 text-red-400 hover:bg-red-500/10 lg:w-auto"
+                          onClick={() => deleteUser(user.id)}
+                          disabled={actionLoading === user.id}
+                        >
+                          <Trash2 size={14} />
+                          Удалить
+                        </Button>
+                      )}
                     </div>
                   )}
                 </div>

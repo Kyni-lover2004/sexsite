@@ -27,6 +27,8 @@ export interface Profile {
   available_for_chat: boolean;
   last_seen: string;
   role: UserRole;
+  /** Site owner — only this account can demote other admins. */
+  is_owner?: boolean;
   is_banned: boolean;
   banned_until: string | null;
   ban_reason: string | null;

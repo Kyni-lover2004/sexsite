@@ -13,22 +13,33 @@ export default async function AdminPage() {
   const supabase = createClient();
   const { data: auth } = await supabase.auth.getUser();
 
+  // Prefer is_owner (super-admin); fall back if SQL patch not applied yet.
+  let usersQuery = await supabase
+    .from("profiles")
+    .select(
+      "id, username, display_name, avatar_url, role, is_owner, is_banned, banned_until, ban_reason, premium_until, created_at, last_seen, city, gender"
+    )
+    .order("created_at", { ascending: false })
+    .limit(200);
+
+  if (usersQuery.error) {
+    usersQuery = await supabase
+      .from("profiles")
+      .select(
+        "id, username, display_name, avatar_url, role, is_banned, banned_until, ban_reason, premium_until, created_at, last_seen, city, gender"
+      )
+      .order("created_at", { ascending: false })
+      .limit(200);
+  }
+
   // Independent datasets load in parallel (was sequential waterfall).
   const [
-    { data: users },
     { data: topics },
     { data: supportTickets },
     { data: conversations },
     contentReportsRes,
     profileReportsRes,
   ] = await Promise.all([
-    supabase
-      .from("profiles")
-      .select(
-        "id, username, display_name, avatar_url, role, is_banned, banned_until, ban_reason, premium_until, created_at, last_seen, city, gender"
-      )
-      .order("created_at", { ascending: false })
-      .limit(200),
     supabase
       .from("topics")
       .select(
@@ -66,6 +77,8 @@ export default async function AdminPage() {
       .order("created_at", { ascending: false })
       .limit(100),
   ]);
+
+  const users = usersQuery.data;
 
   const contentReports = (contentReportsRes.data ?? []).map((r: any) => ({
     ...r,
@@ -113,10 +126,16 @@ export default async function AdminPage() {
     user_b_profile: usersById.get(c.user_b) ?? null,
   }));
 
+  const currentUserRow = ((users ?? []) as any[]).find(
+    (u) => u.id === auth.user!.id
+  );
+  const isSiteOwner = !!(currentUserRow as any)?.is_owner;
+
   return (
     <AppShell>
       <AdminPanel
         currentUserId={auth.user!.id}
+        isSiteOwner={isSiteOwner}
         users={(users ?? []) as any}
         topics={(topics ?? []) as any}
         supportTickets={supportWithMessages as any}

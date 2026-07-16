@@ -470,10 +470,44 @@ returns boolean language sql stable security definer set search_path = public as
   );
 $$;
 
+-- Site owner (single super-admin): demote other admins, protected account
+alter table public.profiles
+  add column if not exists is_owner boolean not null default false;
+
+create or replace function public.is_owner()
+returns boolean language sql stable security definer set search_path = public as $$
+  select coalesce(
+    (select is_owner from public.profiles where id = auth.uid()),
+    false
+  );
+$$;
+
 create or replace function public.guard_profile_admin_fields()
 returns trigger language plpgsql security definer set search_path = public as $$
 begin
-  if public.is_admin() then
+  if new.is_owner is distinct from old.is_owner then
+    if auth.uid() is not null and not public.is_owner() then
+      raise exception 'Only the site owner can change the owner flag';
+    end if;
+  end if;
+
+  if old.is_owner then
+    if new.is_owner is distinct from true then
+      raise exception 'Cannot remove the site owner flag from this account';
+    end if;
+    if new.role is distinct from 'admin' then
+      raise exception 'Cannot demote the site owner';
+    end if;
+  end if;
+
+  -- Demote admin → user: only site owner
+  if old.role = 'admin' and new.role is distinct from 'admin' then
+    if auth.uid() is not null and not public.is_owner() then
+      raise exception 'Only the site owner can remove admin privileges';
+    end if;
+  end if;
+
+  if public.is_admin() or auth.uid() is null then
     return new;
   end if;
 
