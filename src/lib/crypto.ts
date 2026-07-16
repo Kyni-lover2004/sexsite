@@ -19,6 +19,8 @@ const DB_NAME = "secure-messenger";
 const STORE = "keys";
 const PRIVATE_KEY_ID = "self-private-key";
 const PRIVATE_JWK_ID = "self-private-jwk";
+/** Older non-extractable CryptoKeys kept only for decrypting pre-rotation history. */
+const LEGACY_PRIVATE_KEYS_ID = "self-private-keys-legacy";
 const BACKUP_VERSION = 1;
 
 // ---------- IndexedDB helpers (persist the private key) ----------
@@ -189,6 +191,44 @@ export async function canExportBackup(): Promise<boolean> {
   }
 }
 
+/**
+ * Old keys were generated with extractable:false — cannot backup.
+ * Move current key to legacy (still decrypts old history on THIS device),
+ * mint a new extractable pair for backup + future messages.
+ */
+export async function rotateToExtractableKeyPair(): Promise<KeyPairExport> {
+  const oldPrivate = await idbGet<CryptoKey>(PRIVATE_KEY_ID);
+  if (oldPrivate) {
+    const legacies =
+      (await idbGet<CryptoKey[]>(LEGACY_PRIVATE_KEYS_ID)) ?? [];
+    legacies.push(oldPrivate);
+    await idbSet(LEGACY_PRIVATE_KEYS_ID, legacies);
+  }
+
+  const pair = await crypto.subtle.generateKey(KEY_ALGO, true, ["deriveKey"]);
+  const publicKeyJwk = await crypto.subtle.exportKey("jwk", pair.publicKey);
+  const privateKeyJwk = await crypto.subtle.exportKey("jwk", pair.privateKey);
+
+  await idbSet(PRIVATE_KEY_ID, pair.privateKey);
+  await idbSet(PRIVATE_JWK_ID, privateKeyJwk);
+  await idbSet("self-public-jwk", publicKeyJwk);
+
+  sharedKeyCache.clear();
+  sharedKeyInflight.clear();
+
+  return { publicKeyJwk };
+}
+
+/** Ensure primary key can be exported; rotate if legacy non-extractable. */
+export async function ensureExtractableKeyForBackup(): Promise<KeyPairExport> {
+  await ensureKeyPair({ allowCreate: true });
+  if (await canExportBackup()) {
+    const publicKeyJwk = (await idbGet<JsonWebKey>("self-public-jwk"))!;
+    return { publicKeyJwk };
+  }
+  return rotateToExtractableKeyPair();
+}
+
 async function getPrivateJwkForBackup(): Promise<JsonWebKey> {
   const stored = await idbGet<JsonWebKey>(PRIVATE_JWK_ID);
   if (stored) return stored;
@@ -240,12 +280,14 @@ export interface EncryptedKeyBackup {
 
 /**
  * Passphrase-encrypted private-key backup (download / transfer to another browser).
+ * Auto-rotates legacy non-extractable keys so setup never dead-ends.
  */
 export async function createEncryptedBackup(
   passphrase: string
 ): Promise<EncryptedKeyBackup> {
   if (passphrase.length < 8) throw new Error("WEAK_PASSPHRASE");
-  await ensureKeyPair();
+  // Rotate if needed so backup always works (legacy keys stay for local decrypt).
+  await ensureExtractableKeyForBackup();
   const privateJwk = await getPrivateJwkForBackup();
   const publicKeyJwk = (await idbGet<JsonWebKey>("self-public-jwk"))!;
   const salt = crypto.getRandomValues(new Uint8Array(16));
@@ -328,6 +370,13 @@ async function getPrivateKey(): Promise<CryptoKey> {
   return key;
 }
 
+/** Primary + legacy private keys (for decrypt after rotation). */
+async function getDecryptPrivateKeys(): Promise<CryptoKey[]> {
+  const primary = await getPrivateKey();
+  const legacies = (await idbGet<CryptoKey[]>(LEGACY_PRIVATE_KEYS_ID)) ?? [];
+  return [primary, ...legacies];
+}
+
 async function importPublicKey(jwk: JsonWebKey): Promise<CryptoKey> {
   return crypto.subtle.importKey("jwk", jwk, KEY_ALGO, false, []);
 }
@@ -336,17 +385,16 @@ async function importPublicKey(jwk: JsonWebKey): Promise<CryptoKey> {
 const sharedKeyCache = new Map<string, CryptoKey>();
 const sharedKeyInflight = new Map<string, Promise<CryptoKey>>();
 
-function peerKeyCacheId(jwk: JsonWebKey): string {
-  return `${jwk.crv ?? ""}:${jwk.x ?? ""}:${jwk.y ?? ""}`;
+function peerKeyCacheId(jwk: JsonWebKey, keySlot = 0): string {
+  return `${keySlot}:${jwk.crv ?? ""}:${jwk.x ?? ""}:${jwk.y ?? ""}`;
 }
 
-/**
- * Derives a shared AES-GCM key between our private key and the peer's
- * public key. ECDH is symmetric: both sides derive the same secret.
- * Results are memoized for the lifetime of the page.
- */
-async function deriveSharedKey(peerPublicJwk: JsonWebKey): Promise<CryptoKey> {
-  const cacheId = peerKeyCacheId(peerPublicJwk);
+async function deriveSharedKeyWith(
+  privateKey: CryptoKey,
+  peerPublicJwk: JsonWebKey,
+  keySlot: number
+): Promise<CryptoKey> {
+  const cacheId = peerKeyCacheId(peerPublicJwk, keySlot);
   const cached = sharedKeyCache.get(cacheId);
   if (cached) return cached;
 
@@ -354,7 +402,6 @@ async function deriveSharedKey(peerPublicJwk: JsonWebKey): Promise<CryptoKey> {
   if (inflight) return inflight;
 
   const promise = (async () => {
-    const privateKey = await getPrivateKey();
     const peerPublic = await importPublicKey(peerPublicJwk);
     const key = await crypto.subtle.deriveKey(
       { name: "ECDH", public: peerPublic },
@@ -370,6 +417,14 @@ async function deriveSharedKey(peerPublicJwk: JsonWebKey): Promise<CryptoKey> {
 
   sharedKeyInflight.set(cacheId, promise);
   return promise;
+}
+
+/**
+ * Derives shared AES-GCM with the primary private key (for encrypt + new messages).
+ */
+async function deriveSharedKey(peerPublicJwk: JsonWebKey): Promise<CryptoKey> {
+  const privateKey = await getPrivateKey();
+  return deriveSharedKeyWith(privateKey, peerPublicJwk, 0);
 }
 
 // ---------- message encryption ----------
@@ -405,20 +460,37 @@ export async function encryptMessage(
 
 /**
  * Decrypts a payload from a peer identified by their public JWK.
- * Because ECDH is symmetric, the same derive step works for both the
- * message we sent and the message we received.
+ * Tries primary then legacy private keys (after extractable-key rotation).
  */
 export async function decryptMessage(
   payload: EncryptedPayload,
   peerPublicJwk: JsonWebKey
 ): Promise<string> {
-  const sharedKey = await deriveSharedKey(peerPublicJwk);
-  const plain = await crypto.subtle.decrypt(
-    { name: "AES-GCM", iv: new Uint8Array(b64ToBuf(payload.iv)) as BufferSource },
-    sharedKey,
-    b64ToBuf(payload.ciphertext) as BufferSource
-  );
-  return new TextDecoder().decode(plain);
+  const privates = await getDecryptPrivateKeys();
+  let lastErr: unknown;
+  for (let i = 0; i < privates.length; i++) {
+    try {
+      const sharedKey = await deriveSharedKeyWith(
+        privates[i],
+        peerPublicJwk,
+        i
+      );
+      const plain = await crypto.subtle.decrypt(
+        {
+          name: "AES-GCM",
+          iv: new Uint8Array(b64ToBuf(payload.iv)) as BufferSource,
+        },
+        sharedKey,
+        b64ToBuf(payload.ciphertext) as BufferSource
+      );
+      return new TextDecoder().decode(plain);
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr instanceof Error
+    ? lastErr
+    : new Error("DECRYPT_FAILED");
 }
 
 // ---------- file encryption (for images in chat) ----------
@@ -448,15 +520,31 @@ export async function encryptFile(
 
 /**
  * Decrypts a file's encrypted contents using the ECDH shared secret.
+ * Tries primary + legacy private keys after rotation.
  */
 export async function decryptFile(
   payload: { ciphertext: ArrayBuffer; iv: Uint8Array },
   peerPublicJwk: JsonWebKey
 ): Promise<ArrayBuffer> {
-  const sharedKey = await deriveSharedKey(peerPublicJwk);
-  return crypto.subtle.decrypt(
-    { name: "AES-GCM", iv: payload.iv as BufferSource },
-    sharedKey,
-    payload.ciphertext as BufferSource
-  );
+  const privates = await getDecryptPrivateKeys();
+  let lastErr: unknown;
+  for (let i = 0; i < privates.length; i++) {
+    try {
+      const sharedKey = await deriveSharedKeyWith(
+        privates[i],
+        peerPublicJwk,
+        i
+      );
+      return await crypto.subtle.decrypt(
+        { name: "AES-GCM", iv: payload.iv as BufferSource },
+        sharedKey,
+        payload.ciphertext as BufferSource
+      );
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr instanceof Error
+    ? lastErr
+    : new Error("DECRYPT_FAILED");
 }

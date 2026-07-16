@@ -96,7 +96,7 @@ export function KeyBackupPanel({
       const msg = e instanceof Error ? e.message : "";
       setError(
         msg === "LEGACY_NON_EXTRACTABLE"
-          ? "Старый ключ нельзя экспортировать."
+          ? "Старый ключ нельзя выгрузить. Обновите страницу — при сохранении ключ перевыпустится автоматически."
           : msg || "Не удалось сохранить"
       );
     }
@@ -143,7 +143,7 @@ export function KeyBackupPanel({
       const msg = e instanceof Error ? e.message : "";
       setError(
         msg === "LEGACY_NON_EXTRACTABLE"
-          ? "Старый ключ нельзя экспортировать."
+          ? "Старый ключ нельзя выгрузить. Обновите страницу и повторите."
           : msg || "Не удалось создать backup"
       );
     }

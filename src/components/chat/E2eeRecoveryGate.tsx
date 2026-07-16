@@ -149,7 +149,7 @@ export function E2eeRecoveryGate() {
     }
     setBusy(true);
     try {
-      await ensureKeyPair({ allowCreate: true });
+      // createEncryptedBackup auto-rotates legacy non-extractable keys
       const backup = await createEncryptedBackup(pass);
       const up = await uploadCloudKeyBackup(userId, backup);
       if (!up.ok) {
@@ -163,8 +163,13 @@ export function E2eeRecoveryGate() {
       setPass2("");
       setMode("ready");
     } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "";
       setError(
-        e instanceof Error ? e.message : "Не удалось сохранить backup"
+        msg === "LEGACY_NON_EXTRACTABLE"
+          ? "Старый ключ нельзя сохранить. Обновите страницу и попробуйте снова — ключ будет перевыпущен автоматически."
+          : msg === "WEAK_PASSPHRASE"
+            ? "Пароль слишком короткий (мин. 8)."
+            : msg || "Не удалось сохранить backup"
       );
     }
     setBusy(false);
