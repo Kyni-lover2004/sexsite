@@ -94,7 +94,16 @@ export function AuthForm() {
 
       if (signUpError) {
         setLoading(false);
-        setError(signUpError.message);
+        const msg = signUpError.message || "";
+        if (/signups? are disabled|email signup/i.test(msg)) {
+          setError(
+            "Регистрация по email отключена в Supabase. " +
+              "Dashboard → Authentication → Providers → Email → включите Email provider " +
+              "и разрешите Sign ups. Confirm email — выключите."
+          );
+        } else {
+          setError(msg);
+        }
         return;
       }
 

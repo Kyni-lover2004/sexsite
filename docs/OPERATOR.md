@@ -214,17 +214,24 @@ group by 1 order by 2 desc;
 
 ---
 
-## Auth: без верификации почты
+## Auth: email + пароль, без верификации
 
 Регистрация = email + пароль, **без** письма подтверждения.
 Мусор чистится модерацией + cleanup неактивных (~30 дней по `last_active_at`).
 
 ### Freesh / cloud Supabase
 Dashboard → **Authentication** → **Providers** → **Email**:
-- **Confirm email** → **выключено**
+- **Enable Email provider** → **ON**
+- **Confirm email** → **OFF** (без писем)
 - (опционально) Secure email change — как удобно
 
-Без этого `signUp` не выдаёт сессию, и пользователь не войдёт.
+Также: **Authentication** → **Settings** (или Providers):
+- **Allow new users to sign up** / disable signups → **разрешено** (не disabled)
+
+Ошибка **"Email signups are disabled"** = в Dashboard выключена регистрация по email.
+Включи Email provider + signups, Save.
+
+Без Confirm email OFF `signUp` может не выдать сессию.
 
 ### Self-hosted
 В `.env` Docker-стека (имена зависят от версии, смотри `.env.example`):
