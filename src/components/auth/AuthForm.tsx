@@ -23,6 +23,24 @@ import { GlassCard } from "@/components/ui/GlassCard";
 import { BrandLogo } from "@/components/ui/BrandLogo";
 import { safeRedirectPath } from "@/lib/utils";
 
+function mapAuthError(message: string): string {
+  const m = message || "";
+  if (/invalid login credentials/i.test(m)) {
+    return (
+      "Неверный email или пароль. Проверьте раскладку и Caps Lock. " +
+      "Если регистрировались до отключения подтверждения почты — введите тот же пароль ещё раз " +
+      "(система подтвердит аккаунт). Или сбросьте пароль в Supabase → Authentication → Users."
+    );
+  }
+  if (/email not confirmed/i.test(m)) {
+    return (
+      "Почта не подтверждена. Войдите ещё раз — подтвердим автоматически, " +
+      "или в Dashboard: Auth → Users → Confirm."
+    );
+  }
+  return m;
+}
+
 /* ---------- password strength ---------- */
 function getPasswordStrength(pw: string): {
   score: number;
@@ -84,6 +102,7 @@ export function AuthForm() {
     setLoading(true);
 
     const next = safeRedirectPath(searchParams.get("next"), "/");
+    const emailNorm = email.trim().toLowerCase();
 
     if (mode === "register") {
       // Server creates user with email_confirm: true (no mail). Then client signs in.
@@ -91,7 +110,7 @@ export function AuthForm() {
         const res = await fetch("/api/auth/register", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password }),
+          body: JSON.stringify({ email: emailNorm, password }),
         });
         const payload = (await res.json().catch(() => ({}))) as {
           error?: string;
@@ -108,12 +127,12 @@ export function AuthForm() {
       }
 
       const { error: signInError } = await supabase.auth.signInWithPassword({
-        email,
+        email: emailNorm,
         password,
       });
       if (signInError) {
         setLoading(false);
-        setError(signInError.message);
+        setError(mapAuthError(signInError.message));
         return;
       }
 
@@ -126,14 +145,34 @@ export function AuthForm() {
       return;
     }
 
-    const { error: authError } = await supabase.auth.signInWithPassword({
-      email,
+    // Login
+    let { error: authError } = await supabase.auth.signInWithPassword({
+      email: emailNorm,
       password,
     });
+
+    // Stuck unconfirmed account (old flow): confirm + set password, retry once
+    if (authError && /invalid login credentials/i.test(authError.message)) {
+      try {
+        await fetch("/api/auth/ensure-confirmed", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: emailNorm, password }),
+        });
+        const retry = await supabase.auth.signInWithPassword({
+          email: emailNorm,
+          password,
+        });
+        authError = retry.error;
+      } catch {
+        /* keep original error */
+      }
+    }
+
     setLoading(false);
 
     if (authError) {
-      setError(authError.message);
+      setError(mapAuthError(authError.message));
       return;
     }
 
