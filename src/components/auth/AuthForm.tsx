@@ -73,12 +73,19 @@ export function AuthForm() {
   const searchParams = useSearchParams();
   const supabase = createClient();
 
-  const initialMode = searchParams.get("mode") === "register" ? "register" : "login";
+  const modeParam = searchParams.get("mode");
+  const initialMode =
+    modeParam === "register"
+      ? "register"
+      : modeParam === "forgot"
+        ? "forgot"
+        : "login";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [mode, setMode] = useState<"login" | "register">(initialMode);
+  const [mode, setMode] = useState<"login" | "register" | "forgot">(initialMode);
   const [error, setError] = useState("");
+  const [info, setInfo] = useState("");
   const [loading, setLoading] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [confirm18, setConfirm18] = useState(false);
@@ -89,6 +96,7 @@ export function AuthForm() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+    setInfo("");
     if (mode === "register") {
       if (!confirm18) {
         setError("Подтвердите, что вам есть 18 лет.");
@@ -103,6 +111,27 @@ export function AuthForm() {
 
     const next = safeRedirectPath(searchParams.get("next"), "/");
     const emailNorm = email.trim().toLowerCase();
+
+    if (mode === "forgot") {
+      const origin =
+        typeof window !== "undefined" ? window.location.origin : "";
+      const { error: resetErr } = await supabase.auth.resetPasswordForEmail(
+        emailNorm,
+        {
+          redirectTo: `${origin}/auth/callback?next=/reset-password`,
+        }
+      );
+      setLoading(false);
+      if (resetErr) {
+        setError(mapAuthError(resetErr.message));
+        return;
+      }
+      setInfo(
+        "Если аккаунт с таким email есть, мы отправили ссылку. " +
+          "Откройте письмо и задайте новый пароль. Ссылка ведёт на /reset-password."
+      );
+      return;
+    }
 
     if (mode === "register") {
       // Server creates user with email_confirm: true (no mail). Then client signs in.
@@ -281,12 +310,18 @@ export function AuthForm() {
                   transition={{ duration: 0.25 }}
                 >
                   <h1 className="font-display text-2xl font-bold text-gradient">
-                    {mode === "login" ? "Добро пожаловать" : "Создать аккаунт"}
+                    {mode === "login"
+                      ? "Добро пожаловать"
+                      : mode === "forgot"
+                        ? "Сброс пароля"
+                        : "Создать аккаунт"}
                   </h1>
                   <p className="mt-1.5 text-sm text-slate-500">
                     {mode === "login"
                       ? "Войдите в свой аккаунт"
-                      : "Присоединяйтесь к сообществу"}
+                      : mode === "forgot"
+                        ? "Пришлём ссылку на смену пароля"
+                        : "Присоединяйтесь к сообществу"}
                   </p>
                 </motion.div>
               </AnimatePresence>
@@ -305,6 +340,18 @@ export function AuthForm() {
                     (paramError === "auth_failed"
                       ? "Ошибка входа. Попробуйте снова."
                       : paramError)}
+                </motion.p>
+              )}
+            </AnimatePresence>
+            <AnimatePresence>
+              {info && (
+                <motion.p
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="mb-5 overflow-hidden rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-2.5 text-xs text-emerald-300"
+                >
+                  {info}
                 </motion.p>
               )}
             </AnimatePresence>
@@ -332,11 +379,27 @@ export function AuthForm() {
                 </div>
               </div>
 
-              {/* Password */}
+              {/* Password (not for forgot) */}
+              {mode !== "forgot" && (
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-slate-400">
-                  Пароль
-                </label>
+                <div className="flex items-center justify-between gap-2">
+                  <label className="text-xs font-medium text-slate-400">
+                    Пароль
+                  </label>
+                  {mode === "login" && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMode("forgot");
+                        setError("");
+                        setInfo("");
+                      }}
+                      className="text-[11px] text-gold-soft hover:underline"
+                    >
+                      Забыли пароль?
+                    </button>
+                  )}
+                </div>
                 <div className="relative">
                   <Lock
                     size={16}
@@ -392,6 +455,7 @@ export function AuthForm() {
                   )}
                 </AnimatePresence>
               </div>
+              )}
 
               {mode === "register" && (
                 <div className="space-y-2.5 rounded-xl border border-gold/10 bg-base-900/40 px-3 py-3">
@@ -451,10 +515,16 @@ export function AuthForm() {
                   <>
                     {mode === "login" ? (
                       <LogIn size={16} />
+                    ) : mode === "forgot" ? (
+                      <Mail size={16} />
                     ) : (
                       <Sparkles size={16} />
                     )}
-                    {mode === "login" ? "Войти" : "Зарегистрироваться"}
+                    {mode === "login"
+                      ? "Войти"
+                      : mode === "forgot"
+                        ? "Отправить ссылку"
+                        : "Зарегистрироваться"}
                   </>
                 )}
               </Button>
@@ -472,9 +542,11 @@ export function AuthForm() {
                 <>
                   Нет аккаунта?{" "}
                   <button
+                    type="button"
                     onClick={() => {
                       setMode("register");
                       setError("");
+                      setInfo("");
                     }}
                     className="inline-flex items-center gap-1 font-medium text-gold-soft transition-colors hover:text-gold hover:underline"
                   >
@@ -484,11 +556,13 @@ export function AuthForm() {
                 </>
               ) : (
                 <>
-                  Уже есть аккаунт?{" "}
+                  Вспомнили пароль?{" "}
                   <button
+                    type="button"
                     onClick={() => {
                       setMode("login");
                       setError("");
+                      setInfo("");
                     }}
                     className="inline-flex items-center gap-1 font-medium text-gold-soft transition-colors hover:text-gold hover:underline"
                   >

@@ -246,7 +246,23 @@ GOTRUE_MAILER_AUTOCONFIRM=true
 
 Пересоздать auth: `sh run.sh recreate auth` (или полный restart).
 
-SMTP для signup **не нужен**. SMTP — только для reset password, когда решите включить.
+SMTP для signup **не нужен**. SMTP — для **сброса пароля** (ссылка в письме).
+
+### Сброс пароля (письмо → страница)
+
+В приложении:
+- `/login` → «Забыли пароль?» → письмо
+- ссылка: `/auth/callback?next=/reset-password` → форма `/reset-password`
+
+В Supabase Dashboard → **Authentication** → **URL Configuration**:
+- **Site URL** = `https://ваш-домен` (прод)
+- **Redirect URLs** добавить:
+  - `https://ваш-домен/auth/callback`
+  - `https://ваш-домен/auth/callback?next=/reset-password`
+  - `https://ваш-домен/reset-password`
+  - для локалки: `http://localhost:3000/auth/callback**` и `http://localhost:3000/reset-password`
+
+Email template «Reset password» должен вести на Site URL / ConfirmationURL (по умолчанию ок, если Site URL верный).
 - [ ] Premium: либо pay provider, либо ручная выдача  
 - [ ] Cron inactive cleanup на last_active_at  
 - [ ] Storage buckets: profile-photos (+ private)  
