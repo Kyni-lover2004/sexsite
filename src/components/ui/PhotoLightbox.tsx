@@ -52,8 +52,8 @@ export function PhotoLightbox({
   const [moveError, setMoveError] = useState("");
 
   useEffect(() => {
-    setIndex(initialIndex);
-  }, [initialIndex]);
+    if (open) setIndex(initialIndex);
+  }, [open, initialIndex]);
 
   useEffect(() => {
     if (photos.length === 0) return;

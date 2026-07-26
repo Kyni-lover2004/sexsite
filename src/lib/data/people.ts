@@ -111,12 +111,13 @@ export async function searchPeople(
   let rows = (data ?? []) as Profile[];
 
   if (tab === "nearby" && rows.length < 6 && !filters.city && viewerCity) {
-    const { data: more } = await supa
+    let moreQuery = supa
       .from("profiles")
       .select(PEOPLE_SELECT)
-      .neq("id", currentUserId)
       .order("last_seen", { ascending: false })
       .limit(limit);
+    if (currentUserId) moreQuery = moreQuery.neq("id", currentUserId);
+    const { data: more } = await moreQuery;
     const seen = new Set(rows.map((r) => r.id));
     for (const p of more ?? []) {
       if (!seen.has(p.id)) rows.push(p as Profile);

@@ -256,10 +256,16 @@ export function usePeerPresence(
   userId: string | null | undefined,
   initial?: PresenceSnapshot
 ): PresenceSnapshot {
+  const hasInitial = !!initial;
+  const initialLastSeen = initial?.last_seen ?? null;
+  const initialInvisible = !!initial?.is_invisible;
+
   const initialById = useMemo(() => {
-    if (!userId || !initial) return undefined;
-    return { [userId]: initial };
-  }, [userId, initial?.last_seen, initial?.is_invisible]);
+    if (!userId || !hasInitial) return undefined;
+    return {
+      [userId]: { last_seen: initialLastSeen, is_invisible: initialInvisible },
+    };
+  }, [userId, hasInitial, initialLastSeen, initialInvisible]);
 
   const map = useLivePresence(userId ?? null, initialById);
   if (!userId) {

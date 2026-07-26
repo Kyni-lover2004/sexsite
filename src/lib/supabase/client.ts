@@ -76,9 +76,15 @@ function stub() {
 }
 
 let client: ReturnType<typeof createBrowserClient> | null = null;
+let stubClient: ReturnType<typeof stub> | null = null;
 
 export function createClient() {
-  if (!url || !key) return stub();
+  if (!url || !key) {
+    // Keep the stub a singleton too — a fresh object per call would retrigger
+    // every effect that lists the client in its dependency array.
+    if (!stubClient) stubClient = stub();
+    return stubClient;
+  }
   if (client) return client;
   client = createBrowserClient(url, key);
   return client;

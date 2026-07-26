@@ -52,6 +52,15 @@ export function CreateTopicForm({ isAdmin = false }: { isAdmin?: boolean }) {
   const [media, setMedia] = useState<
     { file: File; preview: string; uploading: boolean }[]
   >([]);
+  const mediaRef = useRef(media);
+  mediaRef.current = media;
+
+  // Revoke preview blob URLs if the user leaves without posting
+  useEffect(() => {
+    return () => {
+      mediaRef.current.forEach((m) => URL.revokeObjectURL(m.preview));
+    };
+  }, []);
 
   // Restore draft
   useEffect(() => {
@@ -157,12 +166,23 @@ export function CreateTopicForm({ isAdmin = false }: { isAdmin?: boolean }) {
       }
     }
 
+    // DB enforces one active topic per author (unique index), so previous
+    // topics must be archived before insert. Remember them to roll back
+    // if the insert fails.
+    let archivedIds: string[] = [];
     if (!isAdmin) {
-      await supa
+      const { data: prevActive } = await supa
         .from("topics")
-        .update({ status: "archived" })
+        .select("id")
         .eq("author_id", user.id)
         .eq("status", "active");
+      archivedIds = (prevActive ?? []).map((t: { id: string }) => t.id);
+      if (archivedIds.length > 0) {
+        await supa
+          .from("topics")
+          .update({ status: "archived" })
+          .in("id", archivedIds);
+      }
     }
 
     const tagsList = tags
@@ -190,6 +210,12 @@ export function CreateTopicForm({ isAdmin = false }: { isAdmin?: boolean }) {
     setSaving(false);
 
     if (insertError) {
+      if (archivedIds.length > 0) {
+        await supa
+          .from("topics")
+          .update({ status: "active" })
+          .in("id", archivedIds);
+      }
       setError(insertError.message);
       return;
     }

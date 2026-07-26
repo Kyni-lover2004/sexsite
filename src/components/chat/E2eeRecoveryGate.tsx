@@ -105,12 +105,8 @@ export function E2eeRecoveryGate() {
     }
 
     if (local && !cloud) {
-      // Local keys but never uploaded recovery — force setup (history risk)
-      if (!isRecoverySetupMarked(uid)) {
-        setMode("needs_setup");
-        return;
-      }
-      // Marked locally but cloud missing (deleted row?) — ask again
+      // Local keys but no cloud recovery (never uploaded or row deleted) —
+      // force setup, otherwise history is lost on device change
       setMode("needs_setup");
       return;
     }

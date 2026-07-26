@@ -208,12 +208,13 @@ export function PeopleGrid({
 
       // Nearby fallback if city filter empty
       if (tab === "nearby" && rows.length < 6 && viewerCity && !filters.city) {
-        const { data: more } = await supa
+        let moreQuery = supa
           .from("profiles")
           .select(PEOPLE_SELECT)
-          .neq("id", currentUserId)
           .order("last_seen", { ascending: false })
           .limit(48);
+        if (currentUserId) moreQuery = moreQuery.neq("id", currentUserId);
+        const { data: more } = await moreQuery;
         const seen = new Set(rows.map((r) => r.id));
         for (const p of more ?? []) {
           if (!seen.has(p.id)) rows.push(p as PeopleCard);

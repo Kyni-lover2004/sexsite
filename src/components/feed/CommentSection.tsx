@@ -76,6 +76,9 @@ export function CommentSection({
     setSending(false);
     if (error || !data) {
       console.error("Comment submit error:", error);
+      alert(
+        `Ошибка отправки комментария: ${error?.message ?? "попробуйте ещё раз"}`
+      );
       return;
     }
 

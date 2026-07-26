@@ -210,7 +210,7 @@ export function ChatWindow({
     return () => {
       active = false;
     };
-  }, [conversationId, otherUserId, supa, markRead]);
+  }, [conversationId, otherUserId, currentUserId, supa, markRead]);
 
   // ---- realtime: messages + read + typing broadcast ----
   useEffect(() => {
@@ -245,19 +245,6 @@ export function ChatWindow({
             }
           }
 
-          let replyPreview: string | null = null;
-          if (newMsg.reply_to_id) {
-            setMessages((prev) => {
-              const parent = prev.find((m) => m.id === newMsg.reply_to_id);
-              replyPreview = parent
-                ? parent.metadata?.type === "image"
-                  ? "📷 Фото"
-                  : (parent.plaintext ?? "…").slice(0, 120)
-                : "Ответ на сообщение";
-              return prev;
-            });
-          }
-
           setMessages((prev) => {
             if (prev.some((m) => m.id === newMsg.id)) return prev;
             const parent = prev.find((m) => m.id === newMsg.reply_to_id);
@@ -268,14 +255,7 @@ export function ChatWindow({
               : newMsg.reply_to_id
                 ? "Ответ на сообщение"
                 : null;
-            return [
-              ...prev,
-              {
-                ...newMsg,
-                plaintext,
-                replyPreview: preview ?? replyPreview,
-              },
-            ];
+            return [...prev, { ...newMsg, plaintext, replyPreview: preview }];
           });
           setPeerTyping(false);
           void markRead();
@@ -597,8 +577,6 @@ export function ChatWindow({
     if (fileRef.current) fileRef.current.value = "";
   }
 
-  const emptyIsNew = messages.length === 0 && (isBrandNew || messages.length === 0);
-
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col p-3 pb-4 sm:p-4 md:p-6 md:pb-4">
       {/* Header */}
@@ -700,7 +678,7 @@ export function ChatWindow({
             <div className="chat-lavender mb-3 grid h-12 w-12 place-items-center rounded-xl border border-gold/20 bg-gold/10 animate-pulse-glow">
               <Lock size={20} className="text-gold-soft" />
             </div>
-            {emptyIsNew || isBrandNew ? (
+            {isBrandNew || !historyLostHint ? (
               <>
                 <p className="text-sm font-medium text-warm-100">
                   Новый диалог с {displayName}

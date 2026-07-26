@@ -41,11 +41,9 @@ export default async function GuestsPage() {
               {newCount > 0 && (
                 <span className="rounded-full border border-gold/25 bg-gold/10 px-2.5 py-1 text-gold-soft">
                   {newCount}{" "}
-                  {newCount === 1
+                  {newCount % 10 === 1 && newCount % 100 !== 11
                     ? "новый"
-                    : newCount < 5
-                      ? "новых"
-                      : "новых"}
+                    : "новых"}
                 </span>
               )}
               {mutualCount > 0 && (

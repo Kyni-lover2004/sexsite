@@ -58,6 +58,8 @@ export function NotificationBell({
   const btnRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
+  const openRef = useRef(open);
+  openRef.current = open;
   const [unread, setUnread] = useState(0);
   const [items, setItems] = useState<AppNotification[]>([]);
   const [loading, setLoading] = useState(false);
@@ -172,10 +174,11 @@ export function NotificationBell({
     window.addEventListener("focus", onFocus);
 
     let channel: ReturnType<typeof supabase.channel> | null = null;
+    let disposed = false;
     void (async () => {
       const { data } = await supabase.auth.getSession();
       const uid = data.session?.user?.id;
-      if (!uid) return;
+      if (!uid || disposed) return;
       channel = supabase
         .channel(`notifications:${uid}`)
         .on(
@@ -188,18 +191,19 @@ export function NotificationBell({
           },
           () => {
             void refreshCount();
-            if (open) void loadList();
+            if (openRef.current) void loadList();
           }
         )
         .subscribe();
     })();
 
     return () => {
+      disposed = true;
       window.clearInterval(id);
       window.removeEventListener("focus", onFocus);
       if (channel) void supabase.removeChannel(channel);
     };
-  }, [supabase, refreshCount, loadList, open]);
+  }, [supabase, refreshCount, loadList]);
 
   useEffect(() => {
     if (!open) return;

@@ -594,14 +594,12 @@ export function SwipeExperience({
           ...prev,
         ];
       });
-      if (result.mutual || true) {
-        // after like-back always mutual if they liked us
-        setMatch({
-          ...card.profile,
-          photos: card.photos,
-          isMutual: true,
-        } as SwipeCard);
-      }
+      // Like-back on a received like is always a mutual match
+      setMatch({
+        ...card.profile,
+        photos: card.photos,
+        isMutual: true,
+      } as SwipeCard);
     } else {
       showToast("Не удалось ответить лайком");
     }

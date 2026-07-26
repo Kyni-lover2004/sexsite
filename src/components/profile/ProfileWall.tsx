@@ -23,6 +23,7 @@ export function ProfileWall({
   const [body, setBody] = useState("");
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [publishError, setPublishError] = useState("");
 
   const loadPosts = useCallback(async () => {
     const { data } = await (supabase as any)
@@ -43,10 +44,11 @@ export function ProfileWall({
     const text = body.trim();
     if (!text || sending) return;
     setSending(true);
+    setPublishError("");
 
     const { data: auth } = await supabase.auth.getUser();
     if (auth.user) {
-      const { data } = await (supabase as any)
+      const { data, error } = await (supabase as any)
         .from("profile_wall_posts")
         .insert({
           user_id: profileId,
@@ -59,7 +61,11 @@ export function ProfileWall({
       if (data) {
         setPosts((prev) => [data as WallPost, ...prev]);
         setBody("");
+      } else {
+        setPublishError(error?.message ?? "Не удалось опубликовать запись");
       }
+    } else {
+      setPublishError("Необходимо войти");
     }
 
     setSending(false);
@@ -88,6 +94,9 @@ export function ProfileWall({
             placeholder="Поделитесь новостью…"
             className="w-full resize-none rounded-xl border border-gold/15 bg-base-900/60 p-3 text-base text-warm-100 outline-none focus:border-gold/45"
           />
+          {publishError && (
+            <p className="text-xs text-red-400">{publishError}</p>
+          )}
           <div className="flex items-center justify-between gap-3">
             <span className="text-xs text-slate-500">{body.length}/2000</span>
             <Button onClick={publish} disabled={!body.trim() || sending}>
