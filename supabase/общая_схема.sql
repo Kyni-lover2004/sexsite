@@ -305,9 +305,38 @@ alter table public.topics
   add column if not exists is_pinned boolean not null default false;
 
 -- Enforce "one active topic per author" at the DB level.
-create unique index if not exists topics_one_active_per_author
-  on public.topics (author_id)
-  where (status = 'active');
+-- Admins are exempt (news / promo run alongside discussions), so a partial
+-- unique index won't do — a trigger checks the author's role instead.
+drop index if exists public.topics_one_active_per_author;
+
+create or replace function public.guard_one_active_topic()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if new.status = 'active'
+     and coalesce(
+       (select role from public.profiles where id = new.author_id), ''
+     ) <> 'admin'
+     and exists (
+       select 1 from public.topics t
+       where t.author_id = new.author_id
+         and t.status = 'active'
+         and t.id <> new.id
+     )
+  then
+    raise exception 'one_active_topic_per_author';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists topics_one_active_guard on public.topics;
+create trigger topics_one_active_guard
+  before insert or update of status on public.topics
+  for each row execute function public.guard_one_active_topic();
 
 create index if not exists topics_status_created_idx on public.topics (status, created_at desc);
 create index if not exists topics_pinned_idx
