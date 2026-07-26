@@ -9,8 +9,8 @@ type Size = "sm" | "md" | "lg" | "icon";
 
 const variants: Record<Variant, string> = {
   primary:
-    "border border-gold/30 bg-accent-gradient text-white font-semibold shadow-glow-accent btn-shimmer hover:shadow-glow-accent-lg dark:border-red-300/25 dark:text-white dark:[text-shadow:0_1px_2px_rgb(0_0_0/0.45)]",
-  gold: "border border-gold/40 bg-gold-gradient text-white font-semibold shadow-glow-gold btn-shimmer hover:shadow-glow-gold-lg dark:border-red-300/30 dark:text-white dark:[text-shadow:0_1px_2px_rgb(0_0_0/0.45)]",
+    "border border-gold/30 bg-accent-gradient text-white font-semibold shadow-glow-accent btn-shimmer hover:shadow-glow-accent-lg dark:border-gold-glow/25 dark:text-white dark:[text-shadow:0_1px_2px_rgb(0_0_0/0.45)]",
+  gold: "border border-gold/40 bg-gold-gradient text-white font-semibold shadow-glow-gold btn-shimmer hover:shadow-glow-gold-lg dark:border-gold-glow/30 dark:text-white dark:[text-shadow:0_1px_2px_rgb(0_0_0/0.45)]",
   ghost: "text-warm-200 hover:bg-gold/[0.08] hover:text-warm-100 dark:text-slate-300",
   outline:
     "border border-gold/35 bg-base-900/70 text-warm-200 shadow-inner-glow hover:border-gold/55 hover:bg-gold/10 hover:text-warm-100 hover:shadow-[0_0_24px_rgb(var(--gold)/0.12)] dark:border-gold/20 dark:bg-base-900/35 dark:text-slate-200",
