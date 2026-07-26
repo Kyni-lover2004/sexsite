@@ -29,10 +29,10 @@ export function Avatar({
   const isLarge = size === "lg" || size === "xl";
 
   return (
-    <div className={cn("relative shrink-0", className)}>
+    <div className={cn("relative w-fit shrink-0", className)}>
       <div
         className={cn(
-          "rounded-full p-[2px]",
+          "w-fit rounded-full p-[2px]",
           "bg-gradient-to-br from-accent via-accent-deep to-gold",
           isLarge && online && "animate-glow-breathe"
         )}

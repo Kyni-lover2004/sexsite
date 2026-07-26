@@ -148,6 +148,19 @@ html.dark body::before {
   box-shadow: 0 10px 26px rgb(80 55 50 / 0.14) !important;
 }
 
+/* Breathing gold halo (avatars online) reads as a muddy blob on porcelain */
+.light .animate-glow-breathe {
+  animation: none;
+  box-shadow: none;
+}
+
+/* Pale amber warning text (dark-theme tone) → readable amber-brown ink */
+.light [class*="text-amber-50"],
+.light [class*="text-amber-100"],
+.light [class*="text-amber-200"] {
+  color: rgb(146 96 38) !important;
+}
+
 .light .bg-base-800\/70,
 .light .bg-base-800\/62,
 .light .bg-base-800\/60,
@@ -285,17 +298,21 @@ body::after {
   color: #fff !important;
 }
 
-/* Photo / media overlays (swipe cards, album labels) stay light-on-dark */
+/*
+ * Photo / media overlays (swipe cards, album labels) stay light-on-dark.
+ * Scoped to non-fixed scrims: fixed bg-black/* layers are MODAL BACKDROPS
+ * and their inner panels must keep normal light-theme text colors.
+ */
 .light [class*="from-black"] .text-white,
 .light [class*="from-black"] [class*="text-white"],
 .light [class*="from-black\/"] .text-white,
 .light [class*="from-black\/"] [class*="text-white"],
-.light .bg-black\/60,
-.light .bg-black\/60 *,
-.light .bg-black\/70,
-.light .bg-black\/70 *,
-.light .bg-black\/80,
-.light .bg-black\/80 * {
+.light .bg-black\/60:not(.fixed),
+.light .bg-black\/60:not(.fixed) *,
+.light .bg-black\/70:not(.fixed),
+.light .bg-black\/70:not(.fixed) *,
+.light .bg-black\/80:not(.fixed),
+.light .bg-black\/80:not(.fixed) * {
   color: #fff !important;
   -webkit-text-fill-color: #fff !important;
 }

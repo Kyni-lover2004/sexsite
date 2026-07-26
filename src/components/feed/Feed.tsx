@@ -393,11 +393,11 @@ export function Feed({
           <AnimatePresence mode="popLayout">
             {feedBlocks.map((block) =>
               block.type === "people" ? (
-                <PeopleStrip
-                  key={block.key}
-                  people={block.people}
-                  title={block.title}
-                />
+                // popLayout attaches a ref to each child — PeopleStrip is a
+                // plain function component, so give it a motion wrapper
+                <motion.div key={block.key} layout>
+                  <PeopleStrip people={block.people} title={block.title} />
+                </motion.div>
               ) : (
                 <TopicCard
                   key={block.topic.id}
@@ -459,7 +459,7 @@ function Metric({
   value: React.ReactNode;
 }) {
   return (
-    <div className="rounded-xl border border-gold/10 bg-black/20 px-3 py-2">
+    <div className="rounded-xl border border-gold/10 bg-base-900/40 px-3 py-2">
       <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.14em] text-slate-500">
         <span className="text-gold-soft/70">{icon}</span>
         {label}
